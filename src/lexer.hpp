@@ -16,10 +16,10 @@ class Lexer {
 
         auto tokenize() -> std::vector<std::shared_ptr<Token>>;
     private:
-
         auto skip_whitespace() -> void;
         auto generate_token() -> std::optional<Token>;
         auto consume() -> char;
+        auto is_curr_char(char c) -> bool;
 
         const std::string filename_;
         std::string contents_;

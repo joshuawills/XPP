@@ -21,7 +21,9 @@ auto get_type_from_lexeme(std::string const& str) -> std::optional<TokenType> {
         {"using", TokenType::USING},
         {"as", TokenType::AS},
         {"i64", TokenType::TYPE},
-        {"void", TokenType::TYPE}
+        {"void", TokenType::TYPE},
+        {"mut", TokenType::MUT},
+        {"let", TokenType::LET}
     };
 
     return lookup_map.find(str) != lookup_map.end() ? std::make_optional(lookup_map.at(str)) : std::nullopt;

@@ -3,6 +3,7 @@
 #include <fstream>
 #include <streambuf>
 #include <cctype>
+#include <iostream>
 
 auto get_file_contents(std::string const& filename) -> std::string {
     auto stream = std::ifstream{filename};
@@ -11,6 +12,10 @@ auto get_file_contents(std::string const& filename) -> std::string {
 
 auto isalpha_or_under(const char& c) -> bool {
     return (c >= 'A' and c <= 'Z') or (c >= 'a' and c <= 'z') or c == '_';
+}
+
+auto Lexer::is_curr_char(char c) -> bool {
+    return current_pos_ < contents_.size() and contents_[current_pos_] == c;
 }
 
 auto Lexer::tokenize() -> std::vector<std::shared_ptr<Token>> {
@@ -39,19 +44,74 @@ auto Lexer::generate_token() -> std::optional<Token> {
     }
 
     switch (contents_[current_pos_]) {
-        case '<': consume(); return Token{"<", current_line_, current_col_ - 1, current_col_ - 1, TokenType::LESS_THAN};
-        case '>': consume(); return Token{">", current_line_, current_col_ - 1, current_col_ - 1, TokenType::GREATER_THAN};
+        case '>': {
+            consume();
+            if (is_curr_char('=')) {
+                consume();
+                return Token{">=", current_line_, current_col_ - 2, current_col_ - 1, TokenType::GREATER_EQUAL};
+            }
+            return Token{">", current_line_, current_col_ - 1, current_col_ - 1, TokenType::GREATER_THAN};
+        }
+        case '<': {
+            consume();
+            if (is_curr_char('=')) {
+                consume();
+                return Token{"<=", current_line_, current_col_ - 2, current_col_ - 1, TokenType::LESS_EQUAL};
+            }
+            return Token{"<", current_line_, current_col_ - 1, current_col_ - 1, TokenType::LESS_THAN};
+        }
         case '{': consume(); return Token{"{", current_line_, current_col_ - 1, current_col_ - 1, TokenType::OPEN_CURLY};
         case '}': consume(); return Token{"}", current_line_, current_col_ - 1, current_col_ - 1, TokenType::CLOSE_CURLY};
         case ':': consume(); return Token{":", current_line_, current_col_ - 1, current_col_ - 1, TokenType::COLON};
         case ';': consume(); return Token{";", current_line_, current_col_ - 1, current_col_ - 1, TokenType::SEMICOLON};
         case '(': consume(); return Token{"(", current_line_, current_col_ - 1, current_col_ - 1, TokenType::OPEN_BRACKET};
         case ')': consume(); return Token{")", current_line_, current_col_ - 1, current_col_ - 1, TokenType::CLOSE_BRACKET};
+        case ',': consume(); return Token{",", current_line_, current_col_ - 1, current_col_ - 1, TokenType::COMMA};
+        case '=': {
+            consume(); 
+            if (is_curr_char('=')) {
+                consume();
+                return Token{"==", current_line_, current_col_ - 1, current_col_ - 1, TokenType::EQUAL};
+            }
+            return Token{"=", current_line_, current_col_ - 1, current_col_ - 1, TokenType::ASSIGN};
+        }
+        case '!': {
+            consume(); 
+            if (is_curr_char('=')) {
+                consume();
+                return Token{"!=", current_line_, current_col_ - 1, current_col_ - 1, TokenType::NOT_EQUAL};
+            }
+            return Token{"!", current_line_, current_col_ - 1, current_col_ - 1, TokenType::NEGATE};
+        }
+        case '|': {
+            consume();
+            if (is_curr_char('|')) {
+                consume();
+                return Token{"||", current_line_, current_col_ - 2, current_col_ - 1, TokenType::LOGICAL_OR};
+            }
+            std::cerr << "Unexpected character '|' at line " << current_line_ << ", column " << current_col_ << "\n";
+            exit(EXIT_FAILURE);
+        }
+        case '&': {
+            consume();
+            if (is_curr_char('&')) {
+                consume();
+                return Token{"&&", current_line_, current_col_ - 2, current_col_ - 1, TokenType::LOGICAL_AND};
+            }
+            std::cerr << "Unexpected character '&' at line " << current_line_ << ", column " << current_col_ << "\n";
+            exit(EXIT_FAILURE);
+        }
+        case '-': consume(); return Token{"-", current_line_, current_col_ - 1, current_col_ - 1, TokenType::MINUS};
+        case '+': consume(); return Token{"+", current_line_, current_col_ - 1, current_col_ - 1, TokenType::PLUS};
+        case '/': consume(); return Token{"/", current_line_, current_col_ - 1, current_col_ - 1, TokenType::DIVIDE};
+        case '*': consume(); return Token{"*", current_line_, current_col_ - 1, current_col_ - 1, TokenType::MULTIPLY};
     }
 
     auto buf = std::string{};
-    while (current_pos_ < contents_.size() and isalpha_or_under(contents_[current_pos_])) {
-        buf += consume();
+    if (current_pos_ < contents_.size() and isalpha_or_under(contents_[current_pos_])) {
+        while (current_pos_ < contents_.size() and (isalpha_or_under(contents_[current_pos_]) or isdigit(contents_[current_pos_]))) {
+            buf += consume();
+        }
     }
 
     if (!buf.empty()) {

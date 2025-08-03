@@ -5,8 +5,15 @@ project(compiler)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpedantic -Werror")
 
-add_executable(compiler src/compiler.cpp src/lexer.cpp src/token.cpp)
+add_executable(compiler src/compiler.cpp src/lexer.cpp src/token.cpp src/parser.cpp src/ast.cpp src/decl.cpp src/stmt.cpp src/module.cpp src/type.cpp src/expr.cpp)
 
 
 target_sources(compiler PRIVATE src/lexer.hpp)
 target_sources(compiler PRIVATE src/token.hpp)
+target_sources(compiler PRIVATE src/parser.hpp)
+target_sources(compiler PRIVATE src/ast.hpp)
+target_sources(compiler PRIVATE src/decl.hpp)
+target_sources(compiler PRIVATE src/stmt.hpp)
+target_sources(compiler PRIVATE src/module.hpp)
+target_sources(compiler PRIVATE src/type.hpp)
+target_sources(compiler PRIVATE src/expr.hpp)
