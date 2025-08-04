@@ -1,0 +1,37 @@
+#ifndef HANDLER_HPP
+#define HANDLER_HPP
+
+#include <map>
+#include <memory>
+#include <string>
+#include <vector>
+
+#include "./token.hpp"
+
+class Handler {
+ public:
+    Handler() = default;
+    Handler(bool is_quiet)
+    : is_quiet_{is_quiet} {}
+    auto add_file(const std::string filename) -> bool;
+    auto get_file_contents(const std::string& filename) -> std::shared_ptr<std::string>;
+
+    auto report_error(std::string const& filename, std::string const& message, std::string const& token, Position pos)
+        -> void;
+    auto
+    report_minor_error(std::string const& filename, std::string const& message, std::string const& token, Position pos)
+        -> void;
+
+ private:
+    std::map<std::string, std::shared_ptr<std::string>> filename_to_contents_ = {};
+    std::map<std::string, std::vector<std::string>> filename_to_lines_ = {};
+    auto log_lines(const std::string& filename, size_t line, size_t col) -> void;
+    std::string const ANSI_RED_ = "\033[31m";
+    std::string const ANSI_RESET_ = "\033[0m";
+    std::string const ANSI_YELLOW_ = "\033[33m";
+    std::string const ANSI_BLUE_ = "\033[34m";
+    bool is_quiet_ = false;
+    size_t num_errors_ = 0;
+};
+
+#endif // HANDLER_HPP
