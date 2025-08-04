@@ -13,9 +13,47 @@ class Module {
         functions_.push_back(func);
     }
 
+    auto get_filepath() const -> std::string const& {
+        return filepath_;
+    }
+
+    auto get_functions() const -> std::vector<std::shared_ptr<Function>> {
+        return functions_;
+    }
+
  private:
     std::string filepath_;
     std::vector<std::shared_ptr<Function>> functions_ = {};
+};
+
+class AllModules {
+ public:
+    AllModules() = default;
+
+    auto add_module(std::shared_ptr<Module> module) -> void {
+        modules_.push_back(module);
+    }
+
+    auto add_main_module(std::shared_ptr<Module> module) -> void {
+        main_module_ = module;
+    }
+
+    auto module_exists_from_filename(std::string const& filename) const -> bool {
+        for (const auto& module : modules_) {
+            if (module->get_filepath() == filename) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    auto get_main_module() const -> std::shared_ptr<Module> {
+        return main_module_;
+    }
+
+ private:
+    std::vector<std::shared_ptr<Module>> modules_ = {};
+    std::shared_ptr<Module> main_module_ = nullptr;
 };
 
 #endif // MODULE_HPP

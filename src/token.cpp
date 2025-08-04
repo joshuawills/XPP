@@ -3,9 +3,14 @@
 #include <iostream>
 #include <map>
 
+Token::Token(std::string lexeme, size_t line_num, size_t line_end, size_t col_start, size_t col_end, TokenType type)
+: lexeme_{std::move(lexeme)}
+, position_{line_num, line_end, col_start, col_end}
+, type_{type} {}
+
 Token::Token(std::string lexeme, size_t line_num, size_t col_start, size_t col_end, TokenType type)
 : lexeme_{std::move(lexeme)}
-, position_{line_num, col_start, col_end}
+, position_{line_num, line_num, col_start, col_end}
 , type_{type} {}
 
 auto Token::str() const -> std::string {
@@ -13,9 +18,9 @@ auto Token::str() const -> std::string {
            "lexeme: '"
            + lexeme_
            + "', "
-             "position: {line: "
-           + std::to_string(position_.line_num_) + ", col_start: " + std::to_string(position_.col_start_)
-           + ", col_end: " + std::to_string(position_.col_end_)
+             "position: {line_start: "
+           + std::to_string(position_.line_start_) + ", line_end:" + std::to_string(position_.line_end_)
+           + ", col_start: " + std::to_string(position_.col_start_) + ", col_end: " + std::to_string(position_.col_end_)
            + "}, "
              "type: "
            + std::to_string(static_cast<int>(type_)) + "}";
@@ -26,9 +31,12 @@ auto get_type_from_lexeme(std::string const& str) -> std::optional<TokenType> {
                                                              {"using", TokenType::USING},
                                                              {"as", TokenType::AS},
                                                              {"i64", TokenType::TYPE},
+                                                             {"bool", TokenType::TYPE},
                                                              {"void", TokenType::TYPE},
                                                              {"mut", TokenType::MUT},
-                                                             {"let", TokenType::LET}};
+                                                             {"let", TokenType::LET},
+                                                             {"true", TokenType::TRUE},
+                                                             {"false", TokenType::FALSE}};
 
     return lookup_map.find(str) != lookup_map.end() ? std::make_optional(lookup_map.at(str)) : std::nullopt;
 }
@@ -64,6 +72,8 @@ auto token_type_to_str(TokenType t) -> std::string {
     case TokenType::MINUS: return "MINUS";
     case TokenType::MULTIPLY: return "MULTIPLY";
     case TokenType::DIVIDE: return "DIVIDE";
+    case TokenType::TRUE: return "TRUE";
+    case TokenType::FALSE: return "FALSE";
     default: return "UNKNOWN";
     }
 }

@@ -5,6 +5,10 @@
 #include "./type.hpp"
 #include "./visitor.hpp"
 
+#include <iostream>
+
+class Decl;
+
 enum Operator {
     ASSIGN,
     LOGICAL_OR,
@@ -16,6 +20,10 @@ enum Operator {
     MINUS,
     MULTIPLY,
     DIVIDE,
+    LESS_THAN,
+    GREATER_THAN,
+    LESS_EQUAL,
+    GREATER_EQUAL,
 };
 
 class Expr : public AST {
@@ -28,6 +36,10 @@ class Expr : public AST {
         return t_;
     }
 
+    auto set_type(Type t) -> void {
+        t_ = t;
+    }
+
     virtual ~Expr() = default;
     auto visit(std::shared_ptr<Visitor> visitor) -> void override = 0;
 
@@ -35,19 +47,23 @@ class Expr : public AST {
     Type t_;
 };
 
-class EmptyExpr : public Expr {
+class EmptyExpr
+: public Expr
+, public std::enable_shared_from_this<EmptyExpr> {
  public:
     EmptyExpr(Position pos)
     : Expr(pos, Type{TypeSpec::UNKNOWN, std::nullopt}) {}
 
     auto visit(std::shared_ptr<Visitor> visitor) -> void override {
-        visitor->visit_empty_expr(std::make_shared<EmptyExpr>(*this));
+        visitor->visit_empty_expr(shared_from_this());
     }
 
  private:
 };
 
-class AssignmentExpr : public Expr {
+class AssignmentExpr
+: public Expr
+, public std::enable_shared_from_this<AssignmentExpr> {
  public:
     AssignmentExpr(Position pos, std::shared_ptr<Expr> left, Operator op, std::shared_ptr<Expr> right)
     : Expr(pos, Type{TypeSpec::UNKNOWN, std::nullopt})
@@ -66,7 +82,7 @@ class AssignmentExpr : public Expr {
     }
 
     auto visit(std::shared_ptr<Visitor> visitor) -> void override {
-        visitor->visit_assignment_expr(std::make_shared<AssignmentExpr>(*this));
+        visitor->visit_assignment_expr(shared_from_this());
     }
 
  private:
@@ -75,7 +91,9 @@ class AssignmentExpr : public Expr {
     std::shared_ptr<Expr> right_;
 };
 
-class BinaryExpr : public Expr {
+class BinaryExpr
+: public Expr
+, public std::enable_shared_from_this<BinaryExpr> {
  public:
     BinaryExpr(Position pos, std::shared_ptr<Expr> left, Operator op, std::shared_ptr<Expr> right)
     : Expr(pos, Type{TypeSpec::UNKNOWN, std::nullopt})
@@ -94,7 +112,7 @@ class BinaryExpr : public Expr {
     }
 
     auto visit(std::shared_ptr<Visitor> visitor) -> void override {
-        visitor->visit_binary_expr(std::make_shared<BinaryExpr>(*this));
+        visitor->visit_binary_expr(shared_from_this());
     }
 
  private:
@@ -103,7 +121,9 @@ class BinaryExpr : public Expr {
     std::shared_ptr<Expr> right_;
 };
 
-class UnaryExpr : public Expr {
+class UnaryExpr
+: public Expr
+, public std::enable_shared_from_this<UnaryExpr> {
  public:
     UnaryExpr(Position pos, Operator op, std::shared_ptr<Expr> expr)
     : Expr(pos, Type{TypeSpec::UNKNOWN, std::nullopt})
@@ -118,7 +138,7 @@ class UnaryExpr : public Expr {
     }
 
     auto visit(std::shared_ptr<Visitor> visitor) -> void override {
-        visitor->visit_unary_expr(std::make_shared<UnaryExpr>(*this));
+        visitor->visit_unary_expr(shared_from_this());
     }
 
  private:
@@ -126,7 +146,9 @@ class UnaryExpr : public Expr {
     std::shared_ptr<Expr> expr_;
 };
 
-class IntExpr : public Expr {
+class IntExpr
+: public Expr
+, public std::enable_shared_from_this<IntExpr> {
  public:
     IntExpr(Position pos, int64_t value)
     : Expr(pos, Type{TypeSpec::I64, std::nullopt})
@@ -137,14 +159,36 @@ class IntExpr : public Expr {
     }
 
     auto visit(std::shared_ptr<Visitor> visitor) -> void override {
-        visitor->visit_int_expr(std::make_shared<IntExpr>(*this));
+        visitor->visit_int_expr(shared_from_this());
     }
 
  private:
     int64_t value_;
 };
 
-class VarExpr : public Expr {
+class BoolExpr
+: public Expr
+, public std::enable_shared_from_this<BoolExpr> {
+ public:
+    BoolExpr(Position pos, bool value)
+    : Expr(pos, Type{TypeSpec::BOOL, std::nullopt})
+    , value_(value) {}
+
+    auto get_value() const -> bool {
+        return value_;
+    }
+
+    auto visit(std::shared_ptr<Visitor> visitor) -> void override {
+        visitor->visit_bool_expr(shared_from_this());
+    }
+
+ private:
+    bool value_;
+};
+
+class VarExpr
+: public Expr
+, public std::enable_shared_from_this<VarExpr> {
  public:
     VarExpr(Position pos, std::string name, Type t)
     : Expr(pos, t)
@@ -159,11 +203,20 @@ class VarExpr : public Expr {
     }
 
     auto visit(std::shared_ptr<Visitor> visitor) -> void override {
-        visitor->visit_var_expr(std::make_shared<VarExpr>(*this));
+        visitor->visit_var_expr(shared_from_this());
+    }
+
+    auto set_ref(std::shared_ptr<Decl> ref) -> void {
+        ref_ = ref;
+    }
+
+    auto get_ref() const -> std::shared_ptr<Decl> {
+        return ref_;
     }
 
  private:
     std::string name_;
+    std::shared_ptr<Decl> ref_ = nullptr;
 };
 
 #endif // EXPR_HPP

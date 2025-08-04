@@ -20,6 +20,10 @@ class AST {
 
     virtual ~AST() = default;
 
+    auto pos() const -> Position {
+        return pos_;
+    }
+
     virtual auto visit(std::shared_ptr<Visitor> visitor) -> void = 0;
 
  private:

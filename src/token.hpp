@@ -8,7 +8,7 @@
 #include <vector>
 
 struct Position {
-    size_t line_num_, col_start_, col_end_;
+    size_t line_start_, line_end_, col_start_, col_end_;
 };
 
 enum class TokenType {
@@ -41,11 +41,14 @@ enum class TokenType {
     MINUS,
     MULTIPLY,
     DIVIDE,
+    TRUE,
+    FALSE,
 };
 
 class Token {
  public:
     Token() = default;
+    Token(std::string lexeme, size_t line_num, size_t line_end, size_t col_start, size_t col_end, TokenType type);
     Token(std::string lexeme, size_t line_num, size_t col_start, size_t col_end, TokenType type);
     ~Token() = default;
     auto str() const -> std::string;

@@ -7,6 +7,12 @@
 #include <optional>
 #include <streambuf>
 
+const Type Handler::VOID_TYPE = Type{TypeSpec::VOID, std::nullopt};
+const Type Handler::I64_TYPE = Type{TypeSpec::I64, std::nullopt};
+const Type Handler::ERROR_TYPE = Type{TypeSpec::ERROR, std::nullopt};
+const Type Handler::BOOL_TYPE = Type{TypeSpec::BOOL, std::nullopt};
+const Type Handler::UNKNOWN_TYPE = Type{TypeSpec::UNKNOWN, std::nullopt};
+
 auto read_file(std::string const& filename) -> std::optional<std::string> {
     auto stream = std::ifstream{filename};
     if (!stream) {
@@ -54,7 +60,7 @@ auto Handler::report_error(std::string const& filename, std::string const& messa
         }
     }
     std::cout << "\n";
-    log_lines(filename, pos.line_num_, pos.col_start_);
+    log_lines(filename, pos.line_start_, pos.col_start_);
     ++num_errors_;
 }
 
@@ -74,14 +80,14 @@ auto Handler::report_minor_error(std::string const& filename,
         }
     }
     std::cout << "\n";
-    log_lines(filename, pos.line_num_, pos.col_start_);
+    log_lines(filename, pos.line_start_, pos.col_start_);
 }
 
-auto Handler::log_lines(const std::string& filename, size_t line, size_t col) -> void {
+auto Handler::log_lines(const std::string& filename, int line, int col) -> void {
     std::cout << ANSI_YELLOW_ << filename << ":" << line << ":" << col << ANSI_RESET_ << ":\n";
     auto const& lines = filename_to_lines_[filename];
-    for (size_t i = line - 2; i <= line + 2; ++i) {
-        if (i >= 1 and i <= lines.size()) {
+    for (int i = line - 2; i <= line + 2; ++i) {
+        if (i >= 1 and i <= (int)lines.size()) {
             std::cout << std::setw(5) << i << " | ";
             std::cout << lines[i - 1] << "\n";
         }

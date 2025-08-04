@@ -17,24 +17,32 @@ class Stmt : public AST {
  private:
 };
 
-class EmptyStmt : public Stmt {
+class EmptyStmt
+: public Stmt
+, public std::enable_shared_from_this<EmptyStmt> {
  public:
     EmptyStmt(Position pos)
     : Stmt(pos) {}
 
     auto visit(std::shared_ptr<Visitor> visitor) -> void override {
-        visitor->visit_empty_stmt(std::make_shared<EmptyStmt>(*this));
+        visitor->visit_empty_stmt(shared_from_this());
     }
 };
 
-class LocalVarStmt : public Stmt {
+class LocalVarStmt
+: public Stmt
+, public std::enable_shared_from_this<LocalVarStmt> {
  public:
     LocalVarStmt(Position pos, std::shared_ptr<LocalVarDecl> decl)
     : Stmt(pos)
     , decl_(decl) {}
 
     auto visit(std::shared_ptr<Visitor> visitor) -> void override {
-        visitor->visit_local_var_stmt(std::make_shared<LocalVarStmt>(*this));
+        visitor->visit_local_var_stmt(shared_from_this());
+    }
+
+    auto get_decl() const -> std::shared_ptr<LocalVarDecl> {
+        return decl_;
     }
 
  private:

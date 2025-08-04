@@ -16,6 +16,10 @@ class Decl : public AST {
 
     auto visit(std::shared_ptr<Visitor> visitor) -> void override = 0;
 
+    auto set_type(Type t) -> void {
+        t_ = t;
+    }
+
     auto is_used() const -> bool {
         return is_used_;
     }
@@ -47,43 +51,61 @@ class Decl : public AST {
     auto get_ident() const -> std::string const& {
         return ident_;
     }
-    auto get_type() const -> Type const& {
+    auto get_type() const -> Type {
         return t_;
     }
 
- private:
+ protected:
     bool is_used_ = false, is_reassigned_ = false, is_mut_ = false, is_exported_ = false;
     std::string ident_;
     Type t_;
 };
 
-class ParaDecl : public Decl {
+class ParaDecl
+: public Decl
+, public std::enable_shared_from_this<ParaDecl> {
  public:
     ParaDecl(Position pos, std::string ident, Type t)
     : Decl(pos, ident, t) {}
 
     auto visit(std::shared_ptr<Visitor> visitor) -> void override {
-        visitor->visit_para_decl(std::make_shared<ParaDecl>(*this));
+        visitor->visit_para_decl(shared_from_this());
+    }
+
+    auto operator==(const ParaDecl& other) const -> bool {
+        return t_ == other.t_;
+    }
+
+    auto operator!=(const ParaDecl& other) const -> bool {
+        return !(*this == other);
     }
 
  private:
 };
 
-class LocalVarDecl : public Decl {
+class LocalVarDecl
+: public Decl
+, public std::enable_shared_from_this<LocalVarDecl> {
  public:
     LocalVarDecl(Position pos, std::string ident, Type t, std::shared_ptr<Expr> e)
     : Decl(pos, ident, t)
     , e_(e) {}
 
     auto visit(std::shared_ptr<Visitor> visitor) -> void override {
-        visitor->visit_local_var_decl(std::make_shared<LocalVarDecl>(*this));
+        visitor->visit_local_var_decl(shared_from_this());
+    }
+
+    auto get_expr() const -> std::shared_ptr<Expr> {
+        return e_;
     }
 
  private:
     std::shared_ptr<Expr> e_;
 };
 
-class Function : public Decl {
+class Function
+: public Decl
+, public std::enable_shared_from_this<Function> {
  public:
     Function(Position pos,
              std::string ident,
@@ -102,8 +124,10 @@ class Function : public Decl {
     }
 
     auto visit(std::shared_ptr<Visitor> visitor) -> void override {
-        visitor->visit_function(std::make_shared<Function>(*this));
+        visitor->visit_function(shared_from_this());
     }
+
+    auto operator==(const Function& other) const -> bool;
 
  private:
     std::vector<std::shared_ptr<ParaDecl>> paras_;

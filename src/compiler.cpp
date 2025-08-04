@@ -3,6 +3,7 @@
 #include "./handler.hpp"
 #include "./lexer.hpp"
 #include "./parser.hpp"
+#include "./verifier.hpp"
 
 auto main(int argc, char** argv) -> int {
     auto handler = std::make_shared<Handler>();
@@ -16,8 +17,19 @@ auto main(int argc, char** argv) -> int {
     auto lexer = Lexer(handler->source_filename, handler);
     auto tokens = lexer.tokenize();
 
+    if (handler->tokens_mode()) {
+        log_tokens(tokens);
+        exit(EXIT_SUCCESS);
+    }
+
     auto parser = Parser(tokens, handler->source_filename, handler);
     auto module = parser.parse();
+
+    auto modules = std::make_shared<AllModules>();
+    modules->add_main_module(module);
+
+    auto verifier = std::make_shared<Verifier>(handler, modules);
+    verifier->check(handler->source_filename, true);
 
     return 0;
 }

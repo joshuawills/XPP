@@ -15,7 +15,8 @@ auto Parser::start(Position& pos) -> void {
 
 auto Parser::finish(Position& pos) -> void {
     if (curr_token_.has_value()) {
-        pos = (*curr_token_)->pos();
+        pos.col_end_ = (*curr_token_)->pos().col_end_;
+        pos.line_end_ = (*curr_token_)->pos().line_end_;
     }
 }
 
@@ -81,16 +82,21 @@ auto Parser::parse_operator() -> Operator {
         syntactic_error("OPERATOR expected, but found end of file", "");
     }
 
-    auto const type_to_operator_mapping = std::map<TokenType, Operator>{{TokenType::ASSIGN, Operator::ASSIGN},
-                                                                        {TokenType::LOGICAL_OR, Operator::LOGICAL_OR},
-                                                                        {TokenType::LOGICAL_AND, Operator::LOGICAL_AND},
-                                                                        {TokenType::EQUAL, Operator::EQUAL},
-                                                                        {TokenType::NOT_EQUAL, Operator::NOT_EQUAL},
-                                                                        {TokenType::NEGATE, Operator::NEGATE},
-                                                                        {TokenType::PLUS, Operator::PLUS},
-                                                                        {TokenType::MINUS, Operator::MINUS},
-                                                                        {TokenType::MULTIPLY, Operator::MULTIPLY},
-                                                                        {TokenType::DIVIDE, Operator::DIVIDE}};
+    auto const type_to_operator_mapping =
+        std::map<TokenType, Operator>{{TokenType::ASSIGN, Operator::ASSIGN},
+                                      {TokenType::LOGICAL_OR, Operator::LOGICAL_OR},
+                                      {TokenType::LOGICAL_AND, Operator::LOGICAL_AND},
+                                      {TokenType::EQUAL, Operator::EQUAL},
+                                      {TokenType::NOT_EQUAL, Operator::NOT_EQUAL},
+                                      {TokenType::NEGATE, Operator::NEGATE},
+                                      {TokenType::PLUS, Operator::PLUS},
+                                      {TokenType::MINUS, Operator::MINUS},
+                                      {TokenType::MULTIPLY, Operator::MULTIPLY},
+                                      {TokenType::DIVIDE, Operator::DIVIDE},
+                                      {TokenType::LESS_THAN, Operator::LESS_THAN},
+                                      {TokenType::GREATER_THAN, Operator::GREATER_THAN},
+                                      {TokenType::LESS_EQUAL, Operator::LESS_EQUAL},
+                                      {TokenType::GREATER_EQUAL, Operator::GREATER_EQUAL}};
 
     if (type_to_operator_mapping.find((*curr_token_)->type()) != type_to_operator_mapping.end()) {
         auto op = type_to_operator_mapping.at((*curr_token_)->type());
@@ -106,7 +112,7 @@ auto Parser::parse_ident() -> std::string {
     if (!curr_token_.has_value()) {
         syntactic_error("IDENTIFIER expected, but found end of file", "");
     }
-    auto spelling = (*curr_token_)->str();
+    auto spelling = (*curr_token_)->lexeme();
     match(TokenType::IDENT);
     return spelling;
 }
@@ -328,6 +334,12 @@ auto Parser::parse_primary_expr() -> std::shared_ptr<Expr> {
         auto expr = parse_expr();
         match(TokenType::CLOSE_BRACKET);
         return expr;
+    }
+    else if (peek(TokenType::TRUE) or peek(TokenType::FALSE)) {
+        auto const value = (*curr_token_)->type_matches(TokenType::TRUE);
+        consume();
+        finish(p);
+        return std::make_shared<BoolExpr>(p, value);
     }
 
     syntactic_error("UNRECOGNIZED PRIMARY EXPRESSION: %", (*curr_token_)->str());

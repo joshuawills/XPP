@@ -11,6 +11,7 @@ class AssignmentExpr;
 class BinaryExpr;
 class UnaryExpr;
 class IntExpr;
+class BoolExpr;
 class VarExpr;
 class EmptyStmt;
 class LocalVarStmt;
@@ -25,6 +26,7 @@ class Visitor {
     virtual auto visit_binary_expr(std::shared_ptr<BinaryExpr> binary_expr) -> void = 0;
     virtual auto visit_unary_expr(std::shared_ptr<UnaryExpr> unary_expr) -> void = 0;
     virtual auto visit_int_expr(std::shared_ptr<IntExpr> int_expr) -> void = 0;
+    virtual auto visit_bool_expr(std::shared_ptr<BoolExpr> bool_expr) -> void = 0;
     virtual auto visit_var_expr(std::shared_ptr<VarExpr> var_expr) -> void = 0;
 
     virtual auto visit_empty_stmt(std::shared_ptr<EmptyStmt> empty_stmt) -> void = 0;

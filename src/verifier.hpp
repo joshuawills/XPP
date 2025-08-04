@@ -1,0 +1,97 @@
+#ifndef VERIFIER_HPP
+#define VERIFIER_HPP
+
+#include <list>
+#include <memory>
+
+#include "./handler.hpp"
+#include "./module.hpp"
+#include "./visitor.hpp"
+
+struct TableEntry {
+    std::string id;
+    int level;
+    std::shared_ptr<Decl> attr;
+};
+
+class SymbolTable {
+ public:
+    SymbolTable() = default;
+
+    auto open_scope() -> void {
+        ++level_;
+    }
+    auto close_scope() -> void {
+        while (!entries_.empty() and entries_.back().level == level_) {
+            entries_.pop_back();
+        }
+    }
+    auto insert(std::string id, std::shared_ptr<Decl> attr) -> void {
+        entries_.push_back(TableEntry{id, level_, attr});
+    }
+    auto retrieve_one_level(std::string const& id) -> std::optional<TableEntry>;
+    auto remove(TableEntry const& entry) -> void {
+        entries_.remove_if([&](const TableEntry& e) { return e.id == entry.id && e.level == entry.level; });
+    }
+
+ private:
+    std::list<TableEntry> entries_;
+    int level_ = 1;
+};
+
+class Verifier
+: public std::enable_shared_from_this<Verifier>
+, public Visitor {
+ public:
+    Verifier(std::shared_ptr<Handler> handler, std::shared_ptr<AllModules> modules)
+    : handler_(handler)
+    , modules_(modules) {}
+
+    auto visit_para_decl(std::shared_ptr<ParaDecl> para_decl) -> void override;
+    auto visit_local_var_decl(std::shared_ptr<LocalVarDecl> local_var_decl) -> void override;
+    auto visit_function(std::shared_ptr<Function> function) -> void override;
+    auto visit_empty_expr(std::shared_ptr<EmptyExpr> empty_expr) -> void override;
+    auto visit_assignment_expr(std::shared_ptr<AssignmentExpr> assignment_expr) -> void override;
+    auto visit_binary_expr(std::shared_ptr<BinaryExpr> binary_expr) -> void override;
+    auto visit_unary_expr(std::shared_ptr<UnaryExpr> unary_expr) -> void override;
+    auto visit_int_expr(std::shared_ptr<IntExpr> int_expr) -> void override;
+    auto visit_bool_expr(std::shared_ptr<BoolExpr> bool_expr) -> void override;
+    auto visit_var_expr(std::shared_ptr<VarExpr> var_expr) -> void override;
+
+    auto visit_empty_stmt(std::shared_ptr<EmptyStmt> empty_stmt) -> void override;
+    auto visit_local_var_stmt(std::shared_ptr<LocalVarStmt> local_var_stmt) -> void override;
+
+    auto check(std::string const& filename, bool is_main) -> void;
+
+ private:
+    std::shared_ptr<Handler> handler_;
+    std::shared_ptr<AllModules> modules_;
+
+    SymbolTable symbol_table_ = {};
+
+    bool has_main_ = false, has_return_ = false, in_main_ = false;
+
+    size_t base_statement_counter = 0;
+
+    std::string current_filename_;
+    std::shared_ptr<Module> current_module_ = nullptr;
+
+    std::vector<std::string> const all_errors_ = {
+        "0: main function is missing",
+        "1: duplicate function declaration",
+        "2: invalid main function signature: %",
+        "3: identifier redeclared: %",
+        "4: identifier declared void: %",
+        "5: incompatible type for this binary operator: %",
+        "6: incompatible type for this assignment: %",
+        "7: LHS of assignment must be a variable",
+        "8: variable not declared in this scope: %",
+        "9: incompatible type for this unary operator: %",
+    };
+
+    auto check_duplicate_function_declaration() -> void;
+
+    auto declare_variable(std::string ident, std::shared_ptr<Decl> decl) -> void;
+};
+
+#endif // VERIFIER_HPP
