@@ -2,6 +2,7 @@
 #define AST_HPP
 
 #include "./token.hpp"
+#include "./visitor.hpp"
 #include <string>
 
 class AST {
@@ -18,6 +19,8 @@ class AST {
     }
 
     virtual ~AST() = default;
+
+    virtual auto visit(std::shared_ptr<Visitor> visitor) -> void = 0;
 
  private:
     Position pos_;

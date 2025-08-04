@@ -127,6 +127,12 @@ auto Lexer::generate_token() -> std::optional<Token> {
         return Token{buf, current_line_, current_col_ - buf.size(), current_col_ - 1, TokenType::INTEGER};
     }
 
+    if (current_pos_ < contents_->size()) {
+        std::cerr << "Unexpected character '" << (*contents_)[current_pos_] << "' at line " << current_line_
+                  << ", column " << current_col_ << "\n";
+        exit(EXIT_FAILURE);
+    }
+
     return std::nullopt;
 }
 

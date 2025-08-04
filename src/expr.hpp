@@ -3,6 +3,7 @@
 
 #include "./ast.hpp"
 #include "./type.hpp"
+#include "./visitor.hpp"
 
 enum Operator {
     ASSIGN,
@@ -27,6 +28,9 @@ class Expr : public AST {
         return t_;
     }
 
+    virtual ~Expr() = default;
+    auto visit(std::shared_ptr<Visitor> visitor) -> void override = 0;
+
  private:
     Type t_;
 };
@@ -35,6 +39,10 @@ class EmptyExpr : public Expr {
  public:
     EmptyExpr(Position pos)
     : Expr(pos, Type{TypeSpec::UNKNOWN, std::nullopt}) {}
+
+    auto visit(std::shared_ptr<Visitor> visitor) -> void override {
+        visitor->visit_empty_expr(std::make_shared<EmptyExpr>(*this));
+    }
 
  private:
 };
@@ -55,6 +63,10 @@ class AssignmentExpr : public Expr {
     }
     auto get_operator() const -> Operator {
         return op_;
+    }
+
+    auto visit(std::shared_ptr<Visitor> visitor) -> void override {
+        visitor->visit_assignment_expr(std::make_shared<AssignmentExpr>(*this));
     }
 
  private:
@@ -81,6 +93,10 @@ class BinaryExpr : public Expr {
         return op_;
     }
 
+    auto visit(std::shared_ptr<Visitor> visitor) -> void override {
+        visitor->visit_binary_expr(std::make_shared<BinaryExpr>(*this));
+    }
+
  private:
     std::shared_ptr<Expr> left_;
     Operator op_;
@@ -101,6 +117,10 @@ class UnaryExpr : public Expr {
         return op_;
     }
 
+    auto visit(std::shared_ptr<Visitor> visitor) -> void override {
+        visitor->visit_unary_expr(std::make_shared<UnaryExpr>(*this));
+    }
+
  private:
     Operator op_;
     std::shared_ptr<Expr> expr_;
@@ -114,6 +134,10 @@ class IntExpr : public Expr {
 
     auto get_value() const -> int64_t {
         return value_;
+    }
+
+    auto visit(std::shared_ptr<Visitor> visitor) -> void override {
+        visitor->visit_int_expr(std::make_shared<IntExpr>(*this));
     }
 
  private:
@@ -132,6 +156,10 @@ class VarExpr : public Expr {
 
     auto get_name() const -> std::string const& {
         return name_;
+    }
+
+    auto visit(std::shared_ptr<Visitor> visitor) -> void override {
+        visitor->visit_var_expr(std::make_shared<VarExpr>(*this));
     }
 
  private:

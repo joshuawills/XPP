@@ -12,7 +12,7 @@ class Handler {
  public:
     Handler() = default;
     Handler(bool is_quiet)
-    : is_quiet_{is_quiet} {}
+    : quiet_{is_quiet} {}
     auto add_file(const std::string filename) -> bool;
     auto get_file_contents(const std::string& filename) -> std::shared_ptr<std::string>;
 
@@ -22,6 +22,12 @@ class Handler {
     report_minor_error(std::string const& filename, std::string const& message, std::string const& token, Position pos)
         -> void;
 
+    auto parse_cl_args(int argc, std::vector<std::string> argv) -> bool;
+
+    static auto help() -> void;
+
+    std::string source_filename = {};
+
  private:
     std::map<std::string, std::shared_ptr<std::string>> filename_to_contents_ = {};
     std::map<std::string, std::vector<std::string>> filename_to_lines_ = {};
@@ -30,7 +36,10 @@ class Handler {
     std::string const ANSI_RESET_ = "\033[0m";
     std::string const ANSI_YELLOW_ = "\033[33m";
     std::string const ANSI_BLUE_ = "\033[34m";
-    bool is_quiet_ = false;
+    bool quiet_ = false, run_ = false, parser_raw_ = false, tokens_ = false, parser_ = false;
+    bool assembly_ = false, stats_ = false;
+    std::string output_filename_ = "a.out";
+
     size_t num_errors_ = 0;
 };
 

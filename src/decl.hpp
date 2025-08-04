@@ -5,6 +5,7 @@
 #include "./expr.hpp"
 #include "./stmt.hpp"
 #include "./type.hpp"
+#include "./visitor.hpp"
 
 class Decl : public AST {
  public:
@@ -12,6 +13,8 @@ class Decl : public AST {
     : AST(pos)
     , ident_(std::move(ident))
     , t_(std::move(t)) {}
+
+    auto visit(std::shared_ptr<Visitor> visitor) -> void override = 0;
 
     auto is_used() const -> bool {
         return is_used_;
@@ -59,6 +62,10 @@ class ParaDecl : public Decl {
     ParaDecl(Position pos, std::string ident, Type t)
     : Decl(pos, ident, t) {}
 
+    auto visit(std::shared_ptr<Visitor> visitor) -> void override {
+        visitor->visit_para_decl(std::make_shared<ParaDecl>(*this));
+    }
+
  private:
 };
 
@@ -67,6 +74,10 @@ class LocalVarDecl : public Decl {
     LocalVarDecl(Position pos, std::string ident, Type t, std::shared_ptr<Expr> e)
     : Decl(pos, ident, t)
     , e_(e) {}
+
+    auto visit(std::shared_ptr<Visitor> visitor) -> void override {
+        visitor->visit_local_var_decl(std::make_shared<LocalVarDecl>(*this));
+    }
 
  private:
     std::shared_ptr<Expr> e_;
@@ -88,6 +99,10 @@ class Function : public Decl {
     }
     auto get_stmts() const -> std::vector<std::shared_ptr<Stmt>> const& {
         return stmts_;
+    }
+
+    auto visit(std::shared_ptr<Visitor> visitor) -> void override {
+        visitor->visit_function(std::make_shared<Function>(*this));
     }
 
  private:
