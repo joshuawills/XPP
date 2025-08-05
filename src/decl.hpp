@@ -15,6 +15,7 @@ class Decl : public AST {
     , t_(std::move(t)) {}
 
     auto visit(std::shared_ptr<Visitor> visitor) -> void override = 0;
+    auto codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* override = 0;
 
     auto set_type(Type t) -> void {
         t_ = t;
@@ -80,6 +81,8 @@ class ParaDecl
         return !(*this == other);
     }
 
+    auto codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* override;
+
  private:
 };
 
@@ -94,6 +97,8 @@ class LocalVarDecl
     auto visit(std::shared_ptr<Visitor> visitor) -> void override {
         visitor->visit_local_var_decl(shared_from_this());
     }
+
+    auto codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* override;
 
     auto get_expr() const -> std::shared_ptr<Expr> {
         return e_;
@@ -126,6 +131,7 @@ class Function
     auto visit(std::shared_ptr<Visitor> visitor) -> void override {
         visitor->visit_function(shared_from_this());
     }
+    auto codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* override;
 
     auto operator==(const Function& other) const -> bool;
 

@@ -42,6 +42,7 @@ class Expr : public AST {
 
     virtual ~Expr() = default;
     auto visit(std::shared_ptr<Visitor> visitor) -> void override = 0;
+    auto codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* override = 0;
 
  private:
     Type t_;
@@ -57,6 +58,7 @@ class EmptyExpr
     auto visit(std::shared_ptr<Visitor> visitor) -> void override {
         visitor->visit_empty_expr(shared_from_this());
     }
+    auto codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* override;
 
  private:
 };
@@ -84,6 +86,7 @@ class AssignmentExpr
     auto visit(std::shared_ptr<Visitor> visitor) -> void override {
         visitor->visit_assignment_expr(shared_from_this());
     }
+    auto codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* override;
 
  private:
     std::shared_ptr<Expr> left_;
@@ -114,11 +117,15 @@ class BinaryExpr
     auto visit(std::shared_ptr<Visitor> visitor) -> void override {
         visitor->visit_binary_expr(shared_from_this());
     }
+    auto codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* override;
 
  private:
     std::shared_ptr<Expr> left_;
     Operator op_;
     std::shared_ptr<Expr> right_;
+
+    auto handle_logical_or(std::shared_ptr<Emitter> emitter) -> llvm::Value*;
+    auto handle_logical_and(std::shared_ptr<Emitter> emitter) -> llvm::Value*;
 };
 
 class UnaryExpr
@@ -140,6 +147,7 @@ class UnaryExpr
     auto visit(std::shared_ptr<Visitor> visitor) -> void override {
         visitor->visit_unary_expr(shared_from_this());
     }
+    auto codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* override;
 
  private:
     Operator op_;
@@ -161,6 +169,7 @@ class IntExpr
     auto visit(std::shared_ptr<Visitor> visitor) -> void override {
         visitor->visit_int_expr(shared_from_this());
     }
+    auto codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* override;
 
  private:
     int64_t value_;
@@ -181,6 +190,7 @@ class BoolExpr
     auto visit(std::shared_ptr<Visitor> visitor) -> void override {
         visitor->visit_bool_expr(shared_from_this());
     }
+    auto codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* override;
 
  private:
     bool value_;
@@ -205,6 +215,7 @@ class VarExpr
     auto visit(std::shared_ptr<Visitor> visitor) -> void override {
         visitor->visit_var_expr(shared_from_this());
     }
+    auto codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* override;
 
     auto set_ref(std::shared_ptr<Decl> ref) -> void {
         ref_ = ref;

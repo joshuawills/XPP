@@ -28,6 +28,21 @@ class Handler {
         return tokens_;
     }
 
+    auto get_output_filename() -> std::string {
+        return output_filename_;
+    }
+    auto get_object_filename() -> std::string {
+        return object_filename_;
+    }
+
+    auto get_assembly_filename() -> std::string {
+        return assembly_filename_;
+    }
+
+    auto is_assembly() const noexcept -> bool {
+        return assembly_;
+    }
+
     static auto help() -> void;
 
     std::string source_filename = {};
@@ -49,6 +64,8 @@ class Handler {
     bool quiet_ = false, run_ = false, parser_raw_ = false, tokens_ = false, parser_ = false;
     bool assembly_ = false, stats_ = false;
     std::string output_filename_ = "a.out";
+    std::string object_filename_ = "default.o";
+    std::string assembly_filename_ = "default.s";
 
     size_t num_errors_ = 0;
 };

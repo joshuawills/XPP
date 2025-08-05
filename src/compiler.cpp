@@ -1,5 +1,6 @@
 #include <iostream>
 
+#include "./emitter.hpp"
 #include "./handler.hpp"
 #include "./lexer.hpp"
 #include "./parser.hpp"
@@ -30,6 +31,9 @@ auto main(int argc, char** argv) -> int {
 
     auto verifier = std::make_shared<Verifier>(handler, modules);
     verifier->check(handler->source_filename, true);
+
+    auto emitter = std::make_shared<Emitter>(modules, module, handler);
+    emitter->emit();
 
     return 0;
 }

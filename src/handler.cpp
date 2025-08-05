@@ -138,7 +138,12 @@ auto Handler::parse_cl_args(int argc, std::vector<std::string> argv) -> bool {
             it = std::find(argv.begin(), argv.end(), "--out");
         }
         if (it != argv.end() && ++it != argv.end()) {
-            output_filename_ = *it;
+            if (assembly_) {
+                assembly_filename_ = *it;
+            }
+            else {
+                output_filename_ = *it;
+            }
         }
         else {
             std::cerr << "Error: No output filename specified after -o or --out\n";

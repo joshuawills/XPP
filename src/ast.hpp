@@ -1,9 +1,12 @@
 #ifndef AST_HPP
 #define AST_HPP
 
+#include "./emitter.hpp"
 #include "./token.hpp"
 #include "./visitor.hpp"
 #include <string>
+
+#include "llvm/IR/Value.h"
 
 class AST {
  public:
@@ -19,6 +22,8 @@ class AST {
     }
 
     virtual ~AST() = default;
+
+    virtual auto codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* = 0;
 
     auto pos() const -> Position {
         return pos_;
