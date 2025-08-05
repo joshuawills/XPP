@@ -52,6 +52,10 @@ auto Verifier::visit_local_var_decl(std::shared_ptr<LocalVarDecl> local_var_decl
     return;
 }
 
+auto Verifier::visit_extern(std::shared_ptr<Extern> extern_) -> void {
+    (void)extern_;
+}
+
 auto Verifier::visit_function(std::shared_ptr<Function> function) -> void {
     base_statement_counter = 0;
     // Verifying main function
@@ -264,7 +268,7 @@ auto Verifier::visit_call_expr(std::shared_ptr<CallExpr> call_expr) -> void {
         arg->visit(shared_from_this());
     }
 
-    auto equivalent_func = current_module_->get_function(call_expr);
+    auto equivalent_func = current_module_->get_decl(call_expr);
     if (!equivalent_func) {
         handler_->report_error(current_filename_, all_errors_[14], function_name, call_expr->pos());
         return;
@@ -301,6 +305,10 @@ auto Verifier::visit_return_stmt(std::shared_ptr<ReturnStmt> return_stmt) -> voi
     return;
 }
 
+auto Verifier::visit_expr_stmt(std::shared_ptr<ExprStmt> expr_stmt) -> void {
+    expr_stmt->get_expr()->visit(shared_from_this());
+}
+
 auto Verifier::check(std::string const& filename, bool is_main) -> void {
     current_filename_ = filename;
 
@@ -324,8 +332,13 @@ auto Verifier::check(std::string const& filename, bool is_main) -> void {
 
     current_module_ = module;
 
+    check_duplicate_extern_declaration();
+    for (auto& extern_ : current_module_->get_externs()) {
+        extern_->visit(shared_from_this());
+    }
+
     check_duplicate_function_declaration();
-    for (auto func : current_module_->get_functions()) {
+    for (auto& func : current_module_->get_functions()) {
         func->visit(shared_from_this());
     }
 
@@ -343,6 +356,19 @@ auto Verifier::check_duplicate_function_declaration() -> void {
         }
         else {
             seen_functions.push_back(*func);
+        }
+    }
+}
+
+auto Verifier::check_duplicate_extern_declaration() -> void {
+    std::vector<Extern> seen_externs;
+    for (const auto& extern_ : current_module_->get_externs()) {
+        auto it = std::find(seen_externs.begin(), seen_externs.end(), *extern_);
+        if (it != seen_externs.end()) {
+            handler_->report_error(current_filename_, all_errors_[15], extern_->get_ident(), extern_->pos());
+        }
+        else {
+            seen_externs.push_back(*extern_);
         }
     }
 }

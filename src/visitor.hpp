@@ -17,12 +17,15 @@ class CallExpr;
 class EmptyStmt;
 class LocalVarStmt;
 class ReturnStmt;
+class ExprStmt;
+class Extern;
 
 class Visitor {
  public:
     virtual auto visit_para_decl(std::shared_ptr<ParaDecl> para_decl) -> void = 0;
     virtual auto visit_local_var_decl(std::shared_ptr<LocalVarDecl> local_var_decl) -> void = 0;
     virtual auto visit_function(std::shared_ptr<Function> function) -> void = 0;
+    virtual auto visit_extern(std::shared_ptr<Extern> extern_) -> void = 0;
     virtual auto visit_empty_expr(std::shared_ptr<EmptyExpr> empty_expr) -> void = 0;
     virtual auto visit_assignment_expr(std::shared_ptr<AssignmentExpr> assignment_expr) -> void = 0;
     virtual auto visit_binary_expr(std::shared_ptr<BinaryExpr> binary_expr) -> void = 0;
@@ -35,6 +38,7 @@ class Visitor {
     virtual auto visit_empty_stmt(std::shared_ptr<EmptyStmt> empty_stmt) -> void = 0;
     virtual auto visit_local_var_stmt(std::shared_ptr<LocalVarStmt> local_var_stmt) -> void = 0;
     virtual auto visit_return_stmt(std::shared_ptr<ReturnStmt> return_stmt) -> void = 0;
+    virtual auto visit_expr_stmt(std::shared_ptr<ExprStmt> expr_stmt) -> void = 0;
 };
 
 #endif // VISITOR_HPP

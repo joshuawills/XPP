@@ -46,6 +46,7 @@ enum class TokenType {
     TRUE,
     FALSE,
     RETURN,
+    EXTERN
 };
 
 class Token {

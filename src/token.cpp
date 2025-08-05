@@ -43,6 +43,7 @@ auto get_type_from_lexeme(std::string const& str) -> std::optional<TokenType> {
                                                              {"mut", TokenType::MUT},
                                                              {"let", TokenType::LET},
                                                              {"return", TokenType::RETURN},
+                                                             {"extern", TokenType::EXTERN},
                                                              {"true", TokenType::TRUE},
                                                              {"false", TokenType::FALSE}};
 
@@ -83,6 +84,7 @@ auto token_type_to_str(TokenType t) -> std::string {
     case TokenType::TRUE: return "TRUE";
     case TokenType::FALSE: return "FALSE";
     case TokenType::RETURN: return "RETURN";
+    case TokenType::EXTERN: return "EXTERN";
     default: return "UNKNOWN";
     }
 }

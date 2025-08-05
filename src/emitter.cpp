@@ -13,6 +13,13 @@
 #include <iostream>
 
 auto Emitter::emit() -> void {
+    for (auto& extern_ : main_module_->get_externs()) {
+        if (!extern_->codegen(shared_from_this())) {
+            std::cerr << "LLVM failed to generate extern\n";
+            exit(EXIT_FAILURE);
+        }
+    }
+
     for (auto& function : main_module_->get_functions()) {
         if (!function->codegen(shared_from_this())) {
             std::cerr << "LLVM failed to generate function\n";

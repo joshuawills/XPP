@@ -80,6 +80,50 @@ auto Function::print(std::ostream& os) const -> void {
     os << "\n";
 }
 
+auto Extern::operator==(Extern const& other) const -> bool {
+    if (this == &other) {
+        return true;
+    }
+    if (ident_ != other.ident_) {
+        return false;
+    }
+    if (t_ != other.t_) {
+        return false;
+    }
+    if (types_.size() != other.types_.size()) {
+        return false;
+    }
+    for (size_t i = 0; i < types_.size(); ++i) {
+        if (types_[i] != other.types_[i]) {
+            return false;
+        }
+    }
+    return true;
+}
+
+auto Extern::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
+    auto const return_type = emitter->llvm_type(get_type());
+
+    auto param_types = std::vector<llvm::Type*>{};
+    for (auto& type : types_) {
+        param_types.push_back(emitter->llvm_type(type));
+    }
+
+    auto func_type = llvm::FunctionType::get(return_type, param_types, false);
+    auto func = llvm::Function::Create(func_type, llvm::Function::ExternalLinkage, get_ident(), *emitter->llvm_module);
+
+    return func;
+}
+
+auto Extern::print(std::ostream& os) const -> void {
+    os << "Extern" << pos() << " " << ident_ << " : " << t_ << "\n";
+
+    for (auto const& type : types_) {
+        os << "\t\t" << type;
+    }
+    os << "\n";
+}
+
 auto ParaDecl::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
     (void)emitter;
     return nullptr;

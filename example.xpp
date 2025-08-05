@@ -1,8 +1,12 @@
+extern exit(i64) void;
+
 fn get_one() i64 {
 	return 1;
 }
 
 fn main() void {
 	let x: i64 = get_one();
+	let y: i64 = get_one();
+	exit(x + y);
 }
 

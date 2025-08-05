@@ -76,6 +76,15 @@ auto Parser::parse() -> std::shared_ptr<Module> {
             auto func = std::make_shared<Function>(p, ident, paras, type, stmt);
             module->add_function(func);
         }
+        else if (try_consume(TokenType::EXTERN)) {
+            auto ident = parse_ident();
+            auto types = parse_type_list();
+            auto return_type = parse_type();
+            match(TokenType::SEMICOLON);
+            finish(p);
+            auto extern_ = std::make_shared<Extern>(p, ident, return_type, types);
+            module->add_extern(extern_);
+        }
     }
 
     return module;
@@ -165,8 +174,30 @@ auto Parser::parse_para_list() -> std::vector<std::shared_ptr<ParaDecl>> {
     return paras;
 }
 
+auto Parser::parse_type_list() -> std::vector<Type> {
+    auto types = std::vector<Type>{};
+    match(TokenType::OPEN_BRACKET);
+    while (curr_token_.has_value() and !(*curr_token_)->type_matches(TokenType::CLOSE_BRACKET)) {
+        types.push_back(parse_type());
+        if (peek(TokenType::CLOSE_BRACKET)) {
+            break;
+        }
+        match(TokenType::COMMA);
+    }
+    match(TokenType::CLOSE_BRACKET);
+    return types;
+}
+
 auto Parser::parse_arg_list() -> std::vector<std::shared_ptr<Expr>> {
     auto args = std::vector<std::shared_ptr<Expr>>{};
+    while (curr_token_.has_value() and !(*curr_token_)->type_matches(TokenType::CLOSE_BRACKET)) {
+        args.push_back(parse_expr());
+        if (peek(TokenType::CLOSE_BRACKET)) {
+            break;
+        }
+        match(TokenType::COMMA);
+    }
+    match(TokenType::CLOSE_BRACKET);
     return args;
 }
 
@@ -218,7 +249,10 @@ auto Parser::parse_compound_stmt() -> std::vector<std::shared_ptr<Stmt>> {
             stmts.push_back(std::make_shared<ReturnStmt>(p, expr));
         }
         else {
-            syntactic_error("UNRECOGNIZED STATEMENT: %", (*curr_token_)->str());
+            auto const expr = parse_expr();
+            match(TokenType::SEMICOLON);
+            finish(p);
+            stmts.push_back(std::make_shared<ExprStmt>(p, expr));
         }
     }
     match(TokenType::CLOSE_CURLY);
@@ -346,7 +380,6 @@ auto Parser::parse_postfix_expr() -> std::shared_ptr<Expr> {
     if (peek(TokenType::OPEN_BRACKET) and v) {
         match(TokenType::OPEN_BRACKET);
         auto args = parse_arg_list();
-        match(TokenType::CLOSE_BRACKET);
         finish(p);
         return std::make_shared<CallExpr>(p, v->get_name(), args);
     }

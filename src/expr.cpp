@@ -135,8 +135,8 @@ auto BoolExpr::print(std::ostream& os) const -> void {
 }
 
 auto VarExpr::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
-    (void)emitter;
-    return emitter->named_values[name_];
+    auto ptr = emitter->named_values[name_];
+    return emitter->llvm_builder->CreateLoad(emitter->llvm_type(get_type()), ptr, name_);
 }
 
 auto VarExpr::print(std::ostream& os) const -> void {
@@ -217,7 +217,8 @@ auto CallExpr::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
     auto callee = emitter->llvm_module->getFunction(name_);
     auto arg_vals = std::vector<llvm::Value*>{};
     for (auto& arg : args_) {
-        arg_vals.push_back(arg->codegen(emitter));
+        auto const val = arg->codegen(emitter);
+        arg_vals.push_back(val);
     }
     return emitter->llvm_builder->CreateCall(callee, arg_vals);
 }

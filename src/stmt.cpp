@@ -37,3 +37,13 @@ auto ReturnStmt::print(std::ostream& os) const -> void {
     os << ";\n";
     return;
 }
+
+auto ExprStmt::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
+    return expr_->codegen(emitter);
+}
+
+auto ExprStmt::print(std::ostream& os) const -> void {
+    expr_->print(os);
+    os << ";\n";
+    return;
+}

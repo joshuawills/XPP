@@ -262,11 +262,11 @@ class CallExpr
         return name_;
     }
 
-    auto set_ref(std::shared_ptr<Function> ref) -> void {
+    auto set_ref(std::shared_ptr<Decl> ref) -> void {
         ref_ = ref;
     }
 
-    auto get_ref() const -> std::shared_ptr<Function> {
+    auto get_ref() const -> std::shared_ptr<Decl> {
         return ref_;
     }
 
@@ -277,7 +277,7 @@ class CallExpr
  private:
     std::string const name_;
     std::vector<std::shared_ptr<Expr>> const args_;
-    std::shared_ptr<Function> ref_ = nullptr;
+    std::shared_ptr<Decl> ref_ = nullptr;
 };
 
 #endif // EXPR_HPP

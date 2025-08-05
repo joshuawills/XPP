@@ -50,6 +50,7 @@ class Verifier
     auto visit_para_decl(std::shared_ptr<ParaDecl> para_decl) -> void override;
     auto visit_local_var_decl(std::shared_ptr<LocalVarDecl> local_var_decl) -> void override;
     auto visit_function(std::shared_ptr<Function> function) -> void override;
+    auto visit_extern(std::shared_ptr<Extern> extern_) -> void override;
     auto visit_empty_expr(std::shared_ptr<EmptyExpr> empty_expr) -> void override;
     auto visit_assignment_expr(std::shared_ptr<AssignmentExpr> assignment_expr) -> void override;
     auto visit_binary_expr(std::shared_ptr<BinaryExpr> binary_expr) -> void override;
@@ -62,6 +63,7 @@ class Verifier
     auto visit_empty_stmt(std::shared_ptr<EmptyStmt> empty_stmt) -> void override;
     auto visit_local_var_stmt(std::shared_ptr<LocalVarStmt> local_var_stmt) -> void override;
     auto visit_return_stmt(std::shared_ptr<ReturnStmt> return_stmt) -> void override;
+    auto visit_expr_stmt(std::shared_ptr<ExprStmt> expr_stmt) -> void override;
 
     auto check(std::string const& filename, bool is_main) -> void;
 
@@ -80,7 +82,7 @@ class Verifier
     std::shared_ptr<Function> current_function_ = nullptr;
 
     std::vector<std::string> const all_errors_ = {"0: main function is missing",
-                                                  "1: duplicate function declaration",
+                                                  "1: duplicate function declaration: %",
                                                   "2: invalid main function signature: %",
                                                   "3: identifier redeclared: %",
                                                   "4: identifier declared void: %",
@@ -93,9 +95,11 @@ class Verifier
                                                   "11: incompatible type for return: %",
                                                   "12: no such function with name: %",
                                                   "13: main function may not call itself",
-                                                  "14: incorrect parameters for function: %"};
+                                                  "14: incorrect parameters for function: %",
+                                                  "15: duplicate extern declaration: %"};
 
     auto check_duplicate_function_declaration() -> void;
+    auto check_duplicate_extern_declaration() -> void;
 
     auto declare_variable(std::string ident, std::shared_ptr<Decl> decl) -> void;
 };

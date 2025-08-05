@@ -78,4 +78,26 @@ class ReturnStmt
     std::shared_ptr<Expr> const expr_;
 };
 
+class ExprStmt
+: public Stmt
+, public std::enable_shared_from_this<ExprStmt> {
+ public:
+    ExprStmt(Position const pos, std::shared_ptr<Expr> const expr)
+    : Stmt(pos)
+    , expr_(expr) {}
+
+    auto get_expr() const -> std::shared_ptr<Expr> {
+        return expr_;
+    }
+
+    auto visit(std::shared_ptr<Visitor> visitor) -> void override {
+        visitor->visit_expr_stmt(shared_from_this());
+    }
+    auto codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* override;
+    auto print(std::ostream& os) const -> void override;
+
+ private:
+    std::shared_ptr<Expr> const expr_;
+};
+
 #endif // STMT_HPP

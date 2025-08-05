@@ -15,6 +15,10 @@ class Module {
         functions_.push_back(func);
     }
 
+    auto add_extern(std::shared_ptr<Extern> extern_) -> void {
+        externs_.push_back(extern_);
+    }
+
     auto get_filepath() const -> std::string const& {
         return filepath_;
     }
@@ -23,17 +27,27 @@ class Module {
         return functions_;
     }
 
+    auto get_externs() const -> std::vector<std::shared_ptr<Extern>> {
+        return externs_;
+    }
+
     auto function_with_name_exists(std::string const& name) const -> bool {
-        return std::any_of(functions_.begin(), functions_.end(), [&name](auto const& func) {
+        auto const user_func = std::any_of(functions_.begin(), functions_.end(), [&name](auto const& func) {
             return func->get_ident() == name;
+        });
+        if (user_func)
+            return true;
+        return std::any_of(externs_.begin(), externs_.end(), [&name](auto const& extern_) {
+            return extern_->get_ident() == name;
         });
     }
 
-    auto get_function(std::shared_ptr<CallExpr> call_expr) const -> std::optional<std::shared_ptr<Function>>;
+    auto get_decl(std::shared_ptr<CallExpr> call_expr) const -> std::optional<std::shared_ptr<Decl>>;
 
  private:
     std::string filepath_;
     std::vector<std::shared_ptr<Function>> functions_ = {};
+    std::vector<std::shared_ptr<Extern>> externs_ = {};
 };
 
 auto operator<<(std::ostream& os, Module const& mod) -> std::ostream&;

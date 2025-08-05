@@ -142,4 +142,28 @@ class Function
     std::vector<std::shared_ptr<Stmt>> const stmts_;
 };
 
+class Extern
+: public Decl
+, public std::enable_shared_from_this<Extern> {
+ public:
+    Extern(Position pos, std::string const ident, Type const t, std::vector<Type> types)
+    : Decl(pos, ident, t)
+    , types_(types) {}
+
+    auto get_types() const -> std::vector<Type> {
+        return types_;
+    }
+
+    auto visit(std::shared_ptr<Visitor> visitor) -> void override {
+        visitor->visit_extern(shared_from_this());
+    }
+    auto codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* override;
+    auto print(std::ostream& os) const -> void override;
+
+    auto operator==(const Extern& other) const -> bool;
+
+ private:
+    std::vector<Type> const types_;
+};
+
 #endif // DECL_HPP
