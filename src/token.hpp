@@ -46,7 +46,8 @@ enum class TokenType {
     TRUE,
     FALSE,
     RETURN,
-    EXTERN
+    EXTERN,
+    STRING_LITERAL,
 };
 
 class Token {

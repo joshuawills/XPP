@@ -44,7 +44,7 @@ auto Verifier::visit_local_var_decl(std::shared_ptr<LocalVarDecl> local_var_decl
     }
     else if (local_var_decl->get_type() != expr_type) {
         auto stream = std::stringstream{};
-        stream << "expected " << local_var_decl->get_type().get_type_spec() << ", got " << expr_type.get_type_spec();
+        stream << "expected " << local_var_decl->get_type() << ", got " << expr_type;
         handler_->report_error(current_filename_, all_errors_[6], stream.str(), local_var_decl->pos());
         local_var_decl->set_type(handler_->ERROR_TYPE);
     }
@@ -63,7 +63,7 @@ auto Verifier::visit_function(std::shared_ptr<Function> function) -> void {
         in_main_ = has_main_ = true;
         if (function->get_type() != handler_->VOID_TYPE) {
             auto stream = std::stringstream{};
-            stream << "should return void, not " << function->get_type().get_type_spec();
+            stream << "should return void, not " << function->get_type();
             handler_->report_error(current_filename_, all_errors_[2], stream.str(), function->pos());
         }
         else if (function->get_paras().size() != 0) {
@@ -114,7 +114,7 @@ auto Verifier::visit_assignment_expr(std::shared_ptr<AssignmentExpr> assignment_
 
     if (l->get_type() != handler_->ERROR_TYPE and l->get_type() != r->get_type()) {
         auto stream = std::stringstream{};
-        stream << "expected " << l->get_type().get_type_spec() << ", got " << r->get_type().get_type_spec();
+        stream << "expected " << l->get_type() << ", got " << r->get_type();
         handler_->report_error(current_filename_, all_errors_[6], stream.str(), assignment_expr->pos());
         assignment_expr->set_type(handler_->ERROR_TYPE);
         return;
@@ -140,7 +140,7 @@ auto Verifier::visit_binary_expr(std::shared_ptr<BinaryExpr> binary_expr) -> voi
     if (binary_expr->get_operator() == Operator::LOGICAL_OR or binary_expr->get_operator() == Operator::LOGICAL_AND) {
         if (l->get_type() != handler_->BOOL_TYPE or r->get_type() != handler_->BOOL_TYPE) {
             auto stream = std::stringstream{};
-            stream << l->get_type().get_type_spec() << " and " << r->get_type().get_type_spec();
+            stream << l->get_type() << " and " << r->get_type();
             handler_->report_error(current_filename_, all_errors_[5], stream.str(), binary_expr->pos());
             binary_expr->set_type(handler_->ERROR_TYPE);
         }
@@ -155,7 +155,7 @@ auto Verifier::visit_binary_expr(std::shared_ptr<BinaryExpr> binary_expr) -> voi
         auto valid_two = l->get_type() == handler_->BOOL_TYPE and r->get_type() == handler_->BOOL_TYPE;
         if (!valid_one and !valid_two) {
             auto stream = std::stringstream{};
-            stream << l->get_type().get_type_spec() << " and " << r->get_type().get_type_spec();
+            stream << l->get_type() << " and " << r->get_type();
             handler_->report_error(current_filename_, all_errors_[5], stream.str(), binary_expr->pos());
             binary_expr->set_type(handler_->ERROR_TYPE);
         }
@@ -170,7 +170,7 @@ auto Verifier::visit_binary_expr(std::shared_ptr<BinaryExpr> binary_expr) -> voi
     {
         if (l->get_type() != handler_->I64_TYPE or r->get_type() != handler_->I64_TYPE) {
             auto stream = std::stringstream{};
-            stream << l->get_type().get_type_spec() << " and " << r->get_type().get_type_spec();
+            stream << l->get_type() << " and " << r->get_type();
             handler_->report_error(current_filename_, all_errors_[5], stream.str(), binary_expr->pos());
             binary_expr->set_type(handler_->ERROR_TYPE);
         }
@@ -185,7 +185,7 @@ auto Verifier::visit_binary_expr(std::shared_ptr<BinaryExpr> binary_expr) -> voi
     {
         if (l->get_type() != handler_->I64_TYPE or r->get_type() != handler_->I64_TYPE) {
             auto stream = std::stringstream{};
-            stream << l->get_type().get_type_spec() << " and " << r->get_type().get_type_spec();
+            stream << l->get_type() << " and " << r->get_type();
             handler_->report_error(current_filename_, all_errors_[5], stream.str(), binary_expr->pos());
             binary_expr->set_type(handler_->ERROR_TYPE);
         }
@@ -206,7 +206,7 @@ auto Verifier::visit_unary_expr(std::shared_ptr<UnaryExpr> unary_expr) -> void {
     if (unary_expr->get_operator() == Operator::NEGATE) {
         if (e->get_type() != handler_->BOOL_TYPE) {
             auto stream = std::stringstream{};
-            stream << "expected a bool type, got " << e->get_type().get_type_spec();
+            stream << "expected a bool type, got " << e->get_type();
             handler_->report_error(current_filename_, all_errors_[9], stream.str(), unary_expr->pos());
             unary_expr->set_type(handler_->ERROR_TYPE);
         }
@@ -217,7 +217,7 @@ auto Verifier::visit_unary_expr(std::shared_ptr<UnaryExpr> unary_expr) -> void {
     else if (unary_expr->get_operator() == Operator::PLUS or unary_expr->get_operator() == Operator::MINUS) {
         if (e->get_type() != handler_->I64_TYPE) {
             auto stream = std::stringstream{};
-            stream << "expected an i64 type, got " << e->get_type().get_type_spec();
+            stream << "expected an i64 type, got " << e->get_type();
             handler_->report_error(current_filename_, all_errors_[9], stream.str(), unary_expr->pos());
             unary_expr->set_type(handler_->ERROR_TYPE);
         }
@@ -236,6 +236,11 @@ auto Verifier::visit_int_expr(std::shared_ptr<IntExpr> int_expr) -> void {
 
 auto Verifier::visit_bool_expr(std::shared_ptr<BoolExpr> bool_expr) -> void {
     (void)bool_expr;
+    return;
+}
+
+auto Verifier::visit_string_expr(std::shared_ptr<StringExpr> string_expr) -> void {
+    (void)string_expr;
     return;
 }
 
@@ -298,7 +303,7 @@ auto Verifier::visit_return_stmt(std::shared_ptr<ReturnStmt> return_stmt) -> voi
     if (expr_type != current_function_->get_type()) {
         auto stream = std::stringstream{};
         stream << "in function " << current_function_->get_ident() << ". expected type "
-               << current_function_->get_type().get_type_spec() << ", received " << expr_type.get_type_spec();
+               << current_function_->get_type() << ", received " << expr_type;
         handler_->report_error(current_filename_, all_errors_[11], stream.str(), return_stmt->pos());
     }
 

@@ -70,7 +70,7 @@ auto Emitter::emit() -> void {
 
     if (!handler_->is_assembly()) {
         // Compile the executable
-        auto command = std::string{"clang "};
+        auto command = std::string{"clang -no-pie "};
         command += filename;
         command += " -o ";
         command += handler_->get_output_filename();
@@ -83,9 +83,15 @@ auto Emitter::emit() -> void {
 }
 
 auto Emitter::llvm_type(Type t) -> llvm::Type* {
+    if (t.sub_type) {
+        auto const element_type = llvm_type(*t.sub_type);
+        return llvm::PointerType::getUnqual(element_type);
+    }
+
     switch (t.get_type_spec()) {
     case TypeSpec::BOOL: return llvm::Type::getInt1Ty(*context);
     case TypeSpec::I64: return llvm::Type::getInt64Ty(*context);
+    case TypeSpec::CHAR: return llvm::Type::getInt8Ty(*context);
     case TypeSpec::VOID: return llvm::Type::getVoidTy(*context);
     default: std::cout << "UNREACHABLE Emitter::llvm_type\n";
     }

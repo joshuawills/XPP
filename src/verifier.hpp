@@ -57,6 +57,7 @@ class Verifier
     auto visit_unary_expr(std::shared_ptr<UnaryExpr> unary_expr) -> void override;
     auto visit_int_expr(std::shared_ptr<IntExpr> int_expr) -> void override;
     auto visit_bool_expr(std::shared_ptr<BoolExpr> bool_expr) -> void override;
+    auto visit_string_expr(std::shared_ptr<StringExpr> string_expr) -> void override;
     auto visit_var_expr(std::shared_ptr<VarExpr> var_expr) -> void override;
     auto visit_call_expr(std::shared_ptr<CallExpr> call_expr) -> void override;
 

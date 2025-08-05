@@ -30,7 +30,7 @@ auto Token::str() const -> std::string {
            + ", col_start: " + std::to_string(position_.col_start_) + ", col_end: " + std::to_string(position_.col_end_)
            + "}, "
              "type: "
-           + std::to_string(static_cast<int>(type_)) + "}";
+           + token_type_to_str(type_) + "}";
 }
 
 auto get_type_from_lexeme(std::string const& str) -> std::optional<TokenType> {
@@ -38,6 +38,7 @@ auto get_type_from_lexeme(std::string const& str) -> std::optional<TokenType> {
                                                              {"using", TokenType::USING},
                                                              {"as", TokenType::AS},
                                                              {"i64", TokenType::TYPE},
+                                                             {"i8", TokenType::TYPE},
                                                              {"bool", TokenType::TYPE},
                                                              {"void", TokenType::TYPE},
                                                              {"mut", TokenType::MUT},
@@ -85,6 +86,7 @@ auto token_type_to_str(TokenType t) -> std::string {
     case TokenType::FALSE: return "FALSE";
     case TokenType::RETURN: return "RETURN";
     case TokenType::EXTERN: return "EXTERN";
+    case TokenType::STRING_LITERAL: return "STRING_LITERAL";
     default: return "UNKNOWN";
     }
 }

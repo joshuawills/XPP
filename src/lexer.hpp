@@ -23,13 +23,15 @@ class Lexer {
     auto skip_whitespace_and_comments() -> void;
     auto generate_token() -> std::optional<Token>;
     auto consume() -> char;
+    auto consume_escape() -> char;
     auto is_comment() -> bool;
+    auto valid_escape() -> bool;
     auto peek(char c, int j = 0) -> bool;
 
     const std::string filename_;
     std::shared_ptr<Handler> handler_;
     std::shared_ptr<std::string> contents_;
-    size_t current_pos_ = 0, current_line_ = 1, current_col_ = 1;
+    size_t current_pos_ = 0, line_ = 1, col_ = 1;
 };
 
 #endif // LEXER_HPP

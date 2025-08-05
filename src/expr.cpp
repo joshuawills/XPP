@@ -134,6 +134,29 @@ auto BoolExpr::print(std::ostream& os) const -> void {
     }
 }
 
+auto StringExpr::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
+    auto str_const = llvm::ConstantDataArray::getString(*emitter->context, value_, true);
+
+    auto const global_name = ".str" + std::to_string(emitter->global_counter++);
+
+    auto global_str = new llvm::GlobalVariable(*emitter->llvm_module,
+                                               str_const->getType(),
+                                               true,
+                                               llvm::GlobalValue::PrivateLinkage,
+                                               str_const,
+                                               global_name);
+
+    global_str->setAlignment(llvm::Align(1));
+
+    auto zero = llvm::ConstantInt::get(llvm::Type::getInt32Ty(*emitter->context), 0);
+    llvm::Value* indices[] = {zero, zero};
+    return llvm::ConstantExpr::getInBoundsGetElementPtr(str_const->getType(), global_str, indices);
+}
+
+auto StringExpr::print(std::ostream& os) const -> void {
+    os << value_;
+}
+
 auto VarExpr::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
     auto ptr = emitter->named_values[name_];
     return emitter->llvm_builder->CreateLoad(emitter->llvm_type(get_type()), ptr, name_);

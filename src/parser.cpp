@@ -134,18 +134,25 @@ auto Parser::parse_type() -> Type {
     if (!curr_token_.has_value()) {
         syntactic_error("TYPE expected, but found end of file", "");
     }
-    auto pos = Position{};
-    start(pos);
 
     auto const& curr_lexeme = (*curr_token_)->lexeme();
     auto const& type_spec = type_spec_from_lexeme(curr_lexeme);
-    if (type_spec.has_value()) {
-        consume();
-        return Type{*type_spec, std::nullopt};
+    if (!type_spec.has_value()) {
+        syntactic_error("TYPE expected, but found \"%\"", curr_lexeme);
+        return Type{TypeSpec::UNKNOWN};
     }
 
-    syntactic_error("TYPE expected, but found \"%\"", curr_lexeme);
-    return Type{TypeSpec::UNKNOWN, std::nullopt};
+    consume();
+
+    // Handle pointer types
+    auto return_type = Type{*type_spec};
+    std::shared_ptr<Type> sub_type = nullptr;
+    if (try_consume(TokenType::MULTIPLY)) {
+        sub_type = std::make_shared<Type>(return_type);
+        return_type = Type{TypeSpec::POINTER, std::nullopt, sub_type};
+    }
+
+    return return_type;
 }
 
 auto Parser::parse_para_list() -> std::vector<std::shared_ptr<ParaDecl>> {
@@ -218,7 +225,7 @@ auto Parser::parse_compound_stmt() -> std::vector<std::shared_ptr<Stmt>> {
         else if (try_consume(TokenType::LET)) {
             auto const is_mut = try_consume(TokenType::MUT);
             auto ident = parse_ident();
-            auto t = Type{TypeSpec::UNKNOWN, std::nullopt};
+            auto t = Type{TypeSpec::UNKNOWN};
             if (try_consume(TokenType::COLON)) {
                 t = parse_type();
             }
@@ -413,6 +420,12 @@ auto Parser::parse_primary_expr() -> std::shared_ptr<Expr> {
         consume();
         finish(p);
         return std::make_shared<BoolExpr>(p, value);
+    }
+    else if (peek(TokenType::STRING_LITERAL)) {
+        auto const value = (*curr_token_)->lexeme();
+        consume();
+        finish(p);
+        return std::make_shared<StringExpr>(p, value);
     }
 
     syntactic_error("UNRECOGNIZED PRIMARY EXPRESSION: %", (*curr_token_)->str());

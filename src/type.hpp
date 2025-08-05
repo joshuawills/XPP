@@ -3,23 +3,21 @@
 
 #include "./ast.hpp"
 
-enum TypeSpec {
-    VOID,
-    I64,
-    BOOL,
-    UNKNOWN,
-    ERROR,
-};
+enum TypeSpec { VOID, I64, BOOL, UNKNOWN, ERROR, POINTER, CHAR };
 
 auto operator<<(std::ostream& os, TypeSpec const& ts) -> std::ostream&;
 
 struct Type {
     TypeSpec t;
-    std::optional<std::string> lexeme;
+    std::optional<std::string> lexeme = std::nullopt;
+    std::shared_ptr<Type> sub_type = nullptr;
 
-    auto operator==(const Type& other) const -> bool {
-        return t == other.t and lexeme == other.lexeme;
-    }
+    Type(TypeSpec t, std::optional<std::string> lex = std::nullopt, std::shared_ptr<Type> sub = nullptr)
+    : t(t)
+    , lexeme(std::move(lex))
+    , sub_type(std::move(sub)) {}
+
+    auto operator==(const Type& other) const -> bool;
 
     auto operator!=(const Type& other) const -> bool {
         return !(*this == other);

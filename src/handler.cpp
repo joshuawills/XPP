@@ -7,11 +7,12 @@
 #include <optional>
 #include <streambuf>
 
-const Type Handler::VOID_TYPE = Type{TypeSpec::VOID, std::nullopt};
-const Type Handler::I64_TYPE = Type{TypeSpec::I64, std::nullopt};
-const Type Handler::ERROR_TYPE = Type{TypeSpec::ERROR, std::nullopt};
-const Type Handler::BOOL_TYPE = Type{TypeSpec::BOOL, std::nullopt};
-const Type Handler::UNKNOWN_TYPE = Type{TypeSpec::UNKNOWN, std::nullopt};
+const Type Handler::VOID_TYPE = Type{TypeSpec::VOID};
+const Type Handler::I64_TYPE = Type{TypeSpec::I64};
+const Type Handler::ERROR_TYPE = Type{TypeSpec::ERROR};
+const Type Handler::BOOL_TYPE = Type{TypeSpec::BOOL};
+const Type Handler::UNKNOWN_TYPE = Type{TypeSpec::UNKNOWN};
+const Type Handler::CHAR_POINTER_TYPE = Type{TypeSpec::POINTER, std::nullopt, std::make_shared<Type>(TypeSpec::CHAR)};
 
 auto read_file(std::string const& filename) -> std::optional<std::string> {
     auto stream = std::ifstream{filename};

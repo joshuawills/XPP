@@ -68,6 +68,7 @@ class Handler {
     static const Type ERROR_TYPE;
     static const Type BOOL_TYPE;
     static const Type UNKNOWN_TYPE;
+    static const Type CHAR_POINTER_TYPE;
 
     size_t num_errors_ = 0;
 

@@ -3,7 +3,23 @@
 #include <iostream>
 #include <map>
 
+auto Type::operator==(const Type& other) const -> bool {
+    auto res = true;
+    if (sub_type) {
+        if (!other.sub_type) {
+            return false;
+        }
+        res &= *sub_type == *(other.sub_type);
+    }
+    res &= t == other.t;
+    res &= lexeme == other.lexeme;
+    return res;
+}
+
 auto operator<<(std::ostream& os, Type const& t) -> std::ostream& {
+    if (t.sub_type != nullptr) {
+        os << *t.sub_type;
+    }
     os << t.t;
     if (t.lexeme.has_value()) {
         os << ", " << *t.lexeme;
@@ -12,8 +28,10 @@ auto operator<<(std::ostream& os, Type const& t) -> std::ostream& {
 }
 
 auto type_spec_from_lexeme(std::string const& lexeme) -> std::optional<TypeSpec> {
-    auto const lexeme_to_spec_map =
-        std::map<std::string, TypeSpec>{{"void", TypeSpec::VOID}, {"i64", TypeSpec::I64}, {"bool", TypeSpec::BOOL}};
+    auto const lexeme_to_spec_map = std::map<std::string, TypeSpec>{{"void", TypeSpec::VOID},
+                                                                    {"i64", TypeSpec::I64},
+                                                                    {"i8", TypeSpec::CHAR},
+                                                                    {"bool", TypeSpec::BOOL}};
     auto it = lexeme_to_spec_map.find(lexeme);
     if (it != lexeme_to_spec_map.end()) {
         return it->second;
@@ -26,6 +44,8 @@ auto operator<<(std::ostream& os, TypeSpec const& ts) -> std::ostream& {
     case TypeSpec::VOID: os << "void"; break;
     case TypeSpec::I64: os << "i64"; break;
     case TypeSpec::BOOL: os << "bool"; break;
+    case TypeSpec::POINTER: os << "*"; break;
+    case TypeSpec::CHAR: os << "i8"; break;
     case TypeSpec::UNKNOWN: os << "unknown"; break;
     default: os << "invalid typespec"; break;
     }
