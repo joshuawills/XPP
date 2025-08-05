@@ -58,6 +58,7 @@ class Verifier
     auto visit_int_expr(std::shared_ptr<IntExpr> int_expr) -> void override;
     auto visit_bool_expr(std::shared_ptr<BoolExpr> bool_expr) -> void override;
     auto visit_string_expr(std::shared_ptr<StringExpr> string_expr) -> void override;
+    auto visit_char_expr(std::shared_ptr<CharExpr> char_expr) -> void override;
     auto visit_var_expr(std::shared_ptr<VarExpr> var_expr) -> void override;
     auto visit_call_expr(std::shared_ptr<CallExpr> call_expr) -> void override;
 
@@ -100,7 +101,8 @@ class Verifier
                                                   "15: duplicate extern declaration: %",
                                                   "16: user functions can't utilise variatics: %",
                                                   "17: variatic type may only be last specified type in extern "
-                                                  "declaration"};
+                                                  "declaration",
+                                                  "18: character literal can only have one character in it"};
 
     auto check_duplicate_function_declaration() -> void;
     auto check_duplicate_extern_declaration() -> void;

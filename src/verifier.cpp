@@ -258,6 +258,11 @@ auto Verifier::visit_string_expr(std::shared_ptr<StringExpr> string_expr) -> voi
     return;
 }
 
+auto Verifier::visit_char_expr(std::shared_ptr<CharExpr> char_expr) -> void {
+    (void)char_expr;
+    return;
+}
+
 auto Verifier::visit_var_expr(std::shared_ptr<VarExpr> var_expr) -> void {
     auto entry = symbol_table_.retrieve_one_level(var_expr->get_name());
     if (!entry.has_value()) {

@@ -208,7 +208,7 @@ class StringExpr
 , public std::enable_shared_from_this<StringExpr> {
  public:
     StringExpr(Position const pos, std::string value)
-    : Expr(pos, Type{TypeSpec::POINTER, std::nullopt, std::make_shared<Type>(TypeSpec::CHAR)})
+    : Expr(pos, Type{TypeSpec::POINTER, std::nullopt, std::make_shared<Type>(TypeSpec::I8)})
     , value_(value) {}
 
     auto get_value() const -> std::string {
@@ -223,6 +223,28 @@ class StringExpr
 
  private:
     std::string const value_;
+};
+
+class CharExpr
+: public Expr
+, public std::enable_shared_from_this<CharExpr> {
+ public:
+    CharExpr(Position const pos, char const value)
+    : Expr(pos, Type{TypeSpec::I8})
+    , value_(value) {}
+
+    auto get_value() const -> char {
+        return value_;
+    }
+
+    auto visit(std::shared_ptr<Visitor> visitor) -> void override {
+        visitor->visit_char_expr(shared_from_this());
+    }
+    auto codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* override;
+    auto print(std::ostream& os) const -> void override;
+
+ private:
+    char const value_;
 };
 
 class VarExpr

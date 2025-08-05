@@ -13,6 +13,7 @@ class UnaryExpr;
 class IntExpr;
 class BoolExpr;
 class StringExpr;
+class CharExpr;
 class VarExpr;
 class CallExpr;
 class EmptyStmt;
@@ -34,6 +35,7 @@ class Visitor {
     virtual auto visit_int_expr(std::shared_ptr<IntExpr> int_expr) -> void = 0;
     virtual auto visit_bool_expr(std::shared_ptr<BoolExpr> bool_expr) -> void = 0;
     virtual auto visit_string_expr(std::shared_ptr<StringExpr> string_expr) -> void = 0;
+    virtual auto visit_char_expr(std::shared_ptr<CharExpr> char_expr) -> void = 0;
     virtual auto visit_var_expr(std::shared_ptr<VarExpr> var_expr) -> void = 0;
     virtual auto visit_call_expr(std::shared_ptr<CallExpr> call_expr) -> void = 0;
 

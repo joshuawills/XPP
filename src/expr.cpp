@@ -154,7 +154,16 @@ auto StringExpr::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
 }
 
 auto StringExpr::print(std::ostream& os) const -> void {
-    os << value_;
+    os << "\"" << value_ << "\"";
+}
+
+auto CharExpr::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
+    (void)emitter;
+    return llvm::ConstantInt::get(*(emitter->context), llvm::APInt(8, value_, true));
+}
+
+auto CharExpr::print(std::ostream& os) const -> void {
+    os << "\'" << value_ << "\'";
 }
 
 auto VarExpr::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {

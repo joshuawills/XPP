@@ -87,6 +87,7 @@ auto token_type_to_str(TokenType t) -> std::string {
     case TokenType::RETURN: return "RETURN";
     case TokenType::EXTERN: return "EXTERN";
     case TokenType::STRING_LITERAL: return "STRING_LITERAL";
+    case TokenType::CHAR_LITERAL: return "CHAR_LITERAL";
     default: return "UNKNOWN";
     }
 }

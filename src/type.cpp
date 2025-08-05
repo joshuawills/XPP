@@ -31,7 +31,7 @@ auto type_spec_from_lexeme(std::string const& lexeme) -> std::optional<TypeSpec>
     auto const lexeme_to_spec_map = std::map<std::string, TypeSpec>{{"void", TypeSpec::VOID},
                                                                     {"i64", TypeSpec::I64},
                                                                     {"i32", TypeSpec::I32},
-                                                                    {"i8", TypeSpec::CHAR},
+                                                                    {"i8", TypeSpec::I8},
                                                                     {"...", TypeSpec::VARIATIC},
                                                                     {"bool", TypeSpec::BOOL}};
     auto it = lexeme_to_spec_map.find(lexeme);
@@ -48,7 +48,7 @@ auto operator<<(std::ostream& os, TypeSpec const& ts) -> std::ostream& {
     case TypeSpec::I32: os << "i32"; break;
     case TypeSpec::BOOL: os << "bool"; break;
     case TypeSpec::POINTER: os << "*"; break;
-    case TypeSpec::CHAR: os << "i8"; break;
+    case TypeSpec::I8: os << "i8"; break;
     case TypeSpec::VARIATIC: os << "..."; break;
     case TypeSpec::UNKNOWN: os << "unknown"; break;
     default: os << "invalid typespec"; break;

@@ -427,6 +427,15 @@ auto Parser::parse_primary_expr() -> std::shared_ptr<Expr> {
         finish(p);
         return std::make_shared<StringExpr>(p, value);
     }
+    else if (peek(TokenType::CHAR_LITERAL)) {
+        auto const value = (*curr_token_)->lexeme();
+        if (value.size() > 1) {
+            syntactic_error("character literal may only have one character: '%'", value);
+        }
+        consume();
+        finish(p);
+        return std::make_shared<CharExpr>(p, value.at(0));
+    }
 
     syntactic_error("UNRECOGNIZED PRIMARY EXPRESSION: %", (*curr_token_)->str());
     return std::make_shared<EmptyExpr>(p);

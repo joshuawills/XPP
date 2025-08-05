@@ -48,6 +48,7 @@ enum class TokenType {
     RETURN,
     EXTERN,
     STRING_LITERAL,
+    CHAR_LITERAL,
 };
 
 class Token {

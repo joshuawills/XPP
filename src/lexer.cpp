@@ -134,6 +134,32 @@ auto Lexer::generate_token() -> std::optional<Token> {
         consume();
         return Token{buf, line_, col_ - buf.size(), col_ - 1, TokenType::STRING_LITERAL};
     }
+    case '\'': {
+        consume();
+        auto buf = std::string{};
+        while (current_pos_ < contents_->size() and !peek('\'')) {
+            if (peek('\n')) {
+                std::cerr << "ERROR: Currently not supporting multiline chars\n";
+                exit(EXIT_FAILURE);
+            }
+
+            if (peek('\\')) {
+                if (!valid_escape()) {
+                    std::cerr << "ERROR: Invalid escape sequence\n";
+                    exit(EXIT_FAILURE);
+                }
+                else {
+                    consume();
+                    buf += consume_escape();
+                }
+            }
+            else {
+                buf += consume();
+            }
+        }
+        consume();
+        return Token{buf, line_, col_ - buf.size(), col_ - 1, TokenType::CHAR_LITERAL};
+    }
     }
 
     auto buf = std::string{};
