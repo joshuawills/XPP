@@ -3,6 +3,13 @@
 #include <iostream>
 #include <map>
 
+auto operator<<(std::ostream& os, Position const& p) -> std::ostream& {
+    os << "{(";
+    os << p.line_start_ << ", " << p.col_start_ << ") -> (";
+    os << p.line_end_ << ", " << p.col_end_ << ")}";
+    return os;
+}
+
 Token::Token(std::string lexeme, size_t line_num, size_t line_end, size_t col_start, size_t col_end, TokenType type)
 : lexeme_{std::move(lexeme)}
 , position_{line_num, line_end, col_start, col_end}

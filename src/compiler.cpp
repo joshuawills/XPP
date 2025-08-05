@@ -26,11 +26,24 @@ auto main(int argc, char** argv) -> int {
     auto parser = Parser(tokens, handler->source_filename, handler);
     auto module = parser.parse();
 
+    if (handler->num_errors_) {
+        exit(EXIT_FAILURE);
+    }
+
+    if (handler->parser_mode()) {
+        std::cout << *module;
+        exit(EXIT_SUCCESS);
+    }
+
     auto modules = std::make_shared<AllModules>();
     modules->add_main_module(module);
 
     auto verifier = std::make_shared<Verifier>(handler, modules);
     verifier->check(handler->source_filename, true);
+
+    if (handler->num_errors_) {
+        exit(EXIT_FAILURE);
+    }
 
     auto emitter = std::make_shared<Emitter>(modules, module, handler);
     emitter->emit();

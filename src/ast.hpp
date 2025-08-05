@@ -24,6 +24,7 @@ class AST {
     virtual ~AST() = default;
 
     virtual auto codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* = 0;
+    virtual auto print(std::ostream& os) const -> void = 0;
 
     auto pos() const -> Position {
         return pos_;
@@ -32,7 +33,7 @@ class AST {
     virtual auto visit(std::shared_ptr<Visitor> visitor) -> void = 0;
 
  private:
-    Position pos_;
+    const Position pos_;
     AST* parent_ = nullptr;
 };
 

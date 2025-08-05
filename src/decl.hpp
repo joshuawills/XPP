@@ -16,6 +16,7 @@ class Decl : public AST {
 
     auto visit(std::shared_ptr<Visitor> visitor) -> void override = 0;
     auto codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* override = 0;
+    auto print(std::ostream& os) const -> void override = 0;
 
     auto set_type(Type t) -> void {
         t_ = t;
@@ -82,8 +83,7 @@ class ParaDecl
     }
 
     auto codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* override;
-
- private:
+    auto print(std::ostream& os) const -> void override;
 };
 
 class LocalVarDecl
@@ -99,6 +99,7 @@ class LocalVarDecl
     }
 
     auto codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* override;
+    auto print(std::ostream& os) const -> void override;
 
     auto get_expr() const -> std::shared_ptr<Expr> {
         return e_;
@@ -118,8 +119,8 @@ class Function
              Type t,
              std::vector<std::shared_ptr<Stmt>> stmts)
     : Decl(pos, ident, t)
-    , paras_(std::move(paras))
-    , stmts_(std::move(stmts)) {}
+    , paras_(paras)
+    , stmts_(stmts) {}
 
     auto get_paras() const -> std::vector<std::shared_ptr<ParaDecl>> const& {
         return paras_;
@@ -132,12 +133,13 @@ class Function
         visitor->visit_function(shared_from_this());
     }
     auto codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* override;
+    auto print(std::ostream& os) const -> void override;
 
     auto operator==(const Function& other) const -> bool;
 
  private:
-    std::vector<std::shared_ptr<ParaDecl>> paras_;
-    std::vector<std::shared_ptr<Stmt>> stmts_;
+    std::vector<std::shared_ptr<ParaDecl>> const paras_;
+    std::vector<std::shared_ptr<Stmt>> const stmts_;
 };
 
 #endif // DECL_HPP

@@ -99,7 +99,7 @@ auto Parser::parse_operator() -> Operator {
                                       {TokenType::GREATER_EQUAL, Operator::GREATER_EQUAL}};
 
     if (type_to_operator_mapping.find((*curr_token_)->type()) != type_to_operator_mapping.end()) {
-        auto op = type_to_operator_mapping.at((*curr_token_)->type());
+        auto const& op = type_to_operator_mapping.at((*curr_token_)->type());
         consume();
         return op;
     }
@@ -112,7 +112,7 @@ auto Parser::parse_ident() -> std::string {
     if (!curr_token_.has_value()) {
         syntactic_error("IDENTIFIER expected, but found end of file", "");
     }
-    auto spelling = (*curr_token_)->lexeme();
+    auto const& spelling = (*curr_token_)->lexeme();
     match(TokenType::IDENT);
     return spelling;
 }
@@ -124,8 +124,8 @@ auto Parser::parse_type() -> Type {
     auto pos = Position{};
     start(pos);
 
-    auto curr_lexeme = (*curr_token_)->lexeme();
-    auto type_spec = type_spec_from_lexeme(curr_lexeme);
+    auto const& curr_lexeme = (*curr_token_)->lexeme();
+    auto const& type_spec = type_spec_from_lexeme(curr_lexeme);
     if (type_spec.has_value()) {
         consume();
         return Type{*type_spec, std::nullopt};
@@ -136,16 +136,16 @@ auto Parser::parse_type() -> Type {
 }
 
 auto Parser::parse_para_list() -> std::vector<std::shared_ptr<ParaDecl>> {
-    std::vector<std::shared_ptr<ParaDecl>> paras;
+    auto paras = std::vector<std::shared_ptr<ParaDecl>>{};
 
     match(TokenType::OPEN_BRACKET);
     while (curr_token_.has_value() and !(*curr_token_)->type_matches(TokenType::CLOSE_BRACKET)) {
         auto p = Position{};
         start(p);
         auto const is_mut = try_consume(TokenType::MUT);
-        auto ident = parse_ident();
+        auto const ident = parse_ident();
         match(TokenType::COLON);
-        auto type = parse_type();
+        auto const type = parse_type();
         finish(p);
         auto decl = std::make_shared<ParaDecl>(p, ident, type);
         if (is_mut) {

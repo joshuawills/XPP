@@ -14,28 +14,36 @@ class Handler {
     Handler() = default;
     Handler(bool is_quiet)
     : quiet_{is_quiet} {}
-    auto add_file(const std::string filename) -> bool;
-    auto get_file_contents(const std::string& filename) -> std::shared_ptr<std::string>;
 
-    auto report_error(std::string const& filename, std::string const& message, std::string const& token, Position pos)
-        -> void;
+    auto add_file(std::string const filename) -> bool;
+    auto get_file_contents(std::string const& filename) -> std::shared_ptr<std::string>;
+
     auto
-    report_minor_error(std::string const& filename, std::string const& message, std::string const& token, Position pos)
+    report_error(std::string const& filename, std::string const& message, std::string const& token, Position const& pos)
         -> void;
+    auto report_minor_error(std::string const& filename,
+                            std::string const& message,
+                            std::string const& token,
+                            Position const& pos) -> void;
 
-    auto parse_cl_args(int argc, std::vector<std::string> argv) -> bool;
+    auto parse_cl_args(int argc, std::vector<std::string> const& argv) -> bool;
+
     auto tokens_mode() const noexcept -> bool {
         return tokens_;
     }
 
-    auto get_output_filename() -> std::string {
+    auto parser_mode() const noexcept -> bool {
+        return parser_;
+    }
+
+    auto get_output_filename() -> std::string& {
         return output_filename_;
     }
-    auto get_object_filename() -> std::string {
+    auto get_object_filename() -> std::string& {
         return object_filename_;
     }
 
-    auto get_assembly_filename() -> std::string {
+    auto get_assembly_filename() -> std::string& {
         return assembly_filename_;
     }
 
@@ -53,6 +61,8 @@ class Handler {
     static const Type BOOL_TYPE;
     static const Type UNKNOWN_TYPE;
 
+    size_t num_errors_ = 0;
+
  private:
     std::map<std::string, std::shared_ptr<std::string>> filename_to_contents_ = {};
     std::map<std::string, std::vector<std::string>> filename_to_lines_ = {};
@@ -61,13 +71,11 @@ class Handler {
     std::string const ANSI_RESET_ = "\033[0m";
     std::string const ANSI_YELLOW_ = "\033[33m";
     std::string const ANSI_BLUE_ = "\033[34m";
-    bool quiet_ = false, run_ = false, parser_raw_ = false, tokens_ = false, parser_ = false;
+    bool quiet_ = false, run_ = false, tokens_ = false, parser_ = false;
     bool assembly_ = false, stats_ = false;
     std::string output_filename_ = "a.out";
     std::string object_filename_ = "default.o";
     std::string assembly_filename_ = "default.s";
-
-    size_t num_errors_ = 0;
 };
 
 #endif // HANDLER_HPP

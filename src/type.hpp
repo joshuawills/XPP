@@ -11,6 +11,8 @@ enum TypeSpec {
     ERROR,
 };
 
+auto operator<<(std::ostream& os, TypeSpec const& ts) -> std::ostream&;
+
 struct Type {
     TypeSpec t;
     std::optional<std::string> lexeme;
@@ -28,7 +30,8 @@ struct Type {
     }
 };
 
-auto type_spec_from_lexeme(std::string& lexeme) -> std::optional<TypeSpec>;
-auto type_spec_to_string(TypeSpec t) -> std::string;
+auto operator<<(std::ostream& os, Type const& t) -> std::ostream&;
+
+auto type_spec_from_lexeme(std::string const& lexeme) -> std::optional<TypeSpec>;
 
 #endif // TYPE_HPP

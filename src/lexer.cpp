@@ -12,14 +12,14 @@ auto Lexer::is_curr_char(char c) -> bool {
 }
 
 auto Lexer::tokenize() -> std::vector<std::shared_ptr<Token>> {
-    std::vector<std::shared_ptr<Token>> tokens;
+    auto tokens = std::vector<std::shared_ptr<Token>>{};
 
     contents_ = handler_->get_file_contents(filename_);
     auto const size = contents_->size();
 
     while (current_pos_ < size) {
         skip_whitespace();
-        auto t = generate_token();
+        auto const& t = generate_token();
         if (t.has_value()) {
             tokens.emplace_back(std::make_shared<Token>(*t));
         }

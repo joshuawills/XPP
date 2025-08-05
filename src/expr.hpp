@@ -26,6 +26,8 @@ enum Operator {
     GREATER_EQUAL,
 };
 
+auto operator<<(std::ostream& os, Operator const& o) -> std::ostream&;
+
 class Expr : public AST {
  public:
     Expr(Position pos, Type t)
@@ -43,6 +45,7 @@ class Expr : public AST {
     virtual ~Expr() = default;
     auto visit(std::shared_ptr<Visitor> visitor) -> void override = 0;
     auto codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* override = 0;
+    auto print(std::ostream& os) const -> void override = 0;
 
  private:
     Type t_;
@@ -59,15 +62,14 @@ class EmptyExpr
         visitor->visit_empty_expr(shared_from_this());
     }
     auto codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* override;
-
- private:
+    auto print(std::ostream& os) const -> void override;
 };
 
 class AssignmentExpr
 : public Expr
 , public std::enable_shared_from_this<AssignmentExpr> {
  public:
-    AssignmentExpr(Position pos, std::shared_ptr<Expr> left, Operator op, std::shared_ptr<Expr> right)
+    AssignmentExpr(Position pos, std::shared_ptr<Expr> const left, Operator const op, std::shared_ptr<Expr> const right)
     : Expr(pos, Type{TypeSpec::UNKNOWN, std::nullopt})
     , left_(left)
     , op_(op)
@@ -87,18 +89,19 @@ class AssignmentExpr
         visitor->visit_assignment_expr(shared_from_this());
     }
     auto codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* override;
+    auto print(std::ostream& os) const -> void override;
 
  private:
-    std::shared_ptr<Expr> left_;
-    Operator op_;
-    std::shared_ptr<Expr> right_;
+    std::shared_ptr<Expr> const left_;
+    Operator const op_;
+    std::shared_ptr<Expr> const right_;
 };
 
 class BinaryExpr
 : public Expr
 , public std::enable_shared_from_this<BinaryExpr> {
  public:
-    BinaryExpr(Position pos, std::shared_ptr<Expr> left, Operator op, std::shared_ptr<Expr> right)
+    BinaryExpr(Position const pos, std::shared_ptr<Expr> const left, Operator const op, std::shared_ptr<Expr> const right)
     : Expr(pos, Type{TypeSpec::UNKNOWN, std::nullopt})
     , left_(left)
     , op_(op)
@@ -118,11 +121,12 @@ class BinaryExpr
         visitor->visit_binary_expr(shared_from_this());
     }
     auto codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* override;
+    auto print(std::ostream& os) const -> void override;
 
  private:
-    std::shared_ptr<Expr> left_;
-    Operator op_;
-    std::shared_ptr<Expr> right_;
+    std::shared_ptr<Expr> const left_;
+    Operator const op_;
+    std::shared_ptr<Expr> const right_;
 
     auto handle_logical_or(std::shared_ptr<Emitter> emitter) -> llvm::Value*;
     auto handle_logical_and(std::shared_ptr<Emitter> emitter) -> llvm::Value*;
@@ -132,7 +136,7 @@ class UnaryExpr
 : public Expr
 , public std::enable_shared_from_this<UnaryExpr> {
  public:
-    UnaryExpr(Position pos, Operator op, std::shared_ptr<Expr> expr)
+    UnaryExpr(Position const pos, Operator const op, std::shared_ptr<Expr> const expr)
     : Expr(pos, Type{TypeSpec::UNKNOWN, std::nullopt})
     , op_(op)
     , expr_(expr) {}
@@ -148,17 +152,18 @@ class UnaryExpr
         visitor->visit_unary_expr(shared_from_this());
     }
     auto codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* override;
+    auto print(std::ostream& os) const -> void override;
 
  private:
-    Operator op_;
-    std::shared_ptr<Expr> expr_;
+    Operator const op_;
+    std::shared_ptr<Expr> const expr_;
 };
 
 class IntExpr
 : public Expr
 , public std::enable_shared_from_this<IntExpr> {
  public:
-    IntExpr(Position pos, int64_t value)
+    IntExpr(Position const pos, int64_t value)
     : Expr(pos, Type{TypeSpec::I64, std::nullopt})
     , value_(value) {}
 
@@ -170,16 +175,17 @@ class IntExpr
         visitor->visit_int_expr(shared_from_this());
     }
     auto codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* override;
+    auto print(std::ostream& os) const -> void override;
 
  private:
-    int64_t value_;
+    int64_t const value_;
 };
 
 class BoolExpr
 : public Expr
 , public std::enable_shared_from_this<BoolExpr> {
  public:
-    BoolExpr(Position pos, bool value)
+    BoolExpr(Position const pos, bool value)
     : Expr(pos, Type{TypeSpec::BOOL, std::nullopt})
     , value_(value) {}
 
@@ -191,9 +197,10 @@ class BoolExpr
         visitor->visit_bool_expr(shared_from_this());
     }
     auto codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* override;
+    auto print(std::ostream& os) const -> void override;
 
  private:
-    bool value_;
+    bool const value_;
 };
 
 class VarExpr
@@ -204,7 +211,7 @@ class VarExpr
     : Expr(pos, t)
     , name_(name) {}
 
-    VarExpr(Position pos, std::string name)
+    VarExpr(Position const pos, std::string const name)
     : Expr(pos, Type{TypeSpec::UNKNOWN, std::nullopt})
     , name_(name) {}
 
@@ -216,6 +223,7 @@ class VarExpr
         visitor->visit_var_expr(shared_from_this());
     }
     auto codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* override;
+    auto print(std::ostream& os) const -> void override;
 
     auto set_ref(std::shared_ptr<Decl> ref) -> void {
         ref_ = ref;
@@ -226,7 +234,7 @@ class VarExpr
     }
 
  private:
-    std::string name_;
+    std::string const name_;
     std::shared_ptr<Decl> ref_ = nullptr;
 };
 

@@ -11,6 +11,8 @@ struct Position {
     size_t line_start_, line_end_, col_start_, col_end_;
 };
 
+auto operator<<(std::ostream& os, Position const& p) -> std::ostream&;
+
 enum class TokenType {
     IDENT,
     FN,

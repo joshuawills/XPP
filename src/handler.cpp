@@ -21,15 +21,16 @@ auto read_file(std::string const& filename) -> std::optional<std::string> {
     return std::string(std::istreambuf_iterator<char>(stream), std::istreambuf_iterator<char>());
 }
 
-auto Handler::add_file(const std::string filename) -> bool {
+auto Handler::add_file(std::string const filename) -> bool {
     if (filename_to_contents_.find(filename) == filename_to_contents_.end()) {
-        auto contents = read_file(filename);
+        auto const& contents = read_file(filename);
         if (!contents) {
             std::cerr << "Failed to read file: " << filename << "\n";
             return false;
         }
         filename_to_contents_[filename] = std::make_shared<std::string>(*contents);
         filename_to_lines_[filename] = std::vector<std::string>{};
+
         std::istringstream stream(*contents);
         std::string line;
         while (std::getline(stream, line)) {
@@ -41,17 +42,19 @@ auto Handler::add_file(const std::string filename) -> bool {
 }
 
 auto Handler::get_file_contents(const std::string& filename) -> std::shared_ptr<std::string> {
-    auto it = filename_to_contents_.find(filename);
+    auto const& it = filename_to_contents_.find(filename);
     if (it != filename_to_contents_.end()) {
         return it->second;
     }
     return nullptr;
 }
 
-auto Handler::report_error(std::string const& filename, std::string const& message, std::string const& token, Position pos)
-    -> void {
+auto Handler::report_error(std::string const& filename,
+                           std::string const& message,
+                           std::string const& token,
+                           Position const& pos) -> void {
     std::cout << ANSI_RED_ << "ERROR: " << ANSI_RESET_;
-    for (size_t c = 0; c < message.size(); ++c) {
+    for (auto c = 0u; c < message.size(); ++c) {
         if (message.at(c) == '%') {
             std::cout << token;
         }
@@ -67,11 +70,11 @@ auto Handler::report_error(std::string const& filename, std::string const& messa
 auto Handler::report_minor_error(std::string const& filename,
                                  std::string const& message,
                                  std::string const& token,
-                                 Position pos) -> void {
+                                 Position const& pos) -> void {
     if (quiet_)
         return;
     std::cout << ANSI_BLUE_ << "MINOR ERROR: " << ANSI_RESET_;
-    for (size_t c = 0; c < message.size(); ++c) {
+    for (auto c = 0u; c < message.size(); ++c) {
         if (message.at(c) == '%') {
             std::cout << token;
         }
@@ -95,27 +98,26 @@ auto Handler::log_lines(const std::string& filename, int line, int col) -> void 
 }
 
 auto Handler::help() -> void {
-    std::cout << "X Compiler Options:\n";
+    std::cout << "X++ Compiler Options:\n";
     std::cout << "\t-h  | --help        => Provides summary of CL arguments and use of program\n";
     std::cout << "\t-r  | --run         => Will run the program after compilation\n";
     std::cout << "\t-o  | --out         => Specify the name of the executable (default to a.out)\n";
     std::cout << "\t-t  | --tokens      => Logs to stdout a summary of all the tokens\n";
-    std::cout << "\t-p  | --parser      => Generates a graphic parse tree\n";
-    std::cout << "\t-pr | --parser_raw  => Generates a deconstructed parse tree\n";
+    std::cout << "\t-p  | --parser      => Generates a printed parse tree\n";
     std::cout << "\t-a  | --assembly    => Generates a .s file instead of an executable\n";
     std::cout << "\t-q  | --quiet       => Silence any non-crucial warnings\n";
     std::cout << "\t-s  | --stat        => Log statistics about the compilation times\n";
-    std::cout << "\nDeveloped by Joshua Wills 2024\n";
+    std::cout << "\nDeveloped by Joshua Wills 2025\n";
 }
 
-auto Handler::parse_cl_args(int argc, std::vector<std::string> argv) -> bool {
+auto Handler::parse_cl_args(int argc, std::vector<std::string> const& argv) -> bool {
     if (argc == 1) {
         std::cout << "Usage: " << argv[0] << " [options] <file.xpp>\n";
         Handler::help();
         return false;
     }
 
-    auto exists_in_args = [&argv](const std::string& arg) {
+    auto const exists_in_args = [&argv](const std::string& arg) {
         return std::find(argv.begin(), argv.end(), arg) != argv.end();
     };
 
@@ -124,7 +126,6 @@ auto Handler::parse_cl_args(int argc, std::vector<std::string> argv) -> bool {
         return false;
     }
 
-    parser_raw_ = exists_in_args("-pr") || exists_in_args("--parser_raw");
     run_ = exists_in_args("-r") || exists_in_args("--run");
     tokens_ = exists_in_args("-t") || exists_in_args("--tokens");
     parser_ = exists_in_args("-p") || exists_in_args("--parser");
@@ -161,8 +162,6 @@ auto Handler::parse_cl_args(int argc, std::vector<std::string> argv) -> bool {
                                               "--tokens",
                                               "-p",
                                               "--parser",
-                                              "-pr",
-                                              "--parser_raw",
                                               "-a",
                                               "--assembly",
                                               "-q",

@@ -1,0 +1,4 @@
+fn main() void {
+	let x: i64 = 6 + y;
+}
+

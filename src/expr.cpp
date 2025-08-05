@@ -2,18 +2,51 @@
 
 #include "emitter.hpp"
 
+auto operator<<(std::ostream& os, Operator const& o) -> std::ostream& {
+    switch (o) {
+    case ASSIGN: os << "="; break;
+    case LOGICAL_OR: os << "||"; break;
+    case LOGICAL_AND: os << "&&"; break;
+    case EQUAL: os << "=="; break;
+    case NOT_EQUAL: os << "!="; break;
+    case NEGATE: os << "!"; break;
+    case PLUS: os << "+"; break;
+    case MINUS: os << "-"; break;
+    case MULTIPLY: os << "*"; break;
+    case DIVIDE: os << "/"; break;
+    case LESS_THAN: os << "<"; break;
+    case GREATER_THAN: os << ">"; break;
+    case LESS_EQUAL: os << "<="; break;
+    case GREATER_EQUAL: os << ">="; break;
+    default: os << "UNRECOGNISED OPERATOR";
+    };
+    return os;
+}
+
 auto EmptyExpr::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
     (void)emitter;
     return nullptr;
 }
 
+auto EmptyExpr::print(std::ostream& os) const -> void {
+    os << "EmptyExpr " << pos();
+}
+
 auto AssignmentExpr::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
-    auto rhs = right_->codegen(emitter);
+    auto const& rhs = right_->codegen(emitter);
     if (!rhs)
         return nullptr;
-    auto lhs = std::dynamic_pointer_cast<VarExpr>(left_);
+    auto const& lhs = std::dynamic_pointer_cast<VarExpr>(left_);
     emitter->named_values[lhs->get_name()] = rhs;
     return rhs;
+}
+
+auto AssignmentExpr::print(std::ostream& os) const -> void {
+    os << "AssignmentExpr " << pos();
+    os << "\t";
+    left_->print(os);
+    os << " " << op_ << " ";
+    right_->print(os);
 }
 
 auto BinaryExpr::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
@@ -24,8 +57,8 @@ auto BinaryExpr::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
         return handle_logical_and(emitter);
     }
 
-    auto l = left_->codegen(emitter);
-    auto r = right_->codegen(emitter);
+    auto const& l = left_->codegen(emitter);
+    auto const& r = right_->codegen(emitter);
     if (!l or !r) {
         return nullptr;
     }
@@ -47,8 +80,14 @@ auto BinaryExpr::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
     return nullptr;
 }
 
+auto BinaryExpr::print(std::ostream& os) const -> void {
+    left_->print(os);
+    os << " " << op_ << " ";
+    right_->print(os);
+}
+
 auto UnaryExpr::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
-    auto value = expr_->codegen(emitter);
+    auto const& value = expr_->codegen(emitter);
     if (!value) {
         return nullptr;
     }
@@ -66,9 +105,19 @@ auto UnaryExpr::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
     return nullptr;
 }
 
+auto UnaryExpr::print(std::ostream& os) const -> void {
+    os << "UnaryExpr " << pos();
+    os << "\t " << op_ << " ";
+    expr_->print(os);
+}
+
 auto IntExpr::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
     (void)emitter;
     return llvm::ConstantInt::get(*(emitter->context), llvm::APInt(64, value_, true));
+}
+
+auto IntExpr::print(std::ostream& os) const -> void {
+    os << value_;
 }
 
 auto BoolExpr::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
@@ -76,23 +125,36 @@ auto BoolExpr::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
     return llvm::ConstantInt::get(*(emitter->context), llvm::APInt(1, value_, true));
 }
 
+auto BoolExpr::print(std::ostream& os) const -> void {
+    if (value_) {
+        os << "true";
+    }
+    else {
+        os << "false";
+    }
+}
+
 auto VarExpr::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
     (void)emitter;
     return emitter->named_values[name_];
 }
 
+auto VarExpr::print(std::ostream& os) const -> void {
+    os << name_;
+}
+
 auto BinaryExpr::handle_logical_and(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
-    auto function = emitter->llvm_builder->GetInsertBlock()->getParent();
-    auto lhs_false_value = std::to_string(emitter->global_counter++);
-    auto lhs_false_block = llvm::BasicBlock::Create(*(emitter->context), lhs_false_value, function);
+    auto const& function = emitter->llvm_builder->GetInsertBlock()->getParent();
+    auto const& lhs_false_value = std::to_string(emitter->global_counter++);
+    auto const& lhs_false_block = llvm::BasicBlock::Create(*(emitter->context), lhs_false_value, function);
 
-    auto rhs_value = std::to_string(emitter->global_counter++);
-    auto rhs_block = llvm::BasicBlock::Create(*(emitter->context), rhs_value, function);
+    auto const& rhs_value = std::to_string(emitter->global_counter++);
+    auto const& rhs_block = llvm::BasicBlock::Create(*(emitter->context), rhs_value, function);
 
-    auto merge_value = std::to_string(emitter->global_counter++);
-    auto merge_block = llvm::BasicBlock::Create(*(emitter->context), merge_value, function);
+    auto const& merge_value = std::to_string(emitter->global_counter++);
+    auto const& merge_block = llvm::BasicBlock::Create(*(emitter->context), merge_value, function);
 
-    auto lhs_val = left_->codegen(emitter);
+    auto const& lhs_val = left_->codegen(emitter);
     if (!lhs_val)
         return nullptr;
 
@@ -102,13 +164,13 @@ auto BinaryExpr::handle_logical_and(std::shared_ptr<Emitter> emitter) -> llvm::V
     emitter->llvm_builder->CreateBr(merge_block);
 
     emitter->llvm_builder->SetInsertPoint(rhs_block);
-    auto rhs_val = right_->codegen(emitter);
+    auto const& rhs_val = right_->codegen(emitter);
     if (!rhs_val)
         return nullptr;
     emitter->llvm_builder->CreateBr(merge_block);
 
     emitter->llvm_builder->SetInsertPoint(merge_block);
-    auto phi = emitter->llvm_builder->CreatePHI(llvm::Type::getInt1Ty(*(emitter->context)), 2);
+    auto const& phi = emitter->llvm_builder->CreatePHI(llvm::Type::getInt1Ty(*(emitter->context)), 2);
 
     phi->addIncoming(llvm::ConstantInt::getFalse(*(emitter->context)), lhs_false_block);
     phi->addIncoming(rhs_val, rhs_block);
@@ -117,17 +179,17 @@ auto BinaryExpr::handle_logical_and(std::shared_ptr<Emitter> emitter) -> llvm::V
 }
 
 auto BinaryExpr::handle_logical_or(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
-    auto function = emitter->llvm_builder->GetInsertBlock()->getParent();
-    auto lhs_true_value = std::to_string(emitter->global_counter++);
-    auto lhs_true_block = llvm::BasicBlock::Create(*(emitter->context), lhs_true_value, function);
+    auto const& function = emitter->llvm_builder->GetInsertBlock()->getParent();
+    auto const& lhs_true_value = std::to_string(emitter->global_counter++);
+    auto const& lhs_true_block = llvm::BasicBlock::Create(*(emitter->context), lhs_true_value, function);
 
-    auto rhs_value = std::to_string(emitter->global_counter++);
-    auto rhs_block = llvm::BasicBlock::Create(*(emitter->context), rhs_value, function);
+    auto const& rhs_value = std::to_string(emitter->global_counter++);
+    auto const& rhs_block = llvm::BasicBlock::Create(*(emitter->context), rhs_value, function);
 
-    auto merge_value = std::to_string(emitter->global_counter++);
-    auto merge_block = llvm::BasicBlock::Create(*(emitter->context), merge_value, function);
+    auto const& merge_value = std::to_string(emitter->global_counter++);
+    auto const& merge_block = llvm::BasicBlock::Create(*(emitter->context), merge_value, function);
 
-    auto lhs_val = left_->codegen(emitter);
+    auto const& lhs_val = left_->codegen(emitter);
     if (!lhs_val)
         return nullptr;
 
@@ -137,13 +199,13 @@ auto BinaryExpr::handle_logical_or(std::shared_ptr<Emitter> emitter) -> llvm::Va
     emitter->llvm_builder->CreateBr(merge_block);
 
     emitter->llvm_builder->SetInsertPoint(rhs_block);
-    auto rhs_val = right_->codegen(emitter);
+    auto const& rhs_val = right_->codegen(emitter);
     if (!rhs_val)
         return nullptr;
     emitter->llvm_builder->CreateBr(merge_block);
 
     emitter->llvm_builder->SetInsertPoint(merge_block);
-    auto phi = emitter->llvm_builder->CreatePHI(llvm::Type::getInt1Ty(*(emitter->context)), 2);
+    auto const& phi = emitter->llvm_builder->CreatePHI(llvm::Type::getInt1Ty(*(emitter->context)), 2);
 
     phi->addIncoming(llvm::ConstantInt::getTrue(*(emitter->context)), lhs_true_block);
     phi->addIncoming(rhs_val, rhs_block);

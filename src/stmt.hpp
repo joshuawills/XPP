@@ -14,6 +14,7 @@ class Stmt : public AST {
     virtual ~Stmt() = default;
     auto visit(std::shared_ptr<Visitor> visitor) -> void override = 0;
     auto codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* override = 0;
+    auto print(std::ostream& os) const -> void override = 0;
 
  private:
 };
@@ -29,6 +30,7 @@ class EmptyStmt
         visitor->visit_empty_stmt(shared_from_this());
     }
     auto codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* override;
+    auto print(std::ostream& os) const -> void override;
 };
 
 class LocalVarStmt
@@ -43,6 +45,7 @@ class LocalVarStmt
         visitor->visit_local_var_stmt(shared_from_this());
     }
     auto codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* override;
+    auto print(std::ostream& os) const -> void override;
 
     auto get_decl() const -> std::shared_ptr<LocalVarDecl> {
         return decl_;

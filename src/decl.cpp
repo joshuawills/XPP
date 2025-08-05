@@ -37,7 +37,7 @@ auto Function::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
     auto func = llvm::Function::Create(func_type, llvm::Function::ExternalLinkage, get_ident(), *emitter->llvm_module);
 
     // Setting names of function params
-    unsigned idx = 0;
+    auto idx = 0u;
     for (auto& arg : func->args()) {
         arg.setName(paras_[idx++]->get_ident());
     }
@@ -66,9 +66,32 @@ auto Function::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
     return func;
 }
 
+auto Function::print(std::ostream& os) const -> void {
+    os << "Function " << pos() << " " << ident_ << " : " << t_ << "\n";
+
+    for (auto const& para : paras_) {
+        os << "\t\t";
+        para->print(os);
+    }
+    for (auto const& stmt : stmts_) {
+        os << "\t\t";
+        stmt->print(os);
+    }
+    os << "\n";
+}
+
 auto ParaDecl::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
     (void)emitter;
     return nullptr;
+}
+
+auto ParaDecl::print(std::ostream& os) const -> void {
+    os << "ParaDecl " << pos();
+    if (is_mut_) {
+        os << "(is_mut) ";
+    }
+    os << "\t " << ident_ << " : " << t_;
+    return;
 }
 
 auto LocalVarDecl::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
@@ -82,4 +105,10 @@ auto LocalVarDecl::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
 
     emitter->named_values[get_ident()] = alloca;
     return alloca;
+}
+
+auto LocalVarDecl::print(std::ostream& os) const -> void {
+    os << "let " << ident_ << " : " << t_ << " = ";
+    e_->print(os);
+    return;
 }

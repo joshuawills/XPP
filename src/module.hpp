@@ -26,6 +26,8 @@ class Module {
     std::vector<std::shared_ptr<Function>> functions_ = {};
 };
 
+auto operator<<(std::ostream& os, Module const& mod) -> std::ostream&;
+
 class AllModules {
  public:
     AllModules() = default;
