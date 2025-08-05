@@ -7,8 +7,8 @@ auto isalpha_or_under(const char& c) -> bool {
     return (c >= 'A' and c <= 'Z') or (c >= 'a' and c <= 'z') or c == '_';
 }
 
-auto Lexer::is_curr_char(char c) -> bool {
-    return current_pos_ < contents_->size() and (*contents_)[current_pos_] == c;
+auto Lexer::peek(char c, int j) -> bool {
+    return current_pos_ + j < contents_->size() and (*contents_)[current_pos_ + j] == c;
 }
 
 auto Lexer::tokenize() -> std::vector<std::shared_ptr<Token>> {
@@ -18,7 +18,7 @@ auto Lexer::tokenize() -> std::vector<std::shared_ptr<Token>> {
     auto const size = contents_->size();
 
     while (current_pos_ < size) {
-        skip_whitespace();
+        skip_whitespace_and_comments();
         auto const& t = generate_token();
         if (t.has_value()) {
             tokens.emplace_back(std::make_shared<Token>(*t));
@@ -39,7 +39,7 @@ auto Lexer::generate_token() -> std::optional<Token> {
     switch ((*contents_)[current_pos_]) {
     case '>': {
         consume();
-        if (is_curr_char('=')) {
+        if (peek('=')) {
             consume();
             return Token{">=", current_line_, current_col_ - 2, current_col_ - 1, TokenType::GREATER_EQUAL};
         }
@@ -47,7 +47,7 @@ auto Lexer::generate_token() -> std::optional<Token> {
     }
     case '<': {
         consume();
-        if (is_curr_char('=')) {
+        if (peek('=')) {
             consume();
             return Token{"<=", current_line_, current_col_ - 2, current_col_ - 1, TokenType::LESS_EQUAL};
         }
@@ -62,7 +62,7 @@ auto Lexer::generate_token() -> std::optional<Token> {
     case ',': consume(); return Token{",", current_line_, current_col_ - 1, current_col_ - 1, TokenType::COMMA};
     case '=': {
         consume();
-        if (is_curr_char('=')) {
+        if (peek('=')) {
             consume();
             return Token{"==", current_line_, current_col_ - 1, current_col_ - 1, TokenType::EQUAL};
         }
@@ -70,7 +70,7 @@ auto Lexer::generate_token() -> std::optional<Token> {
     }
     case '!': {
         consume();
-        if (is_curr_char('=')) {
+        if (peek('=')) {
             consume();
             return Token{"!=", current_line_, current_col_ - 1, current_col_ - 1, TokenType::NOT_EQUAL};
         }
@@ -78,7 +78,7 @@ auto Lexer::generate_token() -> std::optional<Token> {
     }
     case '|': {
         consume();
-        if (is_curr_char('|')) {
+        if (peek('|')) {
             consume();
             return Token{"||", current_line_, current_col_ - 2, current_col_ - 1, TokenType::LOGICAL_OR};
         }
@@ -87,7 +87,7 @@ auto Lexer::generate_token() -> std::optional<Token> {
     }
     case '&': {
         consume();
-        if (is_curr_char('&')) {
+        if (peek('&')) {
             consume();
             return Token{"&&", current_line_, current_col_ - 2, current_col_ - 1, TokenType::LOGICAL_AND};
         }
@@ -140,6 +140,30 @@ auto Lexer::skip_whitespace() -> void {
     while (current_pos_ < contents_->size() and isspace(contents_->at(current_pos_))) {
         consume();
     }
+}
+
+auto Lexer::skip_whitespace_and_comments() -> void {
+    skip_whitespace();
+    if (peek('/') and peek('/', 1)) {
+        while (current_pos_ < contents_->size() and !peek('\n')) {
+            consume();
+        }
+        consume();
+    } else if (peek('/') and peek('*', 1)) {
+        while(!(peek('*') and peek('/', 1))) {
+            consume(); 
+        }
+        consume(); 
+        consume(); 
+    }
+    skip_whitespace();
+    if (is_comment()) {
+        skip_whitespace_and_comments();
+    }
+}
+
+auto Lexer::is_comment() -> bool {
+   return peek('/') and (peek('/', 1) or peek('*', 1));
 }
 
 auto Lexer::consume() -> char {

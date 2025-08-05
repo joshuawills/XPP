@@ -5,6 +5,10 @@ fn get_one() i64 {
 }
 
 fn main() void {
+	// Sigma sigma boy
+	/*
+		Multi line comments
+	*/
 	let x: i64 = get_one();
 	let y: i64 = get_one();
 	exit(x + y);

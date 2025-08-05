@@ -20,9 +20,11 @@ class Lexer {
 
  private:
     auto skip_whitespace() -> void;
+    auto skip_whitespace_and_comments() -> void;
     auto generate_token() -> std::optional<Token>;
     auto consume() -> char;
-    auto is_curr_char(char c) -> bool;
+    auto is_comment() -> bool;
+    auto peek(char c, int j = 0) -> bool;
 
     const std::string filename_;
     std::shared_ptr<Handler> handler_;
