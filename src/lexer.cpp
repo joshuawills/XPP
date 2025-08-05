@@ -37,6 +37,16 @@ auto Lexer::generate_token() -> std::optional<Token> {
     }
 
     switch ((*contents_)[current_pos_]) {
+    case '.': {
+        if (peek('.', 1) and peek('.', 2)) {
+            consume();
+            consume();
+            consume();
+            return Token{"...", line_, col_ - 1, col_ - 1, TokenType::TYPE};
+        }
+        std::cerr << "Invalid character";
+        exit(EXIT_FAILURE);
+    }
     case '>': {
         consume();
         if (peek('=')) {

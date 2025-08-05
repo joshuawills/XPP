@@ -26,6 +26,9 @@ auto Verifier::visit_para_decl(std::shared_ptr<ParaDecl> para_decl) -> void {
     if (para_decl->get_type() == handler_->VOID_TYPE) {
         handler_->report_error(current_filename_, all_errors_[4], para_decl->get_ident(), para_decl->pos());
     }
+    else if (para_decl->get_type() == handler_->VARIATIC_TYPE) {
+        handler_->report_error(current_filename_, all_errors_[16], para_decl->get_ident(), para_decl->pos());
+    }
 
     return;
 }
@@ -53,7 +56,18 @@ auto Verifier::visit_local_var_decl(std::shared_ptr<LocalVarDecl> local_var_decl
 }
 
 auto Verifier::visit_extern(std::shared_ptr<Extern> extern_) -> void {
-    (void)extern_;
+    auto i = 0u;
+    auto const size = extern_->get_types().size();
+    for (auto const& type : extern_->get_types()) {
+        if (type == handler_->VARIATIC_TYPE) {
+            extern_->set_variatic();
+            if (i != size - 1) {
+                handler_->report_error(current_filename_, all_errors_[17], "", extern_->pos());
+                break;
+            }
+        }
+        ++i;
+    }
 }
 
 auto Verifier::visit_function(std::shared_ptr<Function> function) -> void {

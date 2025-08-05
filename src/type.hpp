@@ -3,7 +3,7 @@
 
 #include "./ast.hpp"
 
-enum TypeSpec { VOID, I64, BOOL, UNKNOWN, ERROR, POINTER, CHAR };
+enum TypeSpec { VOID, I64, I32, BOOL, UNKNOWN, ERROR, POINTER, CHAR, VARIATIC };
 
 auto operator<<(std::ostream& os, TypeSpec const& ts) -> std::ostream&;
 

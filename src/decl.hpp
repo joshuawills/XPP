@@ -162,8 +162,17 @@ class Extern
 
     auto operator==(const Extern& other) const -> bool;
 
+    auto set_variatic() -> void {
+        has_variatic_ = true;
+    }
+
+    auto is_variatic() -> bool {
+        return has_variatic_;
+    }
+
  private:
     std::vector<Type> const types_;
+    bool has_variatic_ = false;
 };
 
 #endif // DECL_HPP

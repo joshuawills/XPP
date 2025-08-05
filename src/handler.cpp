@@ -13,6 +13,7 @@ const Type Handler::ERROR_TYPE = Type{TypeSpec::ERROR};
 const Type Handler::BOOL_TYPE = Type{TypeSpec::BOOL};
 const Type Handler::UNKNOWN_TYPE = Type{TypeSpec::UNKNOWN};
 const Type Handler::CHAR_POINTER_TYPE = Type{TypeSpec::POINTER, std::nullopt, std::make_shared<Type>(TypeSpec::CHAR)};
+const Type Handler::VARIATIC_TYPE = Type{TypeSpec::VARIATIC};
 
 auto read_file(std::string const& filename) -> std::optional<std::string> {
     auto stream = std::ifstream{filename};

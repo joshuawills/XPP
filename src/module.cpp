@@ -2,6 +2,11 @@
 
 auto operator<<(std::ostream& os, Module const& mod) -> std::ostream& {
     os << "Module " << mod.get_filepath() << "\n";
+
+    for (auto const& extern_ : mod.get_externs()) {
+        extern_->print(os);
+    }
+
     for (auto const& function : mod.get_functions()) {
         function->print(os);
     }
@@ -35,10 +40,19 @@ auto Module::get_decl(std::shared_ptr<CallExpr> call_expr) const -> std::optiona
         }
         auto const& call_args = call_expr->get_args();
         auto const& func_args = extern_->get_types();
-        if (call_args.size() != func_args.size()) {
-            return false;
+
+        if (extern_->is_variatic()) {
+            if (call_args.size() < func_args.size() - 1) {
+                return false;
+            }
         }
-        for (auto i = 0u; i < call_args.size(); ++i) {
+        else {
+            if (call_args.size() != func_args.size()) {
+                return false;
+            }
+        }
+
+        for (auto i = 0u; i < func_args.size() - 1; ++i) {
             if (call_args[i]->get_type() != func_args[i]) {
                 return false;
             }

@@ -1,12 +1,14 @@
-/*
 extern exit(i64) void;
+extern printf(i8*, ...) i32;
 
+/*
 fn get_one() i64 {
 	return 1;
 }
 */
 
 fn main() void {
-	let x: i8* = "haha\n";
+    let x = 1;
+	printf("my favourite number is: %d\n", x);
 }
 

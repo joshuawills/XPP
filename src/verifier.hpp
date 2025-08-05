@@ -97,7 +97,10 @@ class Verifier
                                                   "12: no such function with name: %",
                                                   "13: main function may not call itself",
                                                   "14: incorrect parameters for function: %",
-                                                  "15: duplicate extern declaration: %"};
+                                                  "15: duplicate extern declaration: %",
+                                                  "16: user functions can't utilise variatics: %",
+                                                  "17: variatic type may only be last specified type in extern "
+                                                  "declaration"};
 
     auto check_duplicate_function_declaration() -> void;
     auto check_duplicate_extern_declaration() -> void;

@@ -105,11 +105,15 @@ auto Extern::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
     auto const return_type = emitter->llvm_type(get_type());
 
     auto param_types = std::vector<llvm::Type*>{};
+    auto i = 0u;
     for (auto& type : types_) {
-        param_types.push_back(emitter->llvm_type(type));
+        if (!(has_variatic_ and i == types_.size() - 1)) {
+            param_types.push_back(emitter->llvm_type(type));
+        }
+        ++i;
     }
 
-    auto func_type = llvm::FunctionType::get(return_type, param_types, false);
+    auto func_type = llvm::FunctionType::get(return_type, param_types, has_variatic_);
     auto func = llvm::Function::Create(func_type, llvm::Function::ExternalLinkage, get_ident(), *emitter->llvm_module);
 
     return func;
@@ -119,7 +123,7 @@ auto Extern::print(std::ostream& os) const -> void {
     os << "Extern" << pos() << " " << ident_ << " : " << t_ << "\n";
 
     for (auto const& type : types_) {
-        os << "\t\t" << type;
+        os << ", " << type;
     }
     os << "\n";
 }
