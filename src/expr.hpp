@@ -56,7 +56,7 @@ class EmptyExpr
 , public std::enable_shared_from_this<EmptyExpr> {
  public:
     EmptyExpr(Position pos)
-    : Expr(pos, Type{TypeSpec::UNKNOWN, std::nullopt}) {}
+    : Expr(pos, Type{TypeSpec::VOID, std::nullopt}) {}
 
     auto visit(std::shared_ptr<Visitor> visitor) -> void override {
         visitor->visit_empty_expr(shared_from_this());
@@ -236,6 +236,48 @@ class VarExpr
  private:
     std::string const name_;
     std::shared_ptr<Decl> ref_ = nullptr;
+};
+
+class CallExpr
+: public Expr
+, public std::enable_shared_from_this<CallExpr> {
+ public:
+    CallExpr(Position const pos, std::string const name, std::vector<std::shared_ptr<Expr>> const args)
+    : Expr(pos, Type{TypeSpec::UNKNOWN, std::nullopt})
+    , name_(name)
+    , args_(args) {}
+
+    CallExpr(Position const pos, std::string const name, Type t, std::vector<std::shared_ptr<Expr>> const args)
+    : Expr(pos, t)
+    , name_(name)
+    , args_(args) {}
+
+    auto visit(std::shared_ptr<Visitor> visitor) -> void override {
+        visitor->visit_call_expr(shared_from_this());
+    }
+    auto codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* override;
+    auto print(std::ostream& os) const -> void override;
+
+    auto get_name() const -> std::string {
+        return name_;
+    }
+
+    auto set_ref(std::shared_ptr<Function> ref) -> void {
+        ref_ = ref;
+    }
+
+    auto get_ref() const -> std::shared_ptr<Function> {
+        return ref_;
+    }
+
+    auto get_args() -> std::vector<std::shared_ptr<Expr>> {
+        return args_;
+    }
+
+ private:
+    std::string const name_;
+    std::vector<std::shared_ptr<Expr>> const args_;
+    std::shared_ptr<Function> ref_ = nullptr;
 };
 
 #endif // EXPR_HPP

@@ -45,6 +45,7 @@ enum class TokenType {
     DIVIDE,
     TRUE,
     FALSE,
+    RETURN,
 };
 
 class Token {

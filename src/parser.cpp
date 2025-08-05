@@ -18,6 +18,10 @@ auto Parser::finish(Position& pos) -> void {
         pos.col_end_ = (*curr_token_)->pos().col_end_;
         pos.line_end_ = (*curr_token_)->pos().line_end_;
     }
+    else {
+        pos.col_end_ = tokens_.back()->pos().col_end_;
+        pos.line_end_ = tokens_.back()->pos().line_end_;
+    }
 }
 
 auto Parser::try_consume(TokenType t) -> bool {
@@ -161,6 +165,11 @@ auto Parser::parse_para_list() -> std::vector<std::shared_ptr<ParaDecl>> {
     return paras;
 }
 
+auto Parser::parse_arg_list() -> std::vector<std::shared_ptr<Expr>> {
+    auto args = std::vector<std::shared_ptr<Expr>>{};
+    return args;
+}
+
 auto Parser::parse_compound_stmt() -> std::vector<std::shared_ptr<Stmt>> {
     auto stmts = std::vector<std::shared_ptr<Stmt>>{};
     match(TokenType::OPEN_CURLY);
@@ -192,7 +201,21 @@ auto Parser::parse_compound_stmt() -> std::vector<std::shared_ptr<Stmt>> {
             if (is_mut) {
                 decl->set_mut();
             }
+            finish(p);
             stmts.push_back(std::make_shared<LocalVarStmt>(p, decl));
+        }
+        else if (try_consume(TokenType::RETURN)) {
+            std::shared_ptr<Expr> expr;
+            if (try_consume(TokenType::SEMICOLON)) {
+                finish(p);
+                expr = std::make_shared<EmptyExpr>(p);
+            }
+            else {
+                expr = parse_expr();
+                match(TokenType::SEMICOLON);
+            }
+            finish(p);
+            stmts.push_back(std::make_shared<ReturnStmt>(p, expr));
         }
         else {
             syntactic_error("UNRECOGNIZED STATEMENT: %", (*curr_token_)->str());
@@ -311,7 +334,24 @@ auto Parser::parse_unary_expr() -> std::shared_ptr<Expr> {
         return std::make_shared<UnaryExpr>(p, op, expr);
     }
     else {
-        return parse_primary_expr();
+        return parse_postfix_expr();
+    }
+}
+
+auto Parser::parse_postfix_expr() -> std::shared_ptr<Expr> {
+    auto p = Position{};
+    start(p);
+    auto p_expr = parse_primary_expr();
+    auto v = std::dynamic_pointer_cast<VarExpr>(p_expr);
+    if (peek(TokenType::OPEN_BRACKET) and v) {
+        match(TokenType::OPEN_BRACKET);
+        auto args = parse_arg_list();
+        match(TokenType::CLOSE_BRACKET);
+        finish(p);
+        return std::make_shared<CallExpr>(p, v->get_name(), args);
+    }
+    else {
+        return p_expr;
     }
 }
 

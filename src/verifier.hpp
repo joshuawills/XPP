@@ -31,7 +31,7 @@ class SymbolTable {
     }
     auto retrieve_one_level(std::string const& id) -> std::optional<TableEntry>;
     auto remove(TableEntry const& entry) -> void {
-        entries_.remove_if([&](const TableEntry& e) { return e.id == entry.id && e.level == entry.level; });
+        entries_.remove_if([&](const TableEntry& e) { return e.id == entry.id and e.level == entry.level; });
     }
 
  private:
@@ -57,9 +57,11 @@ class Verifier
     auto visit_int_expr(std::shared_ptr<IntExpr> int_expr) -> void override;
     auto visit_bool_expr(std::shared_ptr<BoolExpr> bool_expr) -> void override;
     auto visit_var_expr(std::shared_ptr<VarExpr> var_expr) -> void override;
+    auto visit_call_expr(std::shared_ptr<CallExpr> call_expr) -> void override;
 
     auto visit_empty_stmt(std::shared_ptr<EmptyStmt> empty_stmt) -> void override;
     auto visit_local_var_stmt(std::shared_ptr<LocalVarStmt> local_var_stmt) -> void override;
+    auto visit_return_stmt(std::shared_ptr<ReturnStmt> return_stmt) -> void override;
 
     auto check(std::string const& filename, bool is_main) -> void;
 
@@ -75,19 +77,23 @@ class Verifier
 
     std::string current_filename_;
     std::shared_ptr<Module> current_module_ = nullptr;
+    std::shared_ptr<Function> current_function_ = nullptr;
 
-    std::vector<std::string> const all_errors_ = {
-        "0: main function is missing",
-        "1: duplicate function declaration",
-        "2: invalid main function signature: %",
-        "3: identifier redeclared: %",
-        "4: identifier declared void: %",
-        "5: incompatible type for this binary operator: %",
-        "6: incompatible type for this assignment: %",
-        "7: LHS of assignment must be a variable",
-        "8: variable not declared in this scope: %",
-        "9: incompatible type for this unary operator: %",
-    };
+    std::vector<std::string> const all_errors_ = {"0: main function is missing",
+                                                  "1: duplicate function declaration",
+                                                  "2: invalid main function signature: %",
+                                                  "3: identifier redeclared: %",
+                                                  "4: identifier declared void: %",
+                                                  "5: incompatible type for this binary operator: %",
+                                                  "6: incompatible type for this assignment: %",
+                                                  "7: LHS of assignment must be a variable",
+                                                  "8: variable not declared in this scope: %",
+                                                  "9: incompatible type for this unary operator: %",
+                                                  "10: missing return stmt: %",
+                                                  "11: incompatible type for return: %",
+                                                  "12: no such function with name: %",
+                                                  "13: main function may not call itself",
+                                                  "14: incorrect parameters for function: %"};
 
     auto check_duplicate_function_declaration() -> void;
 

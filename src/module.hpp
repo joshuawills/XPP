@@ -1,6 +1,8 @@
 #ifndef MODULE_HPP
 #define MODULE_HPP
 
+#include <algorithm>
+
 #include "./ast.hpp"
 #include "./decl.hpp"
 
@@ -20,6 +22,14 @@ class Module {
     auto get_functions() const -> std::vector<std::shared_ptr<Function>> {
         return functions_;
     }
+
+    auto function_with_name_exists(std::string const& name) const -> bool {
+        return std::any_of(functions_.begin(), functions_.end(), [&name](auto const& func) {
+            return func->get_ident() == name;
+        });
+    }
+
+    auto get_function(std::shared_ptr<CallExpr> call_expr) const -> std::optional<std::shared_ptr<Function>>;
 
  private:
     std::string filepath_;

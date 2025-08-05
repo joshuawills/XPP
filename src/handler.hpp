@@ -36,6 +36,10 @@ class Handler {
         return parser_;
     }
 
+    auto llvm_mode() const noexcept -> bool {
+        return llvm_ir_;
+    }
+
     auto get_output_filename() -> std::string& {
         return output_filename_;
     }
@@ -45,6 +49,10 @@ class Handler {
 
     auto get_assembly_filename() -> std::string& {
         return assembly_filename_;
+    }
+
+    auto get_llvm_filename() -> std::string& {
+        return llvm_filename_;
     }
 
     auto is_assembly() const noexcept -> bool {
@@ -72,10 +80,11 @@ class Handler {
     std::string const ANSI_YELLOW_ = "\033[33m";
     std::string const ANSI_BLUE_ = "\033[34m";
     bool quiet_ = false, run_ = false, tokens_ = false, parser_ = false;
-    bool assembly_ = false, stats_ = false;
+    bool assembly_ = false, stats_ = false, llvm_ir_ = false;
     std::string output_filename_ = "a.out";
     std::string object_filename_ = "default.o";
     std::string assembly_filename_ = "default.s";
+    std::string llvm_filename_ = "default.ll";
 };
 
 #endif // HANDLER_HPP

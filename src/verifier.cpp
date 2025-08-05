@@ -56,7 +56,7 @@ auto Verifier::visit_function(std::shared_ptr<Function> function) -> void {
     base_statement_counter = 0;
     // Verifying main function
     if (function->get_ident() == "main") {
-        has_main_ = true;
+        in_main_ = has_main_ = true;
         if (function->get_type() != handler_->VOID_TYPE) {
             auto stream = std::stringstream{};
             stream << "should return void, not " << function->get_type().get_type_spec();
@@ -67,6 +67,7 @@ auto Verifier::visit_function(std::shared_ptr<Function> function) -> void {
         }
     }
 
+    current_function_ = function;
     symbol_table_.open_scope();
     for (auto const& para : function->get_paras()) {
         para->visit(shared_from_this());
@@ -76,7 +77,12 @@ auto Verifier::visit_function(std::shared_ptr<Function> function) -> void {
     }
     symbol_table_.close_scope();
 
+    if (!has_return_ and function->get_type() != handler_->VOID_TYPE) {
+        handler_->report_error(current_filename_, all_errors_[10], "in function " + function->get_ident(), function->pos());
+    }
+
     base_statement_counter = 0;
+    in_main_ = false;
 }
 
 auto Verifier::visit_empty_expr(std::shared_ptr<EmptyExpr> empty_expr) -> void {
@@ -242,6 +248,34 @@ auto Verifier::visit_var_expr(std::shared_ptr<VarExpr> var_expr) -> void {
     return;
 }
 
+auto Verifier::visit_call_expr(std::shared_ptr<CallExpr> call_expr) -> void {
+    auto const function_name = call_expr->get_name();
+
+    if (!current_module_->function_with_name_exists(function_name)) {
+        handler_->report_error(current_filename_, all_errors_[12], function_name, call_expr->pos());
+        return;
+    }
+    if (in_main_ and function_name == "main") {
+        handler_->report_error(current_filename_, all_errors_[13], "", call_expr->pos());
+        return;
+    }
+
+    for (auto& arg : call_expr->get_args()) {
+        arg->visit(shared_from_this());
+    }
+
+    auto equivalent_func = current_module_->get_function(call_expr);
+    if (!equivalent_func) {
+        handler_->report_error(current_filename_, all_errors_[14], function_name, call_expr->pos());
+        return;
+    }
+
+    (*equivalent_func)->set_used();
+    call_expr->set_ref(*equivalent_func);
+    call_expr->set_type((*equivalent_func)->get_type());
+    return;
+}
+
 auto Verifier::visit_empty_stmt(std::shared_ptr<EmptyStmt> empty_stmt) -> void {
     (void)empty_stmt;
     return;
@@ -249,6 +283,22 @@ auto Verifier::visit_empty_stmt(std::shared_ptr<EmptyStmt> empty_stmt) -> void {
 
 auto Verifier::visit_local_var_stmt(std::shared_ptr<LocalVarStmt> local_var_stmt) -> void {
     local_var_stmt->get_decl()->visit(shared_from_this());
+}
+
+auto Verifier::visit_return_stmt(std::shared_ptr<ReturnStmt> return_stmt) -> void {
+    has_return_ = true;
+    auto expr = return_stmt->get_expr();
+
+    expr->visit(shared_from_this());
+    auto const expr_type = expr->get_type();
+    if (expr_type != current_function_->get_type()) {
+        auto stream = std::stringstream{};
+        stream << "in function " << current_function_->get_ident() << ". expected type "
+               << current_function_->get_type().get_type_spec() << ", received " << expr_type.get_type_spec();
+        handler_->report_error(current_filename_, all_errors_[11], stream.str(), return_stmt->pos());
+    }
+
+    return;
 }
 
 auto Verifier::check(std::string const& filename, bool is_main) -> void {

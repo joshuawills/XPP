@@ -20,6 +20,13 @@ auto Emitter::emit() -> void {
         }
     }
 
+    if (handler_->llvm_mode()) {
+        auto error_code = std::error_code{};
+        auto dest = llvm::raw_fd_ostream{handler_->get_llvm_filename(), error_code};
+        llvm_module->print(dest, nullptr);
+        return;
+    }
+
     llvm::InitializeNativeTarget();
     llvm::InitializeNativeTargetAsmPrinter();
     llvm::InitializeNativeTargetAsmParser();

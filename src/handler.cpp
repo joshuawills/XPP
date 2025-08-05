@@ -105,6 +105,7 @@ auto Handler::help() -> void {
     std::cout << "\t-t  | --tokens      => Logs to stdout a summary of all the tokens\n";
     std::cout << "\t-p  | --parser      => Generates a printed parse tree\n";
     std::cout << "\t-a  | --assembly    => Generates a .s file instead of an executable\n";
+    std::cout << "\t-ir | --llvm-ir     => Generates a .ll file instead of an executable\n";
     std::cout << "\t-q  | --quiet       => Silence any non-crucial warnings\n";
     std::cout << "\t-s  | --stat        => Log statistics about the compilation times\n";
     std::cout << "\nDeveloped by Joshua Wills 2025\n";
@@ -121,26 +122,30 @@ auto Handler::parse_cl_args(int argc, std::vector<std::string> const& argv) -> b
         return std::find(argv.begin(), argv.end(), arg) != argv.end();
     };
 
-    if (exists_in_args("-h") || exists_in_args("--help")) {
+    if (exists_in_args("-h") or exists_in_args("--help")) {
         Handler::help();
         return false;
     }
 
-    run_ = exists_in_args("-r") || exists_in_args("--run");
-    tokens_ = exists_in_args("-t") || exists_in_args("--tokens");
-    parser_ = exists_in_args("-p") || exists_in_args("--parser");
-    assembly_ = exists_in_args("-a") || exists_in_args("--assembly");
-    quiet_ = exists_in_args("-q") || exists_in_args("--quiet");
-    stats_ = exists_in_args("-s") || exists_in_args("--stat");
+    run_ = exists_in_args("-r") or exists_in_args("--run");
+    tokens_ = exists_in_args("-t") or exists_in_args("--tokens");
+    parser_ = exists_in_args("-p") or exists_in_args("--parser");
+    assembly_ = exists_in_args("-a") or exists_in_args("--assembly");
+    quiet_ = exists_in_args("-q") or exists_in_args("--quiet");
+    stats_ = exists_in_args("-s") or exists_in_args("--stat");
+    llvm_ir_ = exists_in_args("-ir") or exists_in_args("--llvm-ir");
 
-    if (exists_in_args("-o") || exists_in_args("--out")) {
+    if (exists_in_args("-o") or exists_in_args("--out")) {
         auto it = std::find(argv.begin(), argv.end(), "-o");
         if (it == argv.end()) {
             it = std::find(argv.begin(), argv.end(), "--out");
         }
-        if (it != argv.end() && ++it != argv.end()) {
+        if (it != argv.end() and ++it != argv.end()) {
             if (assembly_) {
                 assembly_filename_ = *it;
+            }
+            else if (llvm_ir_) {
+                llvm_filename_ = *it;
             }
             else {
                 output_filename_ = *it;
@@ -167,7 +172,9 @@ auto Handler::parse_cl_args(int argc, std::vector<std::string> const& argv) -> b
                                               "-q",
                                               "--quiet",
                                               "-s",
-                                              "--stat"};
+                                              "--stat",
+                                              "-ir",
+                                              "--llvm-ir"};
 
     source_filename = argv.back();
     if (std::find(valid_cl_args.begin(), valid_cl_args.end(), source_filename) != valid_cl_args.end()) {

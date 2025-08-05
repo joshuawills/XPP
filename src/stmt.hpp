@@ -5,6 +5,7 @@
 #include "./visitor.hpp"
 
 class LocalVarDecl;
+class Expr;
 
 class Stmt : public AST {
  public:
@@ -53,6 +54,28 @@ class LocalVarStmt
 
  private:
     std::shared_ptr<LocalVarDecl> decl_;
+};
+
+class ReturnStmt
+: public Stmt
+, public std::enable_shared_from_this<ReturnStmt> {
+ public:
+    ReturnStmt(Position const pos, std::shared_ptr<Expr> const expr)
+    : Stmt(pos)
+    , expr_(expr) {}
+
+    auto get_expr() const -> std::shared_ptr<Expr> {
+        return expr_;
+    }
+
+    auto visit(std::shared_ptr<Visitor> visitor) -> void override {
+        visitor->visit_return_stmt(shared_from_this());
+    }
+    auto codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* override;
+    auto print(std::ostream& os) const -> void override;
+
+ private:
+    std::shared_ptr<Expr> const expr_;
 };
 
 #endif // STMT_HPP

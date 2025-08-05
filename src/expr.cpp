@@ -212,3 +212,24 @@ auto BinaryExpr::handle_logical_or(std::shared_ptr<Emitter> emitter) -> llvm::Va
 
     return phi;
 }
+
+auto CallExpr::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
+    auto callee = emitter->llvm_module->getFunction(name_);
+    auto arg_vals = std::vector<llvm::Value*>{};
+    for (auto& arg : args_) {
+        arg_vals.push_back(arg->codegen(emitter));
+    }
+    return emitter->llvm_builder->CreateCall(callee, arg_vals);
+}
+
+auto CallExpr::print(std::ostream& os) const -> void {
+    os << name_ << "(";
+    for (auto const& arg : args_) {
+        arg->print(os);
+        if (arg != args_.back()) {
+            os << ", ";
+        }
+    }
+    os << ")";
+    return;
+}

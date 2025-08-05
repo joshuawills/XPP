@@ -18,7 +18,7 @@ struct Type {
     std::optional<std::string> lexeme;
 
     auto operator==(const Type& other) const -> bool {
-        return t == other.t && lexeme == other.lexeme;
+        return t == other.t and lexeme == other.lexeme;
     }
 
     auto operator!=(const Type& other) const -> bool {

@@ -41,6 +41,7 @@ class Parser {
     auto parse_ident() -> std::string;
     auto parse_type() -> Type;
     auto parse_para_list() -> std::vector<std::shared_ptr<ParaDecl>>;
+    auto parse_arg_list() -> std::vector<std::shared_ptr<Expr>>;
     auto parse_compound_stmt() -> std::vector<std::shared_ptr<Stmt>>;
 
     auto parse_expr() -> std::shared_ptr<Expr>;
@@ -52,6 +53,7 @@ class Parser {
     auto parse_additive_expr() -> std::shared_ptr<Expr>;
     auto parse_multiplicative_expr() -> std::shared_ptr<Expr>;
     auto parse_unary_expr() -> std::shared_ptr<Expr>;
+    auto parse_postfix_expr() -> std::shared_ptr<Expr>;
     auto parse_primary_expr() -> std::shared_ptr<Expr>;
 
     auto is_assignment_operator() -> bool;
