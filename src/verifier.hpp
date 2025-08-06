@@ -66,6 +66,7 @@ class Verifier
     auto visit_local_var_stmt(std::shared_ptr<LocalVarStmt> local_var_stmt) -> void override;
     auto visit_return_stmt(std::shared_ptr<ReturnStmt> return_stmt) -> void override;
     auto visit_expr_stmt(std::shared_ptr<ExprStmt> expr_stmt) -> void override;
+    auto visit_while_stmt(std::shared_ptr<WhileStmt> while_stmt) -> void override;
 
     auto check(std::string const& filename, bool is_main) -> void;
 
@@ -102,7 +103,8 @@ class Verifier
                                                   "16: user functions can't utilise variatics: %",
                                                   "17: variatic type may only be last specified type in extern "
                                                   "declaration",
-                                                  "18: character literal can only have one character in it"};
+                                                  "18: character literal can only have one character in it",
+                                                  "19: while stmt condition is not boolean: %"};
 
     auto check_duplicate_function_declaration() -> void;
     auto check_duplicate_extern_declaration() -> void;

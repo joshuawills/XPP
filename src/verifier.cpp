@@ -333,6 +333,24 @@ auto Verifier::visit_expr_stmt(std::shared_ptr<ExprStmt> expr_stmt) -> void {
     expr_stmt->get_expr()->visit(shared_from_this());
 }
 
+auto Verifier::visit_while_stmt(std::shared_ptr<WhileStmt> while_stmt) -> void {
+    auto cond = while_stmt->get_cond();
+    cond->visit(shared_from_this());
+
+    if (cond->get_type() != handler_->BOOL_TYPE) {
+        auto stream = std::stringstream{};
+        stream << "received ";
+        stream << cond->get_type().get_type_spec();
+        handler_->report_error(current_filename_, all_errors_[19], stream.str(), cond->pos());
+    }
+
+    for (auto& stmt : while_stmt->get_stmts()) {
+        stmt->visit(shared_from_this());
+    }
+
+    return;
+}
+
 auto Verifier::check(std::string const& filename, bool is_main) -> void {
     current_filename_ = filename;
 

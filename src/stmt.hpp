@@ -100,4 +100,32 @@ class ExprStmt
     std::shared_ptr<Expr> const expr_;
 };
 
+class WhileStmt
+: public Stmt
+, public std::enable_shared_from_this<WhileStmt> {
+ public:
+    WhileStmt(Position const pos, std::shared_ptr<Expr> const cond, std::vector<std::shared_ptr<Stmt>> const stmts)
+    : Stmt(pos)
+    , cond_(cond)
+    , stmts_{stmts} {}
+
+    auto get_cond() const -> std::shared_ptr<Expr> {
+        return cond_;
+    }
+
+    auto get_stmts() const -> std::vector<std::shared_ptr<Stmt>> {
+        return stmts_;
+    }
+
+    auto visit(std::shared_ptr<Visitor> visitor) -> void override {
+        visitor->visit_while_stmt(shared_from_this());
+    }
+    auto codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* override;
+    auto print(std::ostream& os) const -> void override;
+
+ private:
+    std::shared_ptr<Expr> const cond_;
+    std::vector<std::shared_ptr<Stmt>> stmts_;
+};
+
 #endif // STMT_HPP

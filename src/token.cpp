@@ -20,17 +20,9 @@ Token::Token(std::string lexeme, size_t line_num, size_t col_start, size_t col_e
 , position_{line_num, line_num, col_start, col_end}
 , type_{type} {}
 
-auto Token::str() const -> std::string {
-    return "Token{"
-           "lexeme: '"
-           + lexeme_
-           + "', "
-             "position: {line_start: "
-           + std::to_string(position_.line_start_) + ", line_end:" + std::to_string(position_.line_end_)
-           + ", col_start: " + std::to_string(position_.col_start_) + ", col_end: " + std::to_string(position_.col_end_)
-           + "}, "
-             "type: "
-           + token_type_to_str(type_) + "}";
+auto operator<<(std::ostream& os, Token const& t) -> std::ostream& {
+    os << "Token{lexeme: '" << t.lexeme() << "', position: " << t.pos() << ", type: " << t.type() << "}";
+    return os;
 }
 
 auto get_type_from_lexeme(std::string const& str) -> std::optional<TokenType> {
@@ -45,55 +37,58 @@ auto get_type_from_lexeme(std::string const& str) -> std::optional<TokenType> {
                                                              {"let", TokenType::LET},
                                                              {"return", TokenType::RETURN},
                                                              {"extern", TokenType::EXTERN},
+                                                             {"while", TokenType::WHILE},
                                                              {"true", TokenType::TRUE},
                                                              {"false", TokenType::FALSE}};
 
     return lookup_map.find(str) != lookup_map.end() ? std::make_optional(lookup_map.at(str)) : std::nullopt;
 }
 
-auto token_type_to_str(TokenType t) -> std::string {
+auto operator<<(std::ostream& os, TokenType const& t) -> std::ostream& {
     switch (t) {
-    case TokenType::IDENT: return "IDENT";
-    case TokenType::FN: return "FN";
-    case TokenType::LESS_THAN: return "LESS_THAN";
-    case TokenType::GREATER_THAN: return "GREATER_THAN";
-    case TokenType::GREATER_EQUAL: return "GREATER_EQUAL";
-    case TokenType::LESS_EQUAL: return "LESS_EQUAL";
-    case TokenType::OPEN_CURLY: return "OPEN_CURLY";
-    case TokenType::CLOSE_CURLY: return "CLOSE_CURLY";
-    case TokenType::OPEN_BRACKET: return "OPEN_BRACKET";
-    case TokenType::CLOSE_BRACKET: return "CLOSE_BRACKET";
-    case TokenType::COLON: return "COLON";
-    case TokenType::SEMICOLON: return "SEMICOLON";
-    case TokenType::TYPE: return "TYPE";
-    case TokenType::AS: return "AS";
-    case TokenType::USING: return "USING";
-    case TokenType::INTEGER: return "INTEGER";
-    case TokenType::COMMA: return "COMMA";
-    case TokenType::MUT: return "MUT";
-    case TokenType::LET: return "LET";
-    case TokenType::ASSIGN: return "ASSIGN";
-    case TokenType::LOGICAL_OR: return "LOGICAL_OR";
-    case TokenType::LOGICAL_AND: return "LOGICAL_AND";
-    case TokenType::EQUAL: return "EQUAL";
-    case TokenType::NOT_EQUAL: return "NOT_EQUAL";
-    case TokenType::NEGATE: return "NEGATE";
-    case TokenType::PLUS: return "PLUS";
-    case TokenType::MINUS: return "MINUS";
-    case TokenType::MULTIPLY: return "MULTIPLY";
-    case TokenType::DIVIDE: return "DIVIDE";
-    case TokenType::TRUE: return "TRUE";
-    case TokenType::FALSE: return "FALSE";
-    case TokenType::RETURN: return "RETURN";
-    case TokenType::EXTERN: return "EXTERN";
-    case TokenType::STRING_LITERAL: return "STRING_LITERAL";
-    case TokenType::CHAR_LITERAL: return "CHAR_LITERAL";
-    default: return "UNKNOWN";
+    case TokenType::IDENT: os << "IDENT"; break;
+    case TokenType::FN: os << "FN"; break;
+    case TokenType::LESS_THAN: os << "LESS_THAN"; break;
+    case TokenType::GREATER_THAN: os << "GREATER_THAN"; break;
+    case TokenType::GREATER_EQUAL: os << "GREATER_EQUAL"; break;
+    case TokenType::LESS_EQUAL: os << "LESS_EQUAL"; break;
+    case TokenType::OPEN_CURLY: os << "OPEN_CURLY"; break;
+    case TokenType::CLOSE_CURLY: os << "CLOSE_CURLY"; break;
+    case TokenType::OPEN_BRACKET: os << "OPEN_BRACKET"; break;
+    case TokenType::CLOSE_BRACKET: os << "CLOSE_BRACKET"; break;
+    case TokenType::COLON: os << "COLON"; break;
+    case TokenType::SEMICOLON: os << "SEMICOLON"; break;
+    case TokenType::TYPE: os << "TYPE"; break;
+    case TokenType::AS: os << "AS"; break;
+    case TokenType::USING: os << "USING"; break;
+    case TokenType::INTEGER: os << "INTEGER"; break;
+    case TokenType::COMMA: os << "COMMA"; break;
+    case TokenType::MUT: os << "MUT"; break;
+    case TokenType::LET: os << "LET"; break;
+    case TokenType::ASSIGN: os << "ASSIGN"; break;
+    case TokenType::LOGICAL_OR: os << "LOGICAL_OR"; break;
+    case TokenType::LOGICAL_AND: os << "LOGICAL_AND"; break;
+    case TokenType::EQUAL: os << "EQUAL"; break;
+    case TokenType::NOT_EQUAL: os << "NOT_EQUAL"; break;
+    case TokenType::NEGATE: os << "NEGATE"; break;
+    case TokenType::PLUS: os << "PLUS"; break;
+    case TokenType::MINUS: os << "MINUS"; break;
+    case TokenType::MULTIPLY: os << "MULTIPLY"; break;
+    case TokenType::DIVIDE: os << "DIVIDE"; break;
+    case TokenType::TRUE: os << "TRUE"; break;
+    case TokenType::FALSE: os << "FALSE"; break;
+    case TokenType::RETURN: os << "RETURN"; break;
+    case TokenType::EXTERN: os << "EXTERN"; break;
+    case TokenType::STRING_LITERAL: os << "STRING_LITERAL"; break;
+    case TokenType::CHAR_LITERAL: os << "CHAR_LITERAL"; break;
+    case TokenType::WHILE: os << "WHILE"; break;
+    default: os << "UNKNOWN";
     }
+    return os;
 }
 
 auto log_tokens(const std::vector<std::shared_ptr<Token>>& tokens) -> void {
     for (const auto& token : tokens) {
-        std::cout << token->str() << "\n";
+        std::cout << *token << "\n";
     }
 }

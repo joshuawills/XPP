@@ -1,6 +1,7 @@
 #include "./parser.hpp"
 #include <iostream>
 #include <map>
+#include <sstream>
 
 auto Parser::syntactic_error(const std::string& _template, const std::string& quoted_token) -> void {
     handler_->report_error(filename_, _template, quoted_token, (*curr_token_)->pos());
@@ -39,8 +40,10 @@ auto Parser::try_consume(TokenType t) -> bool {
 
 auto Parser::match(TokenType t) -> void {
     if (!try_consume(t)) {
-        std::cout << "Received: " << token_type_to_str((*curr_token_)->type()) << "\n";
-        syntactic_error("\"%\" expected here", token_type_to_str(t));
+        std::cout << "Received: " << (*curr_token_)->type() << "\n";
+        auto stream = std::stringstream{};
+        stream << t;
+        syntactic_error("\"%\" expected here", stream.str());
     }
 }
 
@@ -117,7 +120,9 @@ auto Parser::parse_operator() -> Operator {
         return op;
     }
 
-    syntactic_error("UNRECOGNIZED OPERATOR: %", (*curr_token_)->str());
+    auto stream = std::stringstream{};
+    stream << *curr_token_;
+    syntactic_error("UNRECOGNIZED OPERATOR: %", stream.str());
     return Operator::ASSIGN;
 }
 
@@ -254,6 +259,12 @@ auto Parser::parse_compound_stmt() -> std::vector<std::shared_ptr<Stmt>> {
             }
             finish(p);
             stmts.push_back(std::make_shared<ReturnStmt>(p, expr));
+        }
+        else if (try_consume(TokenType::WHILE)) {
+            auto const cond = parse_expr();
+            auto const stmts_ = parse_compound_stmt();
+            finish(p);
+            stmts.push_back(std::make_shared<WhileStmt>(p, cond, stmts_));
         }
         else {
             auto const expr = parse_expr();
@@ -437,7 +448,9 @@ auto Parser::parse_primary_expr() -> std::shared_ptr<Expr> {
         return std::make_shared<CharExpr>(p, value.at(0));
     }
 
-    syntactic_error("UNRECOGNIZED PRIMARY EXPRESSION: %", (*curr_token_)->str());
+    auto stream = std::stringstream{};
+    stream << *curr_token_;
+    syntactic_error("UNRECOGNIZED PRIMARY EXPRESSION: %", stream.str());
     return std::make_shared<EmptyExpr>(p);
 }
 

@@ -49,6 +49,7 @@ enum class TokenType {
     EXTERN,
     STRING_LITERAL,
     CHAR_LITERAL,
+    WHILE,
 };
 
 class Token {
@@ -57,7 +58,7 @@ class Token {
     Token(std::string lexeme, size_t line_num, size_t line_end, size_t col_start, size_t col_end, TokenType type);
     Token(std::string lexeme, size_t line_num, size_t col_start, size_t col_end, TokenType type);
     ~Token() = default;
-    auto str() const -> std::string;
+
     auto pos() const -> Position {
         return position_;
     }
@@ -80,6 +81,7 @@ class Token {
 
 auto get_type_from_lexeme(std::string const& str) -> std::optional<TokenType>;
 auto log_tokens(const std::vector<std::shared_ptr<Token>>& tokens) -> void;
-auto token_type_to_str(TokenType t) -> std::string;
+auto operator<<(std::ostream& os, TokenType const& t) -> std::ostream&;
+auto operator<<(std::ostream& os, Token const& t) -> std::ostream&;
 
 #endif // TOKEN_HPP

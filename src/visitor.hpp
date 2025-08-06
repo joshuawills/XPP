@@ -20,6 +20,7 @@ class EmptyStmt;
 class LocalVarStmt;
 class ReturnStmt;
 class ExprStmt;
+class WhileStmt;
 class Extern;
 
 class Visitor {
@@ -43,6 +44,7 @@ class Visitor {
     virtual auto visit_local_var_stmt(std::shared_ptr<LocalVarStmt> local_var_stmt) -> void = 0;
     virtual auto visit_return_stmt(std::shared_ptr<ReturnStmt> return_stmt) -> void = 0;
     virtual auto visit_expr_stmt(std::shared_ptr<ExprStmt> expr_stmt) -> void = 0;
+    virtual auto visit_while_stmt(std::shared_ptr<WhileStmt> while_stmt) -> void = 0;
 };
 
 #endif // VISITOR_HPP
