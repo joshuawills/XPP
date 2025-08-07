@@ -97,6 +97,7 @@ auto Handler::log_lines(const std::string& filename, int line, int col) -> void 
             std::cout << lines[i - 1] << "\n";
         }
     }
+    std::cout << "\n";
 }
 
 auto Handler::help() -> void {

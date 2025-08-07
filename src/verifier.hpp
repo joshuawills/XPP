@@ -34,6 +34,8 @@ class SymbolTable {
         entries_.remove_if([&](const TableEntry& e) { return e.id == entry.id and e.level == entry.level; });
     }
 
+    auto retrieve_latest_scope() -> std::vector<TableEntry>;
+
  private:
     std::list<TableEntry> entries_;
     int level_ = 1;
@@ -105,10 +107,14 @@ class Verifier
                                                   "declaration",
                                                   "18: character literal can only have one character in it",
                                                   "19: while stmt condition is not boolean: %",
-                                                  "20: cannot mutate constant variable: %"};
+                                                  "20: cannot mutate constant variable: %",
+                                                  "21: unused variable: %",
+                                                  "22: unused function: %",
+                                                  "23: unused extern: %"};
 
     auto check_duplicate_function_declaration() -> void;
     auto check_duplicate_extern_declaration() -> void;
+    auto check_unused_declarations() -> void;
 
     auto declare_variable(std::string ident, std::shared_ptr<Decl> decl) -> void;
 };

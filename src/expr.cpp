@@ -39,7 +39,6 @@ auto AssignmentExpr::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
     auto const& lhs = std::dynamic_pointer_cast<VarExpr>(left_);
 
     auto alloca = emitter->named_values[lhs->get_name()];
-    emitter->named_values[lhs->get_name()] = rhs;
     emitter->llvm_builder->CreateStore(rhs, alloca);
 
     return rhs;

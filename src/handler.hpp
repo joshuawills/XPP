@@ -36,6 +36,10 @@ class Handler {
         return parser_;
     }
 
+    auto quiet_mode() const noexcept -> bool {
+        return quiet_;
+    }
+
     auto llvm_mode() const noexcept -> bool {
         return llvm_ir_;
     }

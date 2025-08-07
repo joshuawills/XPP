@@ -20,6 +20,19 @@ auto SymbolTable::retrieve_one_level(std::string const& id) -> std::optional<Tab
     return std::nullopt;
 }
 
+auto SymbolTable::retrieve_latest_scope() -> std::vector<TableEntry> {
+    auto res = std::vector<TableEntry>{};
+    for (auto i = entries_.rbegin(); i != entries_.rend(); ++i) {
+        if (i->level == level_) {
+            res.push_back(*i);
+        }
+        else {
+            break;
+        }
+    }
+    return res;
+}
+
 auto Verifier::visit_para_decl(std::shared_ptr<ParaDecl> para_decl) -> void {
     declare_variable(para_decl->get_ident(), para_decl);
 
@@ -93,6 +106,18 @@ auto Verifier::visit_function(std::shared_ptr<Function> function) -> void {
     for (auto const& stmt : function->get_stmts()) {
         stmt->visit(shared_from_this());
     }
+
+    if (!handler_->quiet_mode()) {
+        // Check if any variables opened in that scope remained unused
+        for (auto const& var : symbol_table_.retrieve_latest_scope()) {
+            if (!var.attr->is_used()) {
+                auto stream = std::stringstream{};
+                stream << "local variable '" << var.attr->get_ident() << "'";
+                handler_->report_error(current_filename_, all_errors_[21], stream.str(), var.attr->pos());
+            }
+        }
+    }
+
     symbol_table_.close_scope();
 
     if (!has_return_ and function->get_type() != handler_->VOID_TYPE) {
@@ -387,8 +412,31 @@ auto Verifier::check(std::string const& filename, bool is_main) -> void {
         func->visit(shared_from_this());
     }
 
+    if (!handler_->quiet_mode()) {
+        check_unused_declarations();
+    }
+
     if (is_main and !has_main_) {
         handler_->report_error(filename, all_errors_[0], "", Position{});
+    }
+}
+
+auto Verifier::check_unused_declarations() -> void {
+    for (auto const& module : modules_->get_modules()) {
+        for (auto const& func : module->get_functions()) {
+            if (func->get_ident() != "main" and !func->is_used()) {
+                auto stream = std::stringstream{};
+                stream << "'" << func->get_ident() << "'";
+                handler_->report_error(current_filename_, all_errors_[22], stream.str(), func->pos());
+            }
+        }
+        for (auto const& extern_ : module->get_externs()) {
+            if (!extern_->is_used()) {
+                auto stream = std::stringstream{};
+                stream << "'" << extern_->get_ident() << "'";
+                handler_->report_error(current_filename_, all_errors_[23], stream.str(), extern_->pos());
+            }
+        }
     }
 }
 

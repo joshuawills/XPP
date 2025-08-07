@@ -62,6 +62,7 @@ class AllModules {
 
     auto add_main_module(std::shared_ptr<Module> module) -> void {
         main_module_ = module;
+        add_module(module);
     }
 
     auto module_exists_from_filename(std::string const& filename) const -> bool {
@@ -71,6 +72,10 @@ class AllModules {
             }
         }
         return false;
+    }
+
+    auto get_modules() -> std::vector<std::shared_ptr<Module>> {
+        return modules_;
     }
 
     auto get_main_module() const -> std::shared_ptr<Module> {
