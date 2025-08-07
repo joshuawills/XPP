@@ -190,6 +190,10 @@ auto Verifier::visit_binary_expr(std::shared_ptr<BinaryExpr> binary_expr) -> voi
     l->visit(shared_from_this());
     r->visit(shared_from_this());
 
+    auto const l_t = l->get_type();
+    auto const r_t = r->get_type();
+    auto const op = binary_expr->get_operator();
+
     // Sub types are errors
     if (l->get_type() == handler_->ERROR_TYPE or r->get_type() == handler_->ERROR_TYPE) {
         binary_expr->set_type(handler_->ERROR_TYPE);
@@ -197,10 +201,10 @@ auto Verifier::visit_binary_expr(std::shared_ptr<BinaryExpr> binary_expr) -> voi
     }
 
     // "||" and "&&" operators
-    if (binary_expr->get_operator() == Operator::LOGICAL_OR or binary_expr->get_operator() == Operator::LOGICAL_AND) {
-        if (l->get_type() != handler_->BOOL_TYPE or r->get_type() != handler_->BOOL_TYPE) {
+    if (op == Operator::LOGICAL_OR or op == Operator::LOGICAL_AND) {
+        if (!l_t.is_bool() or !r_t.is_bool()) {
             auto stream = std::stringstream{};
-            stream << l->get_type() << " and " << r->get_type();
+            stream << l_t << " and " << r_t;
             handler_->report_error(current_filename_, all_errors_[5], stream.str(), binary_expr->pos());
             binary_expr->set_type(handler_->ERROR_TYPE);
         }
@@ -210,12 +214,13 @@ auto Verifier::visit_binary_expr(std::shared_ptr<BinaryExpr> binary_expr) -> voi
     }
 
     // "==" and "!=" operators
-    if (binary_expr->get_operator() == Operator::EQUAL or binary_expr->get_operator() == Operator::NOT_EQUAL) {
-        auto valid_one = l->get_type().is_int() and r->get_type().is_int() and l->get_type() == r->get_type();
-        auto valid_two = l->get_type() == handler_->BOOL_TYPE and r->get_type() == handler_->BOOL_TYPE;
-        if (!valid_one and !valid_two) {
+    if (op == Operator::EQUAL or op == Operator::NOT_EQUAL) {
+        auto const valid_one = l_t.is_int() and r_t.is_int() and l_t == r_t;
+        auto const valid_two = l_t.is_bool() and r_t.is_bool();
+        auto const valid_three = l_t.is_pointer() and r_t.is_pointer();
+        if (!valid_one and !valid_two and !valid_three) {
             auto stream = std::stringstream{};
-            stream << l->get_type() << " and " << r->get_type();
+            stream << l_t << " and " << r_t;
             handler_->report_error(current_filename_, all_errors_[5], stream.str(), binary_expr->pos());
             binary_expr->set_type(handler_->ERROR_TYPE);
         }
@@ -225,10 +230,10 @@ auto Verifier::visit_binary_expr(std::shared_ptr<BinaryExpr> binary_expr) -> voi
     }
 
     // "<", ">", "<=", ">=" operators
-    if (binary_expr->get_operator() == Operator::LESS_THAN or binary_expr->get_operator() == Operator::GREATER_THAN
-        or binary_expr->get_operator() == Operator::LESS_EQUAL or binary_expr->get_operator() == Operator::GREATER_EQUAL)
+    if (op == Operator::LESS_THAN or op == Operator::GREATER_THAN or op == Operator::LESS_EQUAL
+        or op == Operator::GREATER_EQUAL)
     {
-        if (!l->get_type().is_int() or !r->get_type().is_int() or l->get_type() != r->get_type()) {
+        if (!l_t.is_int() or !r_t.is_int() or l_t != r_t) {
             auto stream = std::stringstream{};
             stream << l->get_type() << " and " << r->get_type();
             handler_->report_error(current_filename_, all_errors_[5], stream.str(), binary_expr->pos());
@@ -240,10 +245,17 @@ auto Verifier::visit_binary_expr(std::shared_ptr<BinaryExpr> binary_expr) -> voi
     }
 
     // "+", "-", "*", "/" operators
-    if (binary_expr->get_operator() == Operator::PLUS or binary_expr->get_operator() == Operator::MINUS
-        or binary_expr->get_operator() == Operator::MULTIPLY or binary_expr->get_operator() == Operator::DIVIDE)
-    {
-        if (!l->get_type().is_int() or !r->get_type().is_int() or l->get_type() != r->get_type()) {
+    if (op == Operator::PLUS or op == Operator::MINUS or op == Operator::MULTIPLY or op == Operator::DIVIDE) {
+        if (l_t.is_pointer() and r_t.is_int()) {
+            if (op == Operator::MULTIPLY or op == Operator::DIVIDE) {
+                auto stream = std::stringstream{};
+                stream << l->get_type() << " and " << r->get_type();
+                handler_->report_error(current_filename_, all_errors_[5], stream.str(), binary_expr->pos());
+            }
+            binary_expr->set_pointer_arithmetic();
+            binary_expr->set_type(l_t);
+        }
+        else if (!l_t.is_int() or !r_t.is_int() or l_t != r_t) {
             auto stream = std::stringstream{};
             stream << l->get_type() << " and " << r->get_type();
             handler_->report_error(current_filename_, all_errors_[5], stream.str(), binary_expr->pos());

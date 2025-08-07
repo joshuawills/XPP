@@ -75,8 +75,21 @@ auto BinaryExpr::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
     }
 
     switch (op_) {
-    case Operator::PLUS: return emitter->llvm_builder->CreateAdd(l, r);
-    case Operator::MINUS: return emitter->llvm_builder->CreateSub(l, r);
+    case Operator::PLUS: {
+        if (is_pointer_arithmetic_) {
+            auto inner_type = *left_->get_type().sub_type;
+            return emitter->llvm_builder->CreateInBoundsGEP(emitter->llvm_type(inner_type), l, r);
+        }
+        return emitter->llvm_builder->CreateAdd(l, r);
+    }
+    case Operator::MINUS: {
+        if (is_pointer_arithmetic_) {
+            auto neg = emitter->llvm_builder->CreateNeg(r);
+            auto inner_type = *left_->get_type().sub_type;
+            return emitter->llvm_builder->CreateInBoundsGEP(emitter->llvm_type(inner_type), l, neg);
+        }
+        return emitter->llvm_builder->CreateSub(l, r);
+    }
     case Operator::MULTIPLY: return emitter->llvm_builder->CreateMul(l, r);
     case Operator::DIVIDE: return emitter->llvm_builder->CreateSDiv(l, r);
     case Operator::EQUAL: return emitter->llvm_builder->CreateICmpEQ(l, r);
@@ -116,7 +129,7 @@ auto UnaryExpr::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
         return emitter->llvm_builder->CreateICmpEQ(value, llvm::ConstantInt::get(value->getType(), 0));
     }
     else if (op_ == Operator::DEREF) {
-        return emitter->llvm_builder->CreateLoad(value->getType(), value);
+        return emitter->llvm_builder->CreateLoad(emitter->llvm_type(get_type()), value);
     }
     else {
         std::cout << "UNREACHABLE UnaryExpr::codegen " << op_ << "\n";

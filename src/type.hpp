@@ -34,6 +34,10 @@ struct Type {
     auto is_pointer() const noexcept -> bool {
         return t == TypeSpec::POINTER;
     }
+
+    auto is_bool() const noexcept -> bool {
+        return t == TypeSpec::BOOL;
+    }
 };
 
 auto operator<<(std::ostream& os, Type const& t) -> std::ostream&;

@@ -119,6 +119,14 @@ class BinaryExpr
         return op_;
     }
 
+    auto set_pointer_arithmetic() -> void {
+        is_pointer_arithmetic_ = true;
+    }
+
+    auto is_pointer_arithmetic() -> bool {
+        return is_pointer_arithmetic_;
+    }
+
     auto visit(std::shared_ptr<Visitor> visitor) -> void override {
         visitor->visit_binary_expr(shared_from_this());
     }
@@ -129,6 +137,7 @@ class BinaryExpr
     std::shared_ptr<Expr> const left_;
     Operator const op_;
     std::shared_ptr<Expr> const right_;
+    bool is_pointer_arithmetic_ = false;
 
     auto handle_logical_or(std::shared_ptr<Emitter> emitter) -> llvm::Value*;
     auto handle_logical_and(std::shared_ptr<Emitter> emitter) -> llvm::Value*;
