@@ -104,7 +104,8 @@ class Verifier
                                                   "17: variatic type may only be last specified type in extern "
                                                   "declaration",
                                                   "18: character literal can only have one character in it",
-                                                  "19: while stmt condition is not boolean: %"};
+                                                  "19: while stmt condition is not boolean: %",
+                                                  "20: cannot mutate constant variable: %"};
 
     auto check_duplicate_function_declaration() -> void;
     auto check_duplicate_extern_declaration() -> void;

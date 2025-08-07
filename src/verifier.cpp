@@ -111,7 +111,7 @@ auto Verifier::visit_empty_expr(std::shared_ptr<EmptyExpr> empty_expr) -> void {
 auto Verifier::visit_assignment_expr(std::shared_ptr<AssignmentExpr> assignment_expr) -> void {
     auto l = assignment_expr->get_left();
     auto r = assignment_expr->get_right();
-    auto res = dynamic_cast<VarExpr*>(l.get());
+    auto res = std::dynamic_pointer_cast<VarExpr>(l);
     if (!res) {
         handler_->report_error(current_filename_, all_errors_[7], "", assignment_expr->pos());
         assignment_expr->set_type(handler_->ERROR_TYPE);
@@ -122,6 +122,9 @@ auto Verifier::visit_assignment_expr(std::shared_ptr<AssignmentExpr> assignment_
 
     if (auto ref = res->get_ref()) {
         ref->set_reassigned();
+        if (!ref->is_mut()) {
+            handler_->report_error(current_filename_, all_errors_[20], res->get_name(), assignment_expr->pos());
+        }
     }
 
     r->visit(shared_from_this());

@@ -273,7 +273,7 @@ class VarExpr
         ref_ = ref;
     }
 
-    auto get_ref() const -> std::shared_ptr<Decl> {
+    auto get_ref() -> std::shared_ptr<Decl> {
         return ref_;
     }
 
