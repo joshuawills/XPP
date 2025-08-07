@@ -52,7 +52,8 @@ enum class TokenType {
     WHILE,
     IF,
     ELSE_IF,
-    ELSE
+    ELSE,
+    AMPERSAND
 };
 
 class Token {

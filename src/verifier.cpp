@@ -144,7 +144,8 @@ auto Verifier::visit_assignment_expr(std::shared_ptr<AssignmentExpr> assignment_
     auto l = assignment_expr->get_left();
     auto r = assignment_expr->get_right();
     auto res = std::dynamic_pointer_cast<VarExpr>(l);
-    if (!res) {
+    auto deref_res = std::dynamic_pointer_cast<UnaryExpr>(l);
+    if (!res and (!deref_res and deref_res->get_operator() == Operator::DEREF)) {
         handler_->report_error(current_filename_, all_errors_[7], "", assignment_expr->pos());
         assignment_expr->set_type(handler_->ERROR_TYPE);
         return;
@@ -152,10 +153,20 @@ auto Verifier::visit_assignment_expr(std::shared_ptr<AssignmentExpr> assignment_
 
     l->visit(shared_from_this());
 
-    if (auto ref = res->get_ref()) {
-        ref->set_reassigned();
-        if (!ref->is_mut()) {
-            handler_->report_error(current_filename_, all_errors_[20], res->get_name(), assignment_expr->pos());
+    if (res) {
+        if (auto ref = res->get_ref()) {
+            ref->set_reassigned();
+            if (!ref->is_mut()) {
+                handler_->report_error(current_filename_, all_errors_[20], res->get_name(), assignment_expr->pos());
+            }
+        }
+    }
+    else if (deref_res) {
+        if (auto ref = std::dynamic_pointer_cast<VarExpr>(deref_res->get_expr())->get_ref()) {
+            ref->set_reassigned();
+            if (!ref->is_mut()) {
+                handler_->report_error(current_filename_, all_errors_[20], ref->get_ident(), assignment_expr->pos());
+            }
         }
     }
 
@@ -264,14 +275,42 @@ auto Verifier::visit_unary_expr(std::shared_ptr<UnaryExpr> unary_expr) -> void {
         }
     }
     else if (unary_expr->get_operator() == Operator::PLUS or unary_expr->get_operator() == Operator::MINUS) {
-        if (e->get_type() != handler_->I64_TYPE) {
+        if (e->get_type().is_int()) {
             auto stream = std::stringstream{};
             stream << "expected an i64 type, got " << e->get_type();
             handler_->report_error(current_filename_, all_errors_[9], stream.str(), unary_expr->pos());
             unary_expr->set_type(handler_->ERROR_TYPE);
         }
         else {
-            unary_expr->set_type(handler_->I64_TYPE);
+            unary_expr->set_type(e->get_type());
+        }
+    }
+    else if (unary_expr->get_operator() == Operator::DEREF) {
+        if (!e->get_type().is_pointer()) {
+            auto stream = std::stringstream{};
+            stream << "expected a pointer type, received " << e->get_type();
+            handler_->report_error(current_filename_, all_errors_[9], stream.str(), unary_expr->pos());
+            unary_expr->set_type(handler_->ERROR_TYPE);
+        }
+        else {
+            unary_expr->set_type(*e->get_type().sub_type);
+        }
+    }
+    else if (unary_expr->get_operator() == Operator::ADDRESS_OF) {
+        auto const var = std::dynamic_pointer_cast<VarExpr>(e);
+        if (!var) {
+            handler_->report_error(current_filename_, all_errors_[25], "", unary_expr->pos());
+            unary_expr->set_type(handler_->ERROR_TYPE);
+        }
+        else {
+            auto const decl = var->get_ref();
+            if (!decl or !decl->is_mut()) {
+                auto stream = std::stringstream{};
+                stream << "variable '" << decl->get_ident() << "' defined at " << decl->pos();
+                handler_->report_error(current_filename_, all_errors_[26], stream.str(), unary_expr->pos());
+                unary_expr->set_type(handler_->ERROR_TYPE);
+            }
+            unary_expr->set_type(Type{TypeSpec::POINTER, "", std::make_shared<Type>(e->get_type())});
         }
     }
 

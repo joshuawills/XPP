@@ -24,6 +24,8 @@ enum Operator {
     GREATER_THAN,
     LESS_EQUAL,
     GREATER_EQUAL,
+    DEREF,
+    ADDRESS_OF
 };
 
 auto operator<<(std::ostream& os, Operator const& o) -> std::ostream&;

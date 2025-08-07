@@ -30,6 +30,10 @@ struct Type {
     auto is_int() const noexcept -> bool {
         return t == TypeSpec::I64 or t == TypeSpec::I32 or t == TypeSpec::I8;
     }
+
+    auto is_pointer() const noexcept -> bool {
+        return t == TypeSpec::POINTER;
+    }
 };
 
 auto operator<<(std::ostream& os, Type const& t) -> std::ostream&;

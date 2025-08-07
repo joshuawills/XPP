@@ -88,6 +88,7 @@ auto operator<<(std::ostream& os, TokenType const& t) -> std::ostream& {
     case TokenType::IF: os << "IF"; break;
     case TokenType::ELSE: os << "ELSE"; break;
     case TokenType::ELSE_IF: os << "ELSE_IF"; break;
+    case TokenType::AMPERSAND: os << "AMPERSAND"; break;
     default: os << "UNKNOWN";
     }
     return os;

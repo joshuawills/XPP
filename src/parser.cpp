@@ -112,6 +112,7 @@ auto Parser::parse_operator() -> Operator {
                                       {TokenType::LESS_THAN, Operator::LESS_THAN},
                                       {TokenType::GREATER_THAN, Operator::GREATER_THAN},
                                       {TokenType::LESS_EQUAL, Operator::LESS_EQUAL},
+                                      {TokenType::AMPERSAND, Operator::ADDRESS_OF},
                                       {TokenType::GREATER_EQUAL, Operator::GREATER_EQUAL}};
 
     if (type_to_operator_mapping.find((*curr_token_)->type()) != type_to_operator_mapping.end()) {
@@ -432,8 +433,13 @@ auto Parser::parse_unary_expr() -> std::shared_ptr<Expr> {
     auto p = Position{};
     start(p);
 
-    if (peek(TokenType::NEGATE) or peek(TokenType::PLUS) or peek(TokenType::MINUS)) {
+    if (peek(TokenType::NEGATE) or peek(TokenType::PLUS) or peek(TokenType::MINUS) or peek(TokenType::MULTIPLY)
+        or peek(TokenType::AMPERSAND))
+    {
         auto op = parse_operator();
+        if (op == Operator::MULTIPLY) {
+            op = Operator::DEREF;
+        }
         auto expr = parse_unary_expr();
         finish(p);
         return std::make_shared<UnaryExpr>(p, op, expr);

@@ -7,11 +7,12 @@
 - ADDITION: verifying mutable values
 - ADDITION: unused functions, externs and variable warnings 
 - ADDITION: IfStmt, ElseIfStmt
+- ADDITION: basic deref and address-of unary operators
 
 ## TODO
 
 - Add in support for implicit signed integer casting
-- Add in support for dereference and address-of unary operators
+- Pointer arithmetic
 - Write tests
 - Add in conditions/loops
 - Explicit casting

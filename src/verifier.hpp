@@ -116,7 +116,9 @@ class Verifier
                                                   "21: unused variable: %",
                                                   "22: unused function: %",
                                                   "23: unused extern: %",
-                                                  "24: if statement condition is not boolean: %"};
+                                                  "24: if statement condition is not boolean: %",
+                                                  "25: address-of operand can only be performed to allocated variables",
+                                                  "26: can't get address of a constant variable: %"};
 
     auto check_duplicate_function_declaration() -> void;
     auto check_duplicate_extern_declaration() -> void;

@@ -18,6 +18,7 @@ auto operator<<(std::ostream& os, Operator const& o) -> std::ostream& {
     case GREATER_THAN: os << ">"; break;
     case LESS_EQUAL: os << "<="; break;
     case GREATER_EQUAL: os << ">="; break;
+    case DEREF: os << "*"; break;
     default: os << "UNRECOGNISED OPERATOR";
     };
     return os;
@@ -38,8 +39,15 @@ auto AssignmentExpr::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
         return nullptr;
     auto const& lhs = std::dynamic_pointer_cast<VarExpr>(left_);
 
-    auto alloca = emitter->named_values[lhs->get_name()];
-    emitter->llvm_builder->CreateStore(rhs, alloca);
+    if (lhs) {
+        auto alloca = emitter->named_values[lhs->get_name()];
+        emitter->llvm_builder->CreateStore(rhs, alloca);
+    }
+    else {
+        auto const& lhs = std::dynamic_pointer_cast<UnaryExpr>(left_);
+        auto ptr = lhs->get_expr()->codegen(emitter);
+        emitter->llvm_builder->CreateStore(rhs, ptr);
+    }
 
     return rhs;
 }
@@ -90,6 +98,11 @@ auto BinaryExpr::print(std::ostream& os) const -> void {
 }
 
 auto UnaryExpr::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
+    if (op_ == Operator::ADDRESS_OF) {
+        auto var_e = std::dynamic_pointer_cast<VarExpr>(expr_);
+        return emitter->named_values[var_e->get_name()];
+    }
+
     auto const& value = expr_->codegen(emitter);
     if (!value) {
         return nullptr;
@@ -102,8 +115,11 @@ auto UnaryExpr::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
     else if (op_ == Operator::MINUS) {
         return emitter->llvm_builder->CreateICmpEQ(value, llvm::ConstantInt::get(value->getType(), 0));
     }
+    else if (op_ == Operator::DEREF) {
+        return emitter->llvm_builder->CreateLoad(value->getType(), value);
+    }
     else {
-        std::cout << "UNREACHABLE UnaryExpr::codegen\n";
+        std::cout << "UNREACHABLE UnaryExpr::codegen " << op_ << "\n";
     }
     return nullptr;
 }

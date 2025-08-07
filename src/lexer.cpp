@@ -101,8 +101,7 @@ auto Lexer::generate_token() -> std::optional<Token> {
             consume();
             return Token{"&&", line_, col_ - 2, col_ - 1, TokenType::LOGICAL_AND};
         }
-        std::cerr << "Unexpected character '&' at line " << line_ << ", column " << col_ << "\n";
-        exit(EXIT_FAILURE);
+        return Token{"&", line_, col_ - 1, col_ - 1, TokenType::AMPERSAND};
     }
     case '-': consume(); return Token{"-", line_, col_ - 1, col_ - 1, TokenType::MINUS};
     case '+': consume(); return Token{"+", line_, col_ - 1, col_ - 1, TokenType::PLUS};
