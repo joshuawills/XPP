@@ -17,10 +17,13 @@ class CharExpr;
 class VarExpr;
 class CallExpr;
 class EmptyStmt;
+class CompoundStmt;
 class LocalVarStmt;
 class ReturnStmt;
 class ExprStmt;
 class WhileStmt;
+class IfStmt;
+class ElseIfStmt;
 class Extern;
 
 class Visitor {
@@ -41,10 +44,13 @@ class Visitor {
     virtual auto visit_call_expr(std::shared_ptr<CallExpr> call_expr) -> void = 0;
 
     virtual auto visit_empty_stmt(std::shared_ptr<EmptyStmt> empty_stmt) -> void = 0;
+    virtual auto visit_compound_stmt(std::shared_ptr<CompoundStmt> compound_stmt) -> void = 0;
     virtual auto visit_local_var_stmt(std::shared_ptr<LocalVarStmt> local_var_stmt) -> void = 0;
     virtual auto visit_return_stmt(std::shared_ptr<ReturnStmt> return_stmt) -> void = 0;
     virtual auto visit_expr_stmt(std::shared_ptr<ExprStmt> expr_stmt) -> void = 0;
     virtual auto visit_while_stmt(std::shared_ptr<WhileStmt> while_stmt) -> void = 0;
+    virtual auto visit_if_stmt(std::shared_ptr<IfStmt> if_stmt) -> void = 0;
+    virtual auto visit_else_if_stmt(std::shared_ptr<ElseIfStmt> else_if_stmt) -> void = 0;
 };
 
 #endif // VISITOR_HPP

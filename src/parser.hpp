@@ -43,7 +43,14 @@ class Parser {
     auto parse_para_list() -> std::vector<std::shared_ptr<ParaDecl>>;
     auto parse_type_list() -> std::vector<Type>;
     auto parse_arg_list() -> std::vector<std::shared_ptr<Expr>>;
-    auto parse_compound_stmt() -> std::vector<std::shared_ptr<Stmt>>;
+
+    auto parse_compound_stmt() -> std::shared_ptr<CompoundStmt>;
+    auto parse_local_var_stmt(Position p) -> std::shared_ptr<LocalVarStmt>;
+    auto parse_return_stmt(Position p) -> std::shared_ptr<ReturnStmt>;
+    auto parse_while_stmt(Position p) -> std::shared_ptr<WhileStmt>;
+    auto parse_if_stmt(Position p) -> std::shared_ptr<IfStmt>;
+    auto parse_else_if_stmt(Position p) -> std::shared_ptr<ElseIfStmt>;
+    auto parse_expr_stmt(Position p) -> std::shared_ptr<ExprStmt>;
 
     auto parse_expr() -> std::shared_ptr<Expr>;
     auto parse_assignment_expr() -> std::shared_ptr<Expr>;

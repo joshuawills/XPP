@@ -31,6 +31,9 @@ auto get_type_from_lexeme(std::string const& str) -> std::optional<TokenType> {
                                                              {"as", TokenType::AS},
                                                              {"i64", TokenType::TYPE},
                                                              {"i8", TokenType::TYPE},
+                                                             {"if", TokenType::IF},
+                                                             {"else", TokenType::ELSE},
+                                                             {"else if", TokenType::ELSE_IF},
                                                              {"bool", TokenType::TYPE},
                                                              {"void", TokenType::TYPE},
                                                              {"mut", TokenType::MUT},
@@ -82,6 +85,9 @@ auto operator<<(std::ostream& os, TokenType const& t) -> std::ostream& {
     case TokenType::STRING_LITERAL: os << "STRING_LITERAL"; break;
     case TokenType::CHAR_LITERAL: os << "CHAR_LITERAL"; break;
     case TokenType::WHILE: os << "WHILE"; break;
+    case TokenType::IF: os << "IF"; break;
+    case TokenType::ELSE: os << "ELSE"; break;
+    case TokenType::ELSE_IF: os << "ELSE_IF"; break;
     default: os << "UNKNOWN";
     }
     return os;

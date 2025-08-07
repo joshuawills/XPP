@@ -172,6 +172,11 @@ auto Lexer::generate_token() -> std::optional<Token> {
     }
 
     if (!buf.empty()) {
+        if (buf == "else" and else_if_case()) {
+            buf += consume();
+            buf += consume();
+            buf += consume();
+        }
         auto const type = get_type_from_lexeme(buf);
         if (type.has_value()) {
             return Token{buf, line_, col_ - buf.size(), col_ - 1, *type};
@@ -289,4 +294,8 @@ auto Lexer::consume_escape() -> char {
 auto Lexer::valid_escape() -> bool {
     return peek('b') or peek('f') or peek('n') or peek('r') or peek('t') or peek('\'') or peek('"') or peek('\\')
            or peek('0');
+}
+
+auto Lexer::else_if_case() -> bool {
+    return peek(' ') and peek('i', 1) and peek('f', 2);
 }

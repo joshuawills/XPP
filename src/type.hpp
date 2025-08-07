@@ -26,6 +26,10 @@ struct Type {
     auto get_type_spec() const -> TypeSpec {
         return t;
     }
+
+    auto is_int() const noexcept -> bool {
+        return t == TypeSpec::I64 or t == TypeSpec::I32 or t == TypeSpec::I8;
+    }
 };
 
 auto operator<<(std::ostream& os, Type const& t) -> std::ostream&;

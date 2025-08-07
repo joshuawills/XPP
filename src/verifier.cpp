@@ -20,6 +20,15 @@ auto SymbolTable::retrieve_one_level(std::string const& id) -> std::optional<Tab
     return std::nullopt;
 }
 
+auto SymbolTable::retrieve(std::string const& id) -> std::optional<TableEntry> {
+    for (auto it = entries_.rbegin(); it != entries_.rend(); ++it) {
+        if (it->id == id) {
+            return *it;
+        }
+    }
+    return std::nullopt;
+}
+
 auto SymbolTable::retrieve_latest_scope() -> std::vector<TableEntry> {
     auto res = std::vector<TableEntry>{};
     for (auto i = entries_.rbegin(); i != entries_.rend(); ++i) {
@@ -103,9 +112,7 @@ auto Verifier::visit_function(std::shared_ptr<Function> function) -> void {
     for (auto const& para : function->get_paras()) {
         para->visit(shared_from_this());
     }
-    for (auto const& stmt : function->get_stmts()) {
-        stmt->visit(shared_from_this());
-    }
+    function->get_compound_stmt()->visit(shared_from_this());
 
     if (!handler_->quiet_mode()) {
         // Check if any variables opened in that scope remained unused
@@ -113,7 +120,7 @@ auto Verifier::visit_function(std::shared_ptr<Function> function) -> void {
             if (!var.attr->is_used()) {
                 auto stream = std::stringstream{};
                 stream << "local variable '" << var.attr->get_ident() << "'";
-                handler_->report_error(current_filename_, all_errors_[21], stream.str(), var.attr->pos());
+                handler_->report_minor_error(current_filename_, all_errors_[21], stream.str(), var.attr->pos());
             }
         }
     }
@@ -193,7 +200,7 @@ auto Verifier::visit_binary_expr(std::shared_ptr<BinaryExpr> binary_expr) -> voi
 
     // "==" and "!=" operators
     if (binary_expr->get_operator() == Operator::EQUAL or binary_expr->get_operator() == Operator::NOT_EQUAL) {
-        auto valid_one = l->get_type() == handler_->I64_TYPE and r->get_type() == handler_->I64_TYPE;
+        auto valid_one = l->get_type().is_int() and r->get_type().is_int() and l->get_type() == r->get_type();
         auto valid_two = l->get_type() == handler_->BOOL_TYPE and r->get_type() == handler_->BOOL_TYPE;
         if (!valid_one and !valid_two) {
             auto stream = std::stringstream{};
@@ -210,7 +217,7 @@ auto Verifier::visit_binary_expr(std::shared_ptr<BinaryExpr> binary_expr) -> voi
     if (binary_expr->get_operator() == Operator::LESS_THAN or binary_expr->get_operator() == Operator::GREATER_THAN
         or binary_expr->get_operator() == Operator::LESS_EQUAL or binary_expr->get_operator() == Operator::GREATER_EQUAL)
     {
-        if (l->get_type() != handler_->I64_TYPE or r->get_type() != handler_->I64_TYPE) {
+        if (!l->get_type().is_int() or !r->get_type().is_int() or l->get_type() != r->get_type()) {
             auto stream = std::stringstream{};
             stream << l->get_type() << " and " << r->get_type();
             handler_->report_error(current_filename_, all_errors_[5], stream.str(), binary_expr->pos());
@@ -225,14 +232,14 @@ auto Verifier::visit_binary_expr(std::shared_ptr<BinaryExpr> binary_expr) -> voi
     if (binary_expr->get_operator() == Operator::PLUS or binary_expr->get_operator() == Operator::MINUS
         or binary_expr->get_operator() == Operator::MULTIPLY or binary_expr->get_operator() == Operator::DIVIDE)
     {
-        if (l->get_type() != handler_->I64_TYPE or r->get_type() != handler_->I64_TYPE) {
+        if (!l->get_type().is_int() or !r->get_type().is_int() or l->get_type() != r->get_type()) {
             auto stream = std::stringstream{};
             stream << l->get_type() << " and " << r->get_type();
             handler_->report_error(current_filename_, all_errors_[5], stream.str(), binary_expr->pos());
             binary_expr->set_type(handler_->ERROR_TYPE);
         }
         else {
-            binary_expr->set_type(handler_->I64_TYPE);
+            binary_expr->set_type(l->get_type());
         }
     }
 }
@@ -292,7 +299,7 @@ auto Verifier::visit_char_expr(std::shared_ptr<CharExpr> char_expr) -> void {
 }
 
 auto Verifier::visit_var_expr(std::shared_ptr<VarExpr> var_expr) -> void {
-    auto entry = symbol_table_.retrieve_one_level(var_expr->get_name());
+    auto entry = symbol_table_.retrieve(var_expr->get_name());
     if (!entry.has_value()) {
         handler_->report_error(current_filename_, all_errors_[8], var_expr->get_name(), var_expr->pos());
         var_expr->set_type(handler_->ERROR_TYPE);
@@ -337,6 +344,13 @@ auto Verifier::visit_empty_stmt(std::shared_ptr<EmptyStmt> empty_stmt) -> void {
     return;
 }
 
+auto Verifier::visit_compound_stmt(std::shared_ptr<CompoundStmt> compound_stmt) -> void {
+    for (auto& stmt : compound_stmt->get_stmts()) {
+        stmt->visit(shared_from_this());
+    }
+    return;
+}
+
 auto Verifier::visit_local_var_stmt(std::shared_ptr<LocalVarStmt> local_var_stmt) -> void {
     local_var_stmt->get_decl()->visit(shared_from_this());
 }
@@ -372,9 +386,48 @@ auto Verifier::visit_while_stmt(std::shared_ptr<WhileStmt> while_stmt) -> void {
         handler_->report_error(current_filename_, all_errors_[19], stream.str(), cond->pos());
     }
 
-    for (auto& stmt : while_stmt->get_stmts()) {
-        stmt->visit(shared_from_this());
+    symbol_table_.open_scope();
+    while_stmt->get_stmts()->visit(shared_from_this());
+    symbol_table_.close_scope();
+    return;
+}
+
+auto Verifier::visit_if_stmt(std::shared_ptr<IfStmt> if_stmt) -> void {
+    auto cond = if_stmt->get_cond();
+    cond->visit(shared_from_this());
+    if (cond->get_type() != handler_->BOOL_TYPE) {
+        auto stream = std::stringstream{};
+        stream << "received " << cond->get_type().get_type_spec();
+        handler_->report_error(current_filename_, all_errors_[24], stream.str(), cond->pos());
     }
+
+    symbol_table_.open_scope();
+    if_stmt->get_body_stmt()->visit(shared_from_this());
+    symbol_table_.close_scope();
+
+    if_stmt->get_else_if_stmt()->visit(shared_from_this());
+
+    symbol_table_.open_scope();
+    if_stmt->get_else_stmt()->visit(shared_from_this());
+    symbol_table_.close_scope();
+
+    return;
+}
+
+auto Verifier::visit_else_if_stmt(std::shared_ptr<ElseIfStmt> else_if_stmt) -> void {
+    auto cond = else_if_stmt->get_cond();
+    cond->visit(shared_from_this());
+    if (cond->get_type() != handler_->BOOL_TYPE) {
+        auto stream = std::stringstream{};
+        stream << "received " << cond->get_type().get_type_spec();
+        handler_->report_error(current_filename_, all_errors_[24], stream.str(), cond->pos());
+    }
+
+    symbol_table_.open_scope();
+    else_if_stmt->get_body_stmt()->visit(shared_from_this());
+    symbol_table_.close_scope();
+
+    else_if_stmt->get_nested_else_if_stmt()->visit(shared_from_this());
 
     return;
 }
@@ -427,14 +480,14 @@ auto Verifier::check_unused_declarations() -> void {
             if (func->get_ident() != "main" and !func->is_used()) {
                 auto stream = std::stringstream{};
                 stream << "'" << func->get_ident() << "'";
-                handler_->report_error(current_filename_, all_errors_[22], stream.str(), func->pos());
+                handler_->report_minor_error(current_filename_, all_errors_[22], stream.str(), func->pos());
             }
         }
         for (auto const& extern_ : module->get_externs()) {
             if (!extern_->is_used()) {
                 auto stream = std::stringstream{};
                 stream << "'" << extern_->get_ident() << "'";
-                handler_->report_error(current_filename_, all_errors_[23], stream.str(), extern_->pos());
+                handler_->report_minor_error(current_filename_, all_errors_[23], stream.str(), extern_->pos());
             }
         }
     }

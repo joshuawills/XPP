@@ -213,69 +213,122 @@ auto Parser::parse_arg_list() -> std::vector<std::shared_ptr<Expr>> {
     return args;
 }
 
-auto Parser::parse_compound_stmt() -> std::vector<std::shared_ptr<Stmt>> {
+auto Parser::parse_compound_stmt() -> std::shared_ptr<CompoundStmt> {
     auto stmts = std::vector<std::shared_ptr<Stmt>>{};
     match(TokenType::OPEN_CURLY);
+
+    auto p = Position{};
+    start(p);
     if (try_consume(TokenType::CLOSE_CURLY)) {
-        return stmts;
+        return std::make_shared<CompoundStmt>(p, stmts);
     }
 
     while (curr_token_.has_value() and !(*curr_token_)->type_matches(TokenType::CLOSE_CURLY)) {
-        auto p = Position{};
-        start(p);
         if (try_consume(TokenType::SEMICOLON)) {
             finish(p);
             stmts.push_back(std::make_shared<EmptyStmt>(p));
         }
         else if (try_consume(TokenType::LET)) {
-            auto const is_mut = try_consume(TokenType::MUT);
-            auto ident = parse_ident();
-            auto t = Type{TypeSpec::UNKNOWN};
-            if (try_consume(TokenType::COLON)) {
-                t = parse_type();
-            }
-            finish(p);
-            std::shared_ptr<Expr> e = std::make_shared<EmptyExpr>(p);
-            if (try_consume(TokenType::ASSIGN)) {
-                e = parse_expr();
-            }
-            match(TokenType::SEMICOLON);
-            std::shared_ptr<LocalVarDecl> decl = std::make_shared<LocalVarDecl>(p, ident, t, e);
-            if (is_mut) {
-                decl->set_mut();
-            }
-            finish(p);
-            stmts.push_back(std::make_shared<LocalVarStmt>(p, decl));
+            stmts.push_back(parse_local_var_stmt(p));
         }
         else if (try_consume(TokenType::RETURN)) {
-            std::shared_ptr<Expr> expr;
-            if (try_consume(TokenType::SEMICOLON)) {
-                finish(p);
-                expr = std::make_shared<EmptyExpr>(p);
-            }
-            else {
-                expr = parse_expr();
-                match(TokenType::SEMICOLON);
-            }
-            finish(p);
-            stmts.push_back(std::make_shared<ReturnStmt>(p, expr));
+            stmts.push_back(parse_return_stmt(p));
         }
         else if (try_consume(TokenType::WHILE)) {
-            auto const cond = parse_expr();
-            auto const stmts_ = parse_compound_stmt();
-            finish(p);
-            stmts.push_back(std::make_shared<WhileStmt>(p, cond, stmts_));
+            stmts.push_back(parse_while_stmt(p));
+        }
+        else if (try_consume(TokenType::IF)) {
+            stmts.push_back(parse_if_stmt(p));
         }
         else {
-            auto const expr = parse_expr();
-            match(TokenType::SEMICOLON);
-            finish(p);
-            stmts.push_back(std::make_shared<ExprStmt>(p, expr));
+            stmts.push_back(parse_expr_stmt(p));
         }
     }
     match(TokenType::CLOSE_CURLY);
 
-    return stmts;
+    finish(p);
+    return std::make_shared<CompoundStmt>(p, stmts);
+}
+
+auto Parser::parse_local_var_stmt(Position p) -> std::shared_ptr<LocalVarStmt> {
+    auto const is_mut = try_consume(TokenType::MUT);
+    auto ident = parse_ident();
+    auto t = Type{TypeSpec::UNKNOWN};
+    if (try_consume(TokenType::COLON)) {
+        t = parse_type();
+    }
+    finish(p);
+    std::shared_ptr<Expr> e = std::make_shared<EmptyExpr>(p);
+    if (try_consume(TokenType::ASSIGN)) {
+        e = parse_expr();
+    }
+    match(TokenType::SEMICOLON);
+    std::shared_ptr<LocalVarDecl> decl = std::make_shared<LocalVarDecl>(p, ident, t, e);
+    if (is_mut) {
+        decl->set_mut();
+    }
+    finish(p);
+    return std::make_shared<LocalVarStmt>(p, decl);
+}
+auto Parser::parse_return_stmt(Position p) -> std::shared_ptr<ReturnStmt> {
+    std::shared_ptr<Expr> expr;
+    if (try_consume(TokenType::SEMICOLON)) {
+        finish(p);
+        expr = std::make_shared<EmptyExpr>(p);
+    }
+    else {
+        expr = parse_expr();
+        match(TokenType::SEMICOLON);
+    }
+    finish(p);
+    return std::make_shared<ReturnStmt>(p, expr);
+}
+
+auto Parser::parse_while_stmt(Position p) -> std::shared_ptr<WhileStmt> {
+    auto const cond = parse_expr();
+    auto const stmts_ = parse_compound_stmt();
+    finish(p);
+    return std::make_shared<WhileStmt>(p, cond, stmts_);
+}
+
+auto Parser::parse_if_stmt(Position p) -> std::shared_ptr<IfStmt> {
+    auto const cond = parse_expr();
+    auto const stmt_one = parse_compound_stmt();
+    auto else_if_p = p;
+    finish(p);
+    std::shared_ptr<Stmt> stmt_two = std::make_shared<EmptyStmt>(p);
+    if (try_consume(TokenType::ELSE_IF)) {
+        stmt_two = parse_else_if_stmt(else_if_p);
+    }
+
+    finish(p);
+    std::shared_ptr<Stmt> stmt_three = std::make_shared<EmptyStmt>(p);
+    if (try_consume(TokenType::ELSE)) {
+        stmt_three = parse_compound_stmt();
+    }
+
+    finish(p);
+    return std::make_shared<IfStmt>(p, cond, stmt_one, stmt_two, stmt_three);
+}
+
+auto Parser::parse_else_if_stmt(Position p) -> std::shared_ptr<ElseIfStmt> {
+    auto const cond = parse_expr();
+    auto const stmt = parse_compound_stmt();
+    auto else_p = p;
+    finish(p);
+    std::shared_ptr<Stmt> stmt_two = std::make_shared<EmptyStmt>(p);
+    if (try_consume(TokenType::ELSE_IF)) {
+        stmt_two = parse_else_if_stmt(else_p);
+    }
+    finish(p);
+    return std::make_shared<ElseIfStmt>(p, cond, stmt, stmt_two);
+}
+
+auto Parser::parse_expr_stmt(Position p) -> std::shared_ptr<ExprStmt> {
+    auto const expr = parse_expr();
+    match(TokenType::SEMICOLON);
+    finish(p);
+    return std::make_shared<ExprStmt>(p, expr);
 }
 
 auto Parser::parse_expr() -> std::shared_ptr<Expr> {

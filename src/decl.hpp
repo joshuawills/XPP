@@ -113,11 +113,11 @@ class Function
 : public Decl
 , public std::enable_shared_from_this<Function> {
  public:
-    Function(Position pos,
-             std::string ident,
+    Function(Position const pos,
+             std::string const ident,
              std::vector<std::shared_ptr<ParaDecl>> paras,
              Type t,
-             std::vector<std::shared_ptr<Stmt>> stmts)
+             std::shared_ptr<CompoundStmt> const stmts)
     : Decl(pos, ident, t)
     , paras_(paras)
     , stmts_(stmts) {}
@@ -125,7 +125,7 @@ class Function
     auto get_paras() const -> std::vector<std::shared_ptr<ParaDecl>> const& {
         return paras_;
     }
-    auto get_stmts() const -> std::vector<std::shared_ptr<Stmt>> const& {
+    auto get_compound_stmt() const -> std::shared_ptr<CompoundStmt> const& {
         return stmts_;
     }
 
@@ -139,7 +139,7 @@ class Function
 
  private:
     std::vector<std::shared_ptr<ParaDecl>> const paras_;
-    std::vector<std::shared_ptr<Stmt>> const stmts_;
+    std::shared_ptr<CompoundStmt> const stmts_;
 };
 
 class Extern

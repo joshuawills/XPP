@@ -36,6 +36,8 @@ class SymbolTable {
 
     auto retrieve_latest_scope() -> std::vector<TableEntry>;
 
+    auto retrieve(std::string const& id) -> std::optional<TableEntry>;
+
  private:
     std::list<TableEntry> entries_;
     int level_ = 1;
@@ -65,10 +67,13 @@ class Verifier
     auto visit_call_expr(std::shared_ptr<CallExpr> call_expr) -> void override;
 
     auto visit_empty_stmt(std::shared_ptr<EmptyStmt> empty_stmt) -> void override;
+    auto visit_compound_stmt(std::shared_ptr<CompoundStmt> compound_stmt) -> void override;
     auto visit_local_var_stmt(std::shared_ptr<LocalVarStmt> local_var_stmt) -> void override;
     auto visit_return_stmt(std::shared_ptr<ReturnStmt> return_stmt) -> void override;
     auto visit_expr_stmt(std::shared_ptr<ExprStmt> expr_stmt) -> void override;
     auto visit_while_stmt(std::shared_ptr<WhileStmt> while_stmt) -> void override;
+    auto visit_if_stmt(std::shared_ptr<IfStmt> if_stmt) -> void override;
+    auto visit_else_if_stmt(std::shared_ptr<ElseIfStmt> else_if_stmt) -> void override;
 
     auto check(std::string const& filename, bool is_main) -> void;
 
@@ -110,7 +115,8 @@ class Verifier
                                                   "20: cannot mutate constant variable: %",
                                                   "21: unused variable: %",
                                                   "22: unused function: %",
-                                                  "23: unused extern: %"};
+                                                  "23: unused extern: %",
+                                                  "24: if statement condition is not boolean: %"};
 
     auto check_duplicate_function_declaration() -> void;
     auto check_duplicate_extern_declaration() -> void;

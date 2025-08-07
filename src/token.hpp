@@ -50,6 +50,9 @@ enum class TokenType {
     STRING_LITERAL,
     CHAR_LITERAL,
     WHILE,
+    IF,
+    ELSE_IF,
+    ELSE
 };
 
 class Token {

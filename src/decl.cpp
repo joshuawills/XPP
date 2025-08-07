@@ -52,9 +52,7 @@ auto Function::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
         emitter->named_values[arg.getName().str()] = alloca;
     }
 
-    for (auto& stmt : stmts_) {
-        stmt->codegen(emitter);
-    }
+    stmts_->codegen(emitter);
 
     if (return_type->isVoidTy()) {
         emitter->llvm_builder->CreateRetVoid();
@@ -73,10 +71,7 @@ auto Function::print(std::ostream& os) const -> void {
         os << "\t\t";
         para->print(os);
     }
-    for (auto const& stmt : stmts_) {
-        os << "\t\t";
-        stmt->print(os);
-    }
+    stmts_->print(os);
     os << "\n";
 }
 

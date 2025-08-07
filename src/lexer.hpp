@@ -26,6 +26,7 @@ class Lexer {
     auto consume_escape() -> char;
     auto is_comment() -> bool;
     auto valid_escape() -> bool;
+    auto else_if_case() -> bool;
     auto peek(char c, int j = 0) -> bool;
 
     const std::string filename_;

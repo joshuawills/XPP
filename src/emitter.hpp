@@ -35,6 +35,7 @@ class Emitter : public std::enable_shared_from_this<Emitter> {
     auto emit() -> void;
 
     size_t global_counter = 0;
+    llvm::BasicBlock* true_bottom = {};
 
     std::unique_ptr<llvm::LLVMContext> context;
     std::unique_ptr<llvm::Module> llvm_module;
