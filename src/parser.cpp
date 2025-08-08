@@ -489,6 +489,12 @@ auto Parser::parse_primary_expr() -> std::shared_ptr<Expr> {
         finish(p);
         return std::make_shared<IntExpr>(p, value);
     }
+    else if (peek(TokenType::UNSIGNED_INTEGER)) {
+        auto const value = std::stoul((*curr_token_)->lexeme());
+        consume();
+        finish(p);
+        return std::make_shared<UIntExpr>(p, value);
+    }
     else if (peek(TokenType::OPEN_BRACKET)) {
         match(TokenType::OPEN_BRACKET);
         auto expr = parse_expr();

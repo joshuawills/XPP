@@ -190,6 +190,10 @@ auto Lexer::generate_token() -> std::optional<Token> {
     }
 
     if (!buf.empty()) {
+        if (peek('u')) {
+            consume();
+            return Token{buf, line_, col_ - buf.size(), col_ - 1, TokenType::UNSIGNED_INTEGER};
+        }
         return Token{buf, line_, col_ - buf.size(), col_ - 1, TokenType::INTEGER};
     }
 

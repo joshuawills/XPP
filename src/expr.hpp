@@ -201,6 +201,37 @@ class IntExpr
     uint8_t width_ = 64;
 };
 
+class UIntExpr
+: public Expr
+, public std::enable_shared_from_this<UIntExpr> {
+ public:
+    UIntExpr(Position const pos, uint64_t value)
+    : Expr(pos, Type{TypeSpec::U64})
+    , value_(value) {}
+
+    auto get_value() const -> uint64_t {
+        return value_;
+    }
+
+    auto set_width(uint8_t width) -> void {
+        width_ = width;
+    }
+
+    auto get_width() -> uint8_t {
+        return width_;
+    }
+
+    auto visit(std::shared_ptr<Visitor> visitor) -> void override {
+        visitor->visit_uint_expr(shared_from_this());
+    }
+    auto codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* override;
+    auto print(std::ostream& os) const -> void override;
+
+ private:
+    uint64_t const value_;
+    uint8_t width_ = 64;
+};
+
 class BoolExpr
 : public Expr
 , public std::enable_shared_from_this<BoolExpr> {

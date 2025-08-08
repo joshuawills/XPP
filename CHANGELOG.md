@@ -18,5 +18,9 @@
 ## TODO
 
 - Add in loops
+- Unsigned integer types
+- Floating point types
+- Array types
+- Moduling system
 - Composite data types
 - References?

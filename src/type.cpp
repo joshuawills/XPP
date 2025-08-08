@@ -4,12 +4,22 @@
 #include <map>
 
 auto soft_typespec_equals(TypeSpec const& a, TypeSpec const& b) -> bool {
-    auto int_specs = std::vector<TypeSpec>{TypeSpec::I8, TypeSpec::I32, TypeSpec::I64};
-    auto is_int = [int_specs](TypeSpec const& a) -> bool {
-        return std::find(int_specs.begin(), int_specs.end(), a) != int_specs.end();
+    auto signed_int = std::vector<TypeSpec>{TypeSpec::I8, TypeSpec::I32, TypeSpec::I64};
+    auto is_signed_int = [signed_int](TypeSpec const& a) -> bool {
+        return std::find(signed_int.begin(), signed_int.end(), a) != signed_int.end();
     };
-    if (is_int(a) and is_int(b))
+
+    if (is_signed_int(a) and is_signed_int(b))
         return true;
+
+    auto unsigned_int = std::vector<TypeSpec>{TypeSpec::U8, TypeSpec::U32, TypeSpec::U64};
+    auto is_unsigned_int = [unsigned_int](TypeSpec const& a) -> bool {
+        return std::find(unsigned_int.begin(), unsigned_int.end(), a) != unsigned_int.end();
+    };
+
+    if (is_unsigned_int(a) and is_unsigned_int(b))
+        return true;
+
     return a == b;
 }
 
@@ -55,6 +65,9 @@ auto type_spec_from_lexeme(std::string const& lexeme) -> std::optional<TypeSpec>
                                                                     {"i64", TypeSpec::I64},
                                                                     {"i32", TypeSpec::I32},
                                                                     {"i8", TypeSpec::I8},
+                                                                    {"u64", TypeSpec::U64},
+                                                                    {"u32", TypeSpec::U32},
+                                                                    {"u8", TypeSpec::U8},
                                                                     {"...", TypeSpec::VARIATIC},
                                                                     {"bool", TypeSpec::BOOL}};
     auto it = lexeme_to_spec_map.find(lexeme);
@@ -69,9 +82,12 @@ auto operator<<(std::ostream& os, TypeSpec const& ts) -> std::ostream& {
     case TypeSpec::VOID: os << "void"; break;
     case TypeSpec::I64: os << "i64"; break;
     case TypeSpec::I32: os << "i32"; break;
+    case TypeSpec::U64: os << "u64"; break;
+    case TypeSpec::U32: os << "u32"; break;
     case TypeSpec::BOOL: os << "bool"; break;
     case TypeSpec::POINTER: os << "*"; break;
     case TypeSpec::I8: os << "i8"; break;
+    case TypeSpec::U8: os << "u8"; break;
     case TypeSpec::VARIATIC: os << "..."; break;
     case TypeSpec::UNKNOWN: os << "unknown"; break;
     default: os << "invalid typespec"; break;

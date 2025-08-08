@@ -123,11 +123,12 @@ auto UnaryExpr::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
     }
 
     if (op_ == Op::NEGATE) {
-        return emitter->llvm_builder->CreateSub(llvm::ConstantInt::get(llvm::Type::getInt64Ty(*(emitter->context)), 0),
-                                                value);
+        return emitter->llvm_builder->CreateICmpEQ(value, llvm::ConstantInt::get(value->getType(), 0));
     }
     else if (op_ == Op::MINUS) {
-        return emitter->llvm_builder->CreateICmpEQ(value, llvm::ConstantInt::get(value->getType(), 0));
+        auto ty = value->getType();
+        auto zero = llvm::ConstantInt::get(ty, 0);
+        return emitter->llvm_builder->CreateSub(zero, value);
     }
     else if (op_ == Op::DEREF) {
         return emitter->llvm_builder->CreateLoad(emitter->llvm_type(get_type()), value);
@@ -150,6 +151,15 @@ auto IntExpr::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
 }
 
 auto IntExpr::print(std::ostream& os) const -> void {
+    os << value_;
+}
+
+auto UIntExpr::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
+    (void)emitter;
+    return llvm::ConstantInt::get(*(emitter->context), llvm::APInt(width_, value_, false));
+}
+
+auto UIntExpr::print(std::ostream& os) const -> void {
     os << value_;
 }
 
@@ -314,7 +324,12 @@ auto CastExpr::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
 
         if (dest_bits > src_bits) {
             // Extend
-            return emitter->llvm_builder->CreateSExt(value, emitter->llvm_type(to_));
+            if (expr_type.is_unsigned_int()) {
+                return emitter->llvm_builder->CreateZExt(value, emitter->llvm_type(to_));
+            }
+            else {
+                return emitter->llvm_builder->CreateSExt(value, emitter->llvm_type(to_));
+            }
         }
         else if (dest_bits < src_bits) {
             // Truncate

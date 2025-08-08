@@ -246,10 +246,11 @@ auto Verifier::visit_binary_expr(std::shared_ptr<BinaryExpr> binary_expr) -> voi
 
     // "==" and "!=" operators
     if (op == Op::EQUAL or op == Op::NOT_EQUAL) {
-        auto const valid_one = l_t.is_int() and r_t.is_int() and l_t == r_t;
+        auto const valid_one = l_t.is_signed_int() and r_t.is_signed_int() and l_t == r_t;
         auto const valid_two = l_t.is_bool() and r_t.is_bool();
         auto const valid_three = l_t.is_pointer() and r_t.is_pointer();
-        if (!valid_one and !valid_two and !valid_three) {
+        auto const valid_four = l_t.is_unsigned_int() and r_t.is_unsigned_int() and l_t == r_t;
+        if (!valid_one and !valid_two and !valid_three and !valid_four) {
             auto stream = std::stringstream{};
             stream << l_t << " and " << r_t;
             handler_->report_error(current_filename_, all_errors_[5], stream.str(), binary_expr->pos());
@@ -262,7 +263,9 @@ auto Verifier::visit_binary_expr(std::shared_ptr<BinaryExpr> binary_expr) -> voi
 
     // "<", ">", "<=", ">=" operators
     if (op == Op::LESS_THAN or op == Op::GREATER_THAN or op == Op::LESS_EQUAL or op == Op::GREATER_EQUAL) {
-        if (!l_t.is_int() or !r_t.is_int() or l_t != r_t) {
+        auto const valid_one = l_t.is_signed_int() and r_t.is_signed_int() and l_t == r_t;
+        auto const valid_two = l_t.is_unsigned_int() and r_t.is_unsigned_int() and l_t == r_t;
+        if (!valid_one and !valid_two) {
             auto stream = std::stringstream{};
             stream << l->get_type() << " and " << r->get_type();
             handler_->report_error(current_filename_, all_errors_[5], stream.str(), binary_expr->pos());
@@ -275,6 +278,9 @@ auto Verifier::visit_binary_expr(std::shared_ptr<BinaryExpr> binary_expr) -> voi
 
     // "+", "-", "*", "/" operators
     if (op == Op::PLUS or op == Op::MINUS or op == Op::MULTIPLY or op == Op::DIVIDE) {
+        auto const valid_one = l_t.is_signed_int() and r_t.is_signed_int() and l_t == r_t;
+        auto const valid_two = l_t.is_unsigned_int() and r_t.is_unsigned_int() and l_t == r_t;
+
         if (l_t.is_pointer() and r_t.is_int()) {
             if (op == Op::MULTIPLY or op == Op::DIVIDE) {
                 auto stream = std::stringstream{};
@@ -284,7 +290,7 @@ auto Verifier::visit_binary_expr(std::shared_ptr<BinaryExpr> binary_expr) -> voi
             binary_expr->set_pointer_arithmetic();
             binary_expr->set_type(l_t);
         }
-        else if (!l_t.is_int() or !r_t.is_int() or l_t != r_t) {
+        else if (!valid_one and !valid_two) {
             auto stream = std::stringstream{};
             stream << l->get_type() << " and " << r->get_type();
             handler_->report_error(current_filename_, all_errors_[5], stream.str(), binary_expr->pos());
@@ -318,7 +324,7 @@ auto Verifier::visit_unary_expr(std::shared_ptr<UnaryExpr> unary_expr) -> void {
     else if (unary_expr->get_operator() == Op::PLUS or unary_expr->get_operator() == Op::MINUS) {
         if (!e->get_type().is_int()) {
             auto stream = std::stringstream{};
-            stream << "expected an i64 type, got " << e->get_type();
+            stream << "expected an int type, got " << e->get_type();
             handler_->report_error(current_filename_, all_errors_[9], stream.str(), unary_expr->pos());
             unary_expr->set_type(handler_->ERROR_TYPE);
         }
@@ -359,6 +365,10 @@ auto Verifier::visit_unary_expr(std::shared_ptr<UnaryExpr> unary_expr) -> void {
 }
 
 auto Verifier::visit_int_expr(std::shared_ptr<IntExpr> int_expr) -> void {
+    if (current_numerical_type->is_unsigned_int()) {
+        int_expr->set_type(handler_->ERROR_TYPE);
+        return;
+    }
     if (current_numerical_type) {
         switch (current_numerical_type->get_type_spec()) {
         case I64: int_expr->set_width(64); break;
@@ -367,6 +377,24 @@ auto Verifier::visit_int_expr(std::shared_ptr<IntExpr> int_expr) -> void {
         default: std::cout << "UNREACHABLE Verifier::visit_int_expr";
         }
         int_expr->set_type(*current_numerical_type);
+    }
+    return;
+}
+
+auto Verifier::visit_uint_expr(std::shared_ptr<UIntExpr> uint_expr) -> void {
+    if (current_numerical_type->is_signed_int()) {
+        uint_expr->set_type(handler_->ERROR_TYPE);
+        return;
+    }
+
+    if (current_numerical_type) {
+        switch (current_numerical_type->get_type_spec()) {
+        case U64: uint_expr->set_width(64); break;
+        case U32: uint_expr->set_width(32); break;
+        case U8: uint_expr->set_width(8); break;
+        default: std::cout << "UNREACHABLE Verifier::visit_uint_expr";
+        }
+        uint_expr->set_type(*current_numerical_type);
     }
     return;
 }
@@ -450,8 +478,11 @@ auto Verifier::visit_call_expr(std::shared_ptr<CallExpr> call_expr) -> void {
 }
 
 auto Verifier::visit_cast_expr(std::shared_ptr<CastExpr> cast_expr) -> void {
-    cast_expr->get_expr()->visit(shared_from_this());
-    if (!cast_expr->get_expr()->get_type().equal_soft(cast_expr->get_to_type())) {
+    auto expr = cast_expr->get_expr();
+    auto to_type = cast_expr->get_to_type();
+    expr->visit(shared_from_this());
+    auto const valid_one = expr->get_type().is_int() and to_type.is_int();
+    if (!valid_one) {
         auto stream = std::stringstream{};
         stream << "expected " << cast_expr->get_to_type().t << ", received " << cast_expr->get_expr()->get_type();
         handler_->report_error(current_filename_, all_errors_[27], stream.str(), cast_expr->pos());
