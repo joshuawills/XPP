@@ -3,7 +3,7 @@
 
 #include "./ast.hpp"
 
-enum TypeSpec { VOID, I64, I32, BOOL, UNKNOWN, ERROR, POINTER, I8, VARIATIC, U64, U32, U8 };
+enum TypeSpec { VOID, I64, I32, BOOL, UNKNOWN, ERROR, POINTER, I8, VARIATIC, U64, U32, U8, F32, F64 };
 
 auto operator<<(std::ostream& os, TypeSpec const& ts) -> std::ostream&;
 
@@ -29,6 +29,10 @@ struct Type {
         return t;
     }
 
+    auto is_numeric() const noexcept -> bool {
+        return is_signed_int() or is_unsigned_int() or is_decimal();
+    }
+
     auto is_int() const noexcept -> bool {
         return is_signed_int() or is_unsigned_int();
     }
@@ -39,6 +43,10 @@ struct Type {
 
     auto is_unsigned_int() const noexcept -> bool {
         return t == TypeSpec::U64 or t == TypeSpec::U32 or t == TypeSpec::U8;
+    }
+
+    auto is_decimal() const noexcept -> bool {
+        return t == TypeSpec::F32 or t == TypeSpec::F64;
     }
 
     auto is_pointer() const noexcept -> bool {

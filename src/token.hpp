@@ -54,7 +54,8 @@ enum class TokenType {
     ELSE_IF,
     ELSE,
     AMPERSAND,
-    UNSIGNED_INTEGER
+    UNSIGNED_INTEGER,
+    FLOAT_LITERAL
 };
 
 class Token {

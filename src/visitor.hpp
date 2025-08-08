@@ -10,6 +10,7 @@ class EmptyExpr;
 class AssignmentExpr;
 class BinaryExpr;
 class UnaryExpr;
+class DecimalExpr;
 class IntExpr;
 class UIntExpr;
 class BoolExpr;
@@ -38,6 +39,7 @@ class Visitor {
     virtual auto visit_assignment_expr(std::shared_ptr<AssignmentExpr> assignment_expr) -> void = 0;
     virtual auto visit_binary_expr(std::shared_ptr<BinaryExpr> binary_expr) -> void = 0;
     virtual auto visit_unary_expr(std::shared_ptr<UnaryExpr> unary_expr) -> void = 0;
+    virtual auto visit_decimal_expr(std::shared_ptr<DecimalExpr> decimal_expr) -> void = 0;
     virtual auto visit_int_expr(std::shared_ptr<IntExpr> int_expr) -> void = 0;
     virtual auto visit_uint_expr(std::shared_ptr<UIntExpr> uint_expr) -> void = 0;
     virtual auto visit_bool_expr(std::shared_ptr<BoolExpr> bool_expr) -> void = 0;

@@ -14,12 +14,15 @@
 
 - ADDITION: implicit and explicit signed integer casting
 - ADDITION: testing script and initial test cases
+- ADDITION: unsigned integer types
+
+## 09 Aug 2025
+
+- ADDITION: decimal types (f32 and f64) including casting for them
 
 ## TODO
 
-- Add in loops
-- Unsigned integer types
-- Floating point types
+- Add in for loops 
 - Array types
 - Moduling system
 - Composite data types

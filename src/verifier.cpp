@@ -62,7 +62,7 @@ auto Verifier::visit_local_var_decl(std::shared_ptr<LocalVarDecl> local_var_decl
         handler_->report_error(current_filename_, all_errors_[4], local_var_decl->get_ident(), local_var_decl->pos());
     }
 
-    if (local_var_decl->get_type().is_int()) {
+    if (local_var_decl->get_type().is_numeric()) {
         current_numerical_type = local_var_decl->get_type();
     }
     local_var_decl->get_expr()->visit(shared_from_this());
@@ -73,7 +73,7 @@ auto Verifier::visit_local_var_decl(std::shared_ptr<LocalVarDecl> local_var_decl
     else if (local_var_decl->get_type() != expr_type) {
         auto stream = std::stringstream{};
         stream << "expected " << local_var_decl->get_type() << ", got " << expr_type;
-        if (local_var_decl->get_type().is_int() and expr_type.is_int()) {
+        if (local_var_decl->get_type().is_numeric() and expr_type.is_numeric()) {
             stream << ". You may require an explicit type cast";
         }
         handler_->report_error(current_filename_, all_errors_[6], stream.str(), local_var_decl->pos());
@@ -193,7 +193,7 @@ auto Verifier::visit_assignment_expr(std::shared_ptr<AssignmentExpr> assignment_
         }
     }
 
-    if (l->get_type().is_int()) {
+    if (l->get_type().is_numeric()) {
         current_numerical_type = l->get_type();
     }
     r->visit(shared_from_this());
@@ -203,7 +203,7 @@ auto Verifier::visit_assignment_expr(std::shared_ptr<AssignmentExpr> assignment_
         and l->get_type() != r->get_type()) {
         auto stream = std::stringstream{};
         stream << "expected " << l->get_type() << ", got " << r->get_type();
-        if (l->get_type().is_int() and r->get_type().is_int()) {
+        if (l->get_type().is_numeric() and r->get_type().is_numeric()) {
             stream << ". You may require an explicit type cast";
         }
         handler_->report_error(current_filename_, all_errors_[6], stream.str(), assignment_expr->pos());
@@ -246,11 +246,10 @@ auto Verifier::visit_binary_expr(std::shared_ptr<BinaryExpr> binary_expr) -> voi
 
     // "==" and "!=" operators
     if (op == Op::EQUAL or op == Op::NOT_EQUAL) {
-        auto const valid_one = l_t.is_signed_int() and r_t.is_signed_int() and l_t == r_t;
+        auto const valid_one = l_t.is_numeric() and r_t.is_numeric() and l_t == r_t;
         auto const valid_two = l_t.is_bool() and r_t.is_bool();
         auto const valid_three = l_t.is_pointer() and r_t.is_pointer();
-        auto const valid_four = l_t.is_unsigned_int() and r_t.is_unsigned_int() and l_t == r_t;
-        if (!valid_one and !valid_two and !valid_three and !valid_four) {
+        if (!valid_one and !valid_two and !valid_three) {
             auto stream = std::stringstream{};
             stream << l_t << " and " << r_t;
             handler_->report_error(current_filename_, all_errors_[5], stream.str(), binary_expr->pos());
@@ -263,9 +262,7 @@ auto Verifier::visit_binary_expr(std::shared_ptr<BinaryExpr> binary_expr) -> voi
 
     // "<", ">", "<=", ">=" operators
     if (op == Op::LESS_THAN or op == Op::GREATER_THAN or op == Op::LESS_EQUAL or op == Op::GREATER_EQUAL) {
-        auto const valid_one = l_t.is_signed_int() and r_t.is_signed_int() and l_t == r_t;
-        auto const valid_two = l_t.is_unsigned_int() and r_t.is_unsigned_int() and l_t == r_t;
-        if (!valid_one and !valid_two) {
+        if (!(l_t.is_numeric() and r_t.is_numeric() and l_t == r_t)) {
             auto stream = std::stringstream{};
             stream << l->get_type() << " and " << r->get_type();
             handler_->report_error(current_filename_, all_errors_[5], stream.str(), binary_expr->pos());
@@ -278,9 +275,6 @@ auto Verifier::visit_binary_expr(std::shared_ptr<BinaryExpr> binary_expr) -> voi
 
     // "+", "-", "*", "/" operators
     if (op == Op::PLUS or op == Op::MINUS or op == Op::MULTIPLY or op == Op::DIVIDE) {
-        auto const valid_one = l_t.is_signed_int() and r_t.is_signed_int() and l_t == r_t;
-        auto const valid_two = l_t.is_unsigned_int() and r_t.is_unsigned_int() and l_t == r_t;
-
         if (l_t.is_pointer() and r_t.is_int()) {
             if (op == Op::MULTIPLY or op == Op::DIVIDE) {
                 auto stream = std::stringstream{};
@@ -290,7 +284,7 @@ auto Verifier::visit_binary_expr(std::shared_ptr<BinaryExpr> binary_expr) -> voi
             binary_expr->set_pointer_arithmetic();
             binary_expr->set_type(l_t);
         }
-        else if (!valid_one and !valid_two) {
+        else if (!(l_t.is_numeric() and r_t.is_numeric() and l_t == r_t)) {
             auto stream = std::stringstream{};
             stream << l->get_type() << " and " << r->get_type();
             handler_->report_error(current_filename_, all_errors_[5], stream.str(), binary_expr->pos());
@@ -322,9 +316,9 @@ auto Verifier::visit_unary_expr(std::shared_ptr<UnaryExpr> unary_expr) -> void {
         }
     }
     else if (unary_expr->get_operator() == Op::PLUS or unary_expr->get_operator() == Op::MINUS) {
-        if (!e->get_type().is_int()) {
+        if (!e->get_type().is_numeric()) {
             auto stream = std::stringstream{};
-            stream << "expected an int type, got " << e->get_type();
+            stream << "expected a numeric type, got " << e->get_type();
             handler_->report_error(current_filename_, all_errors_[9], stream.str(), unary_expr->pos());
             unary_expr->set_type(handler_->ERROR_TYPE);
         }
@@ -365,7 +359,7 @@ auto Verifier::visit_unary_expr(std::shared_ptr<UnaryExpr> unary_expr) -> void {
 }
 
 auto Verifier::visit_int_expr(std::shared_ptr<IntExpr> int_expr) -> void {
-    if (current_numerical_type->is_unsigned_int()) {
+    if (current_numerical_type.has_value() and !current_numerical_type->is_signed_int()) {
         int_expr->set_type(handler_->ERROR_TYPE);
         return;
     }
@@ -381,8 +375,25 @@ auto Verifier::visit_int_expr(std::shared_ptr<IntExpr> int_expr) -> void {
     return;
 }
 
+auto Verifier::visit_decimal_expr(std::shared_ptr<DecimalExpr> decimal_expr) -> void {
+    if (current_numerical_type.has_value() and !current_numerical_type->is_decimal()) {
+        std::cout << "haha\n";
+        decimal_expr->set_type(handler_->ERROR_TYPE);
+        return;
+    }
+    if (current_numerical_type) {
+        switch (current_numerical_type->get_type_spec()) {
+        case F64: decimal_expr->set_width(64); break;
+        case F32: decimal_expr->set_width(32); break;
+        default: std::cout << "UNREACHABLE Verifier::visit_decimal_expr";
+        }
+        decimal_expr->set_type(*current_numerical_type);
+    }
+    return;
+}
+
 auto Verifier::visit_uint_expr(std::shared_ptr<UIntExpr> uint_expr) -> void {
-    if (current_numerical_type->is_signed_int()) {
+    if (current_numerical_type.has_value() and !current_numerical_type->is_unsigned_int()) {
         uint_expr->set_type(handler_->ERROR_TYPE);
         return;
     }
@@ -450,7 +461,7 @@ auto Verifier::visit_call_expr(std::shared_ptr<CallExpr> call_expr) -> void {
         auto paras = it->get_paras();
         auto c = 0u;
         for (auto& arg : call_expr->get_args()) {
-            if (paras[c]->get_type().is_int()) {
+            if (paras[c]->get_type().is_numeric()) {
                 current_numerical_type = paras[c]->get_type();
             }
             arg->visit(shared_from_this());
@@ -462,7 +473,7 @@ auto Verifier::visit_call_expr(std::shared_ptr<CallExpr> call_expr) -> void {
         auto types = it->get_types();
         auto c = 0u;
         for (auto& arg : call_expr->get_args()) {
-            if (types[c].is_int()) {
+            if (types[c].is_numeric()) {
                 current_numerical_type = types[c];
             }
             arg->visit(shared_from_this());
@@ -481,7 +492,7 @@ auto Verifier::visit_cast_expr(std::shared_ptr<CastExpr> cast_expr) -> void {
     auto expr = cast_expr->get_expr();
     auto to_type = cast_expr->get_to_type();
     expr->visit(shared_from_this());
-    auto const valid_one = expr->get_type().is_int() and to_type.is_int();
+    auto const valid_one = expr->get_type().is_numeric() and to_type.is_numeric();
     if (!valid_one) {
         auto stream = std::stringstream{};
         stream << "expected " << cast_expr->get_to_type().t << ", received " << cast_expr->get_expr()->get_type();
@@ -525,7 +536,7 @@ auto Verifier::visit_return_stmt(std::shared_ptr<ReturnStmt> return_stmt) -> voi
     has_return_ = true;
     auto expr = return_stmt->get_expr();
 
-    if (current_function_->get_type().is_int()) {
+    if (current_function_->get_type().is_numeric()) {
         current_numerical_type = current_function_->get_type();
     }
     expr->visit(shared_from_this());

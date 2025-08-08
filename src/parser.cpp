@@ -489,6 +489,12 @@ auto Parser::parse_primary_expr() -> std::shared_ptr<Expr> {
         finish(p);
         return std::make_shared<IntExpr>(p, value);
     }
+    else if (peek(TokenType::FLOAT_LITERAL)) {
+        auto const value = std::stod((*curr_token_)->lexeme());
+        consume();
+        finish(p);
+        return std::make_shared<DecimalExpr>(p, value);
+    }
     else if (peek(TokenType::UNSIGNED_INTEGER)) {
         auto const value = std::stoul((*curr_token_)->lexeme());
         consume();

@@ -20,6 +20,14 @@ auto soft_typespec_equals(TypeSpec const& a, TypeSpec const& b) -> bool {
     if (is_unsigned_int(a) and is_unsigned_int(b))
         return true;
 
+    auto floats = std::vector<TypeSpec>{TypeSpec::F32, TypeSpec::F64};
+    auto is_float = [floats](TypeSpec const& a) -> bool {
+        return std::find(floats.begin(), floats.end(), a) != floats.end();
+    };
+
+    if (is_float(a) and is_float(b))
+        return true;
+
     return a == b;
 }
 
@@ -68,6 +76,8 @@ auto type_spec_from_lexeme(std::string const& lexeme) -> std::optional<TypeSpec>
                                                                     {"u64", TypeSpec::U64},
                                                                     {"u32", TypeSpec::U32},
                                                                     {"u8", TypeSpec::U8},
+                                                                    {"f64", TypeSpec::F64},
+                                                                    {"f32", TypeSpec::F32},
                                                                     {"...", TypeSpec::VARIATIC},
                                                                     {"bool", TypeSpec::BOOL}};
     auto it = lexeme_to_spec_map.find(lexeme);
@@ -84,6 +94,8 @@ auto operator<<(std::ostream& os, TypeSpec const& ts) -> std::ostream& {
     case TypeSpec::I32: os << "i32"; break;
     case TypeSpec::U64: os << "u64"; break;
     case TypeSpec::U32: os << "u32"; break;
+    case TypeSpec::F64: os << "f64"; break;
+    case TypeSpec::F32: os << "f32"; break;
     case TypeSpec::BOOL: os << "bool"; break;
     case TypeSpec::POINTER: os << "*"; break;
     case TypeSpec::I8: os << "i8"; break;

@@ -44,6 +44,14 @@ auto Lexer::generate_token() -> std::optional<Token> {
             consume();
             return Token{"...", line_, col_ - 1, col_ - 1, TokenType::TYPE};
         }
+        if (current_pos_ + 1 < contents_->size() and isdigit((*contents_)[current_pos_ + 1])) {
+            auto buf = std::string{"0"};
+            buf += consume();
+            while (current_pos_ < contents_->size() and isdigit((*contents_)[current_pos_])) {
+                buf += consume();
+            }
+            return Token{buf, line_, col_ - buf.size(), col_ - 1, TokenType::FLOAT_LITERAL};
+        }
         std::cerr << "Invalid character";
         exit(EXIT_FAILURE);
     }
@@ -185,8 +193,18 @@ auto Lexer::generate_token() -> std::optional<Token> {
         }
     }
 
-    while (current_pos_ < contents_->size() and isdigit((*contents_)[current_pos_])) {
-        buf += consume();
+    auto is_float = false;
+    if (current_pos_ < contents_->size() and isdigit((*contents_)[current_pos_])) {
+        while (current_pos_ < contents_->size() and isdigit((*contents_)[current_pos_])) {
+            buf += consume();
+        }
+        if (peek('.')) {
+            is_float = true;
+            buf += consume();
+        }
+        while (current_pos_ < contents_->size() and isdigit((*contents_)[current_pos_])) {
+            buf += consume();
+        }
     }
 
     if (!buf.empty()) {
@@ -194,7 +212,12 @@ auto Lexer::generate_token() -> std::optional<Token> {
             consume();
             return Token{buf, line_, col_ - buf.size(), col_ - 1, TokenType::UNSIGNED_INTEGER};
         }
-        return Token{buf, line_, col_ - buf.size(), col_ - 1, TokenType::INTEGER};
+        if (is_float) {
+            return Token{buf, line_, col_ - buf.size(), col_ - 1, TokenType::FLOAT_LITERAL};
+        }
+        else {
+            return Token{buf, line_, col_ - buf.size(), col_ - 1, TokenType::INTEGER};
+        }
     }
 
     if (current_pos_ < contents_->size()) {

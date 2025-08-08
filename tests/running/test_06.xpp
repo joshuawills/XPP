@@ -1,0 +1,24 @@
+// Floating point types 
+
+extern printf(i8*, ...) i32;
+
+fn take_in_f32(x: f32) void {
+}
+
+fn main() void {
+	let mut x = 190.19;
+	let mut y = x as f32;
+	printf("%lf\n", x);
+	printf("%lf\n", y as f64);
+
+	let mut zero = 0.0;
+	while zero < 10.0 {
+		printf("%lf\n", zero);
+		zero = zero + 1.0;
+	}
+
+	let zero_int = zero as i64;
+	printf("%d\n", zero_int);
+
+	take_in_f32(21.0);
+}

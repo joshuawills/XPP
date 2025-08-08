@@ -75,13 +75,16 @@ auto BinaryExpr::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
         return nullptr;
     }
 
+    auto const is_decimal = left_->get_type().is_decimal();
+    auto const is_unsigned = left_->get_type().is_unsigned_int();
+
     switch (op_) {
     case Op::PLUS: {
         if (is_pointer_arithmetic_) {
             auto inner_type = *left_->get_type().sub_type;
             return emitter->llvm_builder->CreateInBoundsGEP(emitter->llvm_type(inner_type), l, r);
         }
-        return emitter->llvm_builder->CreateAdd(l, r);
+        return (is_decimal) ? emitter->llvm_builder->CreateFAdd(l, r) : emitter->llvm_builder->CreateAdd(l, r);
     }
     case Op::MINUS: {
         if (is_pointer_arithmetic_) {
@@ -89,16 +92,69 @@ auto BinaryExpr::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
             auto inner_type = *left_->get_type().sub_type;
             return emitter->llvm_builder->CreateInBoundsGEP(emitter->llvm_type(inner_type), l, neg);
         }
-        return emitter->llvm_builder->CreateSub(l, r);
+        return (is_decimal) ? emitter->llvm_builder->CreateFSub(l, r) : emitter->llvm_builder->CreateSub(l, r);
     }
-    case Op::MULTIPLY: return emitter->llvm_builder->CreateMul(l, r);
-    case Op::DIVIDE: return emitter->llvm_builder->CreateSDiv(l, r);
-    case Op::EQUAL: return emitter->llvm_builder->CreateICmpEQ(l, r);
-    case Op::NOT_EQUAL: return emitter->llvm_builder->CreateICmpNE(l, r);
-    case Op::LESS_THAN: return emitter->llvm_builder->CreateICmpSLT(l, r);
-    case Op::LESS_EQUAL: return emitter->llvm_builder->CreateICmpSLE(l, r);
-    case Op::GREATER_THAN: return emitter->llvm_builder->CreateICmpSGT(l, r);
-    case Op::GREATER_EQUAL: return emitter->llvm_builder->CreateICmpSGE(l, r);
+    case Op::MULTIPLY:
+        return (is_decimal) ? emitter->llvm_builder->CreateFMul(l, r) : emitter->llvm_builder->CreateMul(l, r);
+    case Op::DIVIDE: {
+        if (is_decimal) {
+            return emitter->llvm_builder->CreateFDiv(l, r);
+        }
+        else if (is_unsigned) {
+            return emitter->llvm_builder->CreateUDiv(l, r);
+        }
+        else {
+            return emitter->llvm_builder->CreateSDiv(l, r);
+        }
+    }
+    case Op::EQUAL:
+        return (is_decimal) ? emitter->llvm_builder->CreateFCmpOEQ(l, r) : emitter->llvm_builder->CreateICmpEQ(l, r);
+    case Op::NOT_EQUAL:
+        return (is_decimal) ? emitter->llvm_builder->CreateFCmpONE(l, r) : emitter->llvm_builder->CreateICmpNE(l, r);
+    case Op::LESS_THAN: {
+        if (is_decimal) {
+            return emitter->llvm_builder->CreateFCmpOLT(l, r);
+        }
+        else if (is_unsigned) {
+            return emitter->llvm_builder->CreateICmpULT(l, r);
+        }
+        else {
+            return emitter->llvm_builder->CreateICmpSLT(l, r);
+        }
+    }
+    case Op::LESS_EQUAL: {
+        if (is_decimal) {
+            return emitter->llvm_builder->CreateFCmpOLE(l, r);
+        }
+        else if (is_unsigned) {
+            return emitter->llvm_builder->CreateICmpULE(l, r);
+        }
+        else {
+            return emitter->llvm_builder->CreateICmpSLE(l, r);
+        }
+    }
+    case Op::GREATER_THAN: {
+        if (is_decimal) {
+            return emitter->llvm_builder->CreateFCmpOGT(l, r);
+        }
+        else if (is_unsigned) {
+            return emitter->llvm_builder->CreateICmpUGT(l, r);
+        }
+        else {
+            return emitter->llvm_builder->CreateICmpSGT(l, r);
+        }
+    }
+    case Op::GREATER_EQUAL: {
+        if (is_decimal) {
+            return emitter->llvm_builder->CreateFCmpOGE(l, r);
+        }
+        else if (is_unsigned) {
+            return emitter->llvm_builder->CreateICmpUGE(l, r);
+        }
+        else {
+            return emitter->llvm_builder->CreateICmpSGE(l, r);
+        }
+    }
     default: std::cout << "UNREACHABLE BinaryExpr::codegen\n";
     }
 
@@ -160,6 +216,23 @@ auto UIntExpr::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
 }
 
 auto UIntExpr::print(std::ostream& os) const -> void {
+    os << value_;
+}
+
+auto DecimalExpr::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
+    if (width_ == 64) {
+        return llvm::ConstantFP::get(*(emitter->context), llvm::APFloat(value_));
+    }
+    else if (width_ == 32) {
+        return llvm::ConstantFP::get(*(emitter->context), llvm::APFloat((float)value_));
+    }
+    else {
+        std::cout << "UNREACHABLE DecimalExpr::codegen\n";
+        return nullptr;
+    }
+}
+
+auto DecimalExpr::print(std::ostream& os) const -> void {
     os << value_;
 }
 
@@ -318,26 +391,59 @@ auto CastExpr::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
         return value;
     }
 
+    auto const llvm_type = emitter->llvm_type(to_);
+
+    // int -> int
     if (to_.is_int() and expr_type.is_int()) {
         auto src_bits = value->getType()->getIntegerBitWidth();
-        auto dest_bits = emitter->llvm_type(to_)->getIntegerBitWidth();
+        auto dest_bits = llvm_type->getIntegerBitWidth();
 
         if (dest_bits > src_bits) {
-            // Extend
             if (expr_type.is_unsigned_int()) {
-                return emitter->llvm_builder->CreateZExt(value, emitter->llvm_type(to_));
+                return emitter->llvm_builder->CreateZExt(value, llvm_type);
             }
             else {
-                return emitter->llvm_builder->CreateSExt(value, emitter->llvm_type(to_));
+                return emitter->llvm_builder->CreateSExt(value, llvm_type);
             }
         }
         else if (dest_bits < src_bits) {
-            // Truncate
-            return emitter->llvm_builder->CreateTrunc(value, emitter->llvm_type(to_));
+            return emitter->llvm_builder->CreateTrunc(value, llvm_type);
         }
         else {
-            // They're equal
-            return emitter->llvm_builder->CreateBitCast(value, emitter->llvm_type(to_));
+            return emitter->llvm_builder->CreateBitCast(value, llvm_type);
+        }
+    }
+    // decimal -> decimal
+    else if (to_.is_decimal() and expr_type.is_decimal()) {
+        auto src_bits = value->getType()->getPrimitiveSizeInBits();
+        auto dest_bits = llvm_type->getPrimitiveSizeInBits();
+
+        if (dest_bits > src_bits) {
+            return emitter->llvm_builder->CreateFPExt(value, llvm_type);
+        }
+        else if (dest_bits < src_bits) {
+            return emitter->llvm_builder->CreateFPTrunc(value, llvm_type);
+        }
+        else {
+            return emitter->llvm_builder->CreateBitCast(value, llvm_type);
+        }
+    }
+    // int -> decimal
+    else if (to_.is_decimal() and expr_type.is_int()) {
+        if (expr_type.is_unsigned_int()) {
+            return emitter->llvm_builder->CreateUIToFP(value, llvm_type);
+        }
+        else {
+            return emitter->llvm_builder->CreateSIToFP(value, llvm_type);
+        }
+    }
+    // decimal -> int
+    else if (to_.is_int() and expr_type.is_decimal()) {
+        if (expr_type.is_unsigned_int()) {
+            return emitter->llvm_builder->CreateFPToUI(value, llvm_type);
+        }
+        else {
+            return emitter->llvm_builder->CreateFPToSI(value, llvm_type);
         }
     }
     else {

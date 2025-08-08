@@ -232,6 +232,37 @@ class UIntExpr
     uint8_t width_ = 64;
 };
 
+class DecimalExpr
+: public Expr
+, public std::enable_shared_from_this<DecimalExpr> {
+ public:
+    DecimalExpr(Position const pos, double value)
+    : Expr(pos, Type{TypeSpec::F64})
+    , value_(value) {}
+
+    auto get_value() const -> double {
+        return value_;
+    }
+
+    auto set_width(uint8_t width) -> void {
+        width_ = width;
+    }
+
+    auto get_width() -> uint8_t {
+        return width_;
+    }
+
+    auto visit(std::shared_ptr<Visitor> visitor) -> void override {
+        visitor->visit_decimal_expr(shared_from_this());
+    }
+    auto codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* override;
+    auto print(std::ostream& os) const -> void override;
+
+ private:
+    double const value_;
+    uint8_t width_ = 64;
+};
+
 class BoolExpr
 : public Expr
 , public std::enable_shared_from_this<BoolExpr> {

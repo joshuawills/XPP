@@ -96,8 +96,10 @@ auto Emitter::llvm_type(Type t) -> llvm::Type* {
     case TypeSpec::U32: return llvm::Type::getInt32Ty(*context);
     case TypeSpec::I8:
     case TypeSpec::U8: return llvm::Type::getInt8Ty(*context);
+    case TypeSpec::F32: return llvm::Type::getFloatTy(*context);
+    case TypeSpec::F64: return llvm::Type::getDoubleTy(*context);
     case TypeSpec::VOID: return llvm::Type::getVoidTy(*context);
-    default: std::cout << "UNREACHABLE Emitter::llvm_type" << t << "\n";
+    default: std::cout << "UNREACHABLE Emitter::llvm_type: " << t << "\n";
     }
     return nullptr;
 }
