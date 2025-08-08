@@ -2,4 +2,4 @@ build/
 gen_err_minor_numbers.sh
 gen_err_numbers.sh
 a.out
-*.xpp
+example.xpp

@@ -1,0 +1,12 @@
+// Unused variable
+
+extern printf(i8*, ...) i32;
+
+fn main() void {
+    let y = 21;
+    let x = y;
+    {
+        let x = 19;
+    }
+    printf("%d\n", x);
+}

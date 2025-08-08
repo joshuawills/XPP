@@ -1,0 +1,10 @@
+// No such function with name
+
+fn foo() void {
+
+}
+
+fn main() void {
+    foo();
+    bar();
+}

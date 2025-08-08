@@ -77,6 +77,7 @@ class Handler {
     static const Type BOOL_TYPE;
     static const Type UNKNOWN_TYPE;
     static const Type CHAR_POINTER_TYPE;
+    static const Type CHAR_POINTER_POINTER_TYPE;
     static const Type VARIATIC_TYPE;
 
     size_t num_errors_ = 0;

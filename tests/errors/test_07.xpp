@@ -1,0 +1,13 @@
+// LHS of assignment must be a variable
+
+fn main() void {
+	let mut x = 19;
+	let mut y = &x;
+    *y = 20;
+
+	false = 19;
+
+	x = 19 = 20;
+
+
+}

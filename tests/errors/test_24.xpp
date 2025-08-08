@@ -1,0 +1,7 @@
+// If statement condition is not boolean
+
+fn main() void {
+    if 1 {
+        
+    } 
+}

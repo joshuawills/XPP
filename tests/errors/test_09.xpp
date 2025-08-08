@@ -1,0 +1,8 @@
+// Incompatible type for this unary operator
+
+fn main() void {
+    let x = 21;
+    let y = !x;
+
+    let z = -true;
+}

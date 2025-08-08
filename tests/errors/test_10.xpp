@@ -1,0 +1,13 @@
+// Missing return stmt
+
+fn foo() i64 {
+
+}
+
+fn bar() bool {
+    
+}
+
+fn main() void {
+
+}

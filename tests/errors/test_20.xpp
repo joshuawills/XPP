@@ -1,0 +1,8 @@
+// Cannot mutate constant variable
+
+fn main() void {
+    let x = 21;
+    x = 22;
+    let mut y = x;
+    y = y + 1;
+}

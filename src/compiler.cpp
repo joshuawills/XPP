@@ -7,7 +7,6 @@
 #include "./parser.hpp"
 #include "./verifier.hpp"
 
-
 auto main(int argc, char** argv) -> int {
     auto handler = std::make_shared<Handler>();
 

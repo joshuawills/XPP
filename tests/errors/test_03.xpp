@@ -1,0 +1,10 @@
+// Identifier redeclared
+
+fn foo(bar: i32) void {
+	let bar = false;
+}
+
+fn main() void {
+	let x = 1;
+	let x = 1;
+}

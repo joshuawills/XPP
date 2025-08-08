@@ -1,0 +1,17 @@
+// Unused function
+
+fn foo() void {
+
+}
+
+fn foo(x: i64) void {
+    foo();
+}
+
+fn bar() void {
+
+}
+
+fn main() void {
+    foo(21);
+}

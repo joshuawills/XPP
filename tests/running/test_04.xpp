@@ -1,0 +1,42 @@
+// Control flow with if stmts
+
+extern printf(i8*, ...) i32;
+
+fn main() void {
+    if true {
+        printf("hello!\n");
+    }
+
+    if false {
+        printf("what\n");
+    }
+
+    if true {
+        printf("hello!\n");
+    } else {
+        printf("what\n");
+    }
+
+    if false {
+        printf("what\n");
+    } else {
+        printf("hello!\n");
+    }
+
+    if false {
+        printf("what\n");
+    } else if false {
+        printf("what\n");
+    } else {
+        printf("hello!\n");
+    }
+
+    if true {
+        printf("hello!\n");
+    } else if true {
+        printf("what\n");
+    } else {
+        printf("what\n");
+    }
+
+}

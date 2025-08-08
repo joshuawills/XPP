@@ -1,12 +1,12 @@
 #include "./handler.hpp"
 
 #include <algorithm>
+#include <filesystem>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
 #include <optional>
 #include <streambuf>
-#include <filesystem>
 
 const Type Handler::VOID_TYPE = Type{TypeSpec::VOID};
 const Type Handler::I64_TYPE = Type{TypeSpec::I64};
@@ -14,6 +14,10 @@ const Type Handler::ERROR_TYPE = Type{TypeSpec::ERROR};
 const Type Handler::BOOL_TYPE = Type{TypeSpec::BOOL};
 const Type Handler::UNKNOWN_TYPE = Type{TypeSpec::UNKNOWN};
 const Type Handler::CHAR_POINTER_TYPE = Type{TypeSpec::POINTER, std::nullopt, std::make_shared<Type>(TypeSpec::I8)};
+const Type Handler::CHAR_POINTER_POINTER_TYPE =
+    Type{TypeSpec::POINTER,
+         std::nullopt,
+         std::make_shared<Type>(TypeSpec::POINTER, std::nullopt, std::make_shared<Type>(TypeSpec::I8))};
 const Type Handler::VARIATIC_TYPE = Type{TypeSpec::VARIATIC};
 
 auto read_file(std::string const& filename) -> std::optional<std::string> {

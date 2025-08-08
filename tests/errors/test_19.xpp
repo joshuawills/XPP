@@ -1,0 +1,10 @@
+// While stmt condition is not boolean 
+
+fn main() void {
+    while 1 {}
+
+    let x: i64 = 19;
+    while x + 2 {
+
+    } 
+}

@@ -1,0 +1,5 @@
+// Character literal can only have one character in it
+
+fn main() void {
+    let x = 'ab';
+}

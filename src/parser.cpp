@@ -152,7 +152,7 @@ auto Parser::parse_type() -> Type {
     // Handle pointer types
     auto return_type = Type{*type_spec};
     std::shared_ptr<Type> sub_type = nullptr;
-    if (try_consume(TokenType::MULTIPLY)) {
+    while (try_consume(TokenType::MULTIPLY)) {
         sub_type = std::make_shared<Type>(return_type);
         return_type = Type{TypeSpec::POINTER, std::nullopt, sub_type};
     }
@@ -239,6 +239,9 @@ auto Parser::parse_compound_stmt() -> std::shared_ptr<CompoundStmt> {
         }
         else if (try_consume(TokenType::IF)) {
             stmts.push_back(parse_if_stmt(p));
+        }
+        else if (peek(TokenType::OPEN_CURLY)) {
+            stmts.push_back(parse_compound_stmt());
         }
         else {
             stmts.push_back(parse_expr_stmt(p));
@@ -507,7 +510,7 @@ auto Parser::parse_primary_expr() -> std::shared_ptr<Expr> {
     else if (peek(TokenType::CHAR_LITERAL)) {
         auto const value = (*curr_token_)->lexeme();
         if (value.size() > 1) {
-            syntactic_error("character literal may only have one character: '%'", value);
+            syntactic_error("18: character literal may only have one character: '%'", value);
         }
         consume();
         finish(p);

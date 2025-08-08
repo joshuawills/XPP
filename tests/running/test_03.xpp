@@ -1,0 +1,13 @@
+// Implicit type casting for primary exprs 
+
+extern printf(i8*, ...) i32;
+
+fn print_char(c: i8) void {
+    printf("%c\n", c);
+    return;
+}
+
+fn main() void {
+    print_char('a');
+    print_char(90);
+}

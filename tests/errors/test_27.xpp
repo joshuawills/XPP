@@ -1,0 +1,6 @@
+// Invalid type cast operation
+
+fn main() void {
+    let x = true as i64;
+    let y = 21 as bool;
+}

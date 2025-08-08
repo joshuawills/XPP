@@ -1,0 +1,11 @@
+// Incorrect parameters for function
+
+fn foo() void {
+
+}
+
+fn main() void {
+    foo();
+    foo(21);
+    foo(true, 21);
+}

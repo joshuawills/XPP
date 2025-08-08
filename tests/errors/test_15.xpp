@@ -1,0 +1,7 @@
+// Duplicate extern declaration
+
+extern exit() void;
+extern exit(i64) void;
+extern exit(i64) void;
+
+fn main() void {}

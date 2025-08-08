@@ -9,9 +9,6 @@ auto Function::operator==(const Function& other) const -> bool {
     if (ident_ != other.ident_) {
         return false;
     }
-    if (t_ != other.t_) {
-        return false;
-    }
     if (paras_.size() != other.paras_.size()) {
         return false;
     }

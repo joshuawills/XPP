@@ -1,0 +1,7 @@
+// Hello world program
+
+extern printf(i8*, ...) i32;
+
+fn main() void {
+	printf("Hello, world!\n");
+}

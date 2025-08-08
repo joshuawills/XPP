@@ -1,0 +1,17 @@
+// Print strlen program
+
+extern printf(i8*, ...) i32;
+
+fn strlen(s: i8*) i64 {
+    let mut p = s; 
+    let mut count = 0;
+    while *p != '\0' {
+        count = count + 1;
+        p = p + 1;
+    }
+    return count;
+}
+
+fn main() void {
+	printf("%d\n", strlen("hello"));
+}

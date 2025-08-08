@@ -1,0 +1,7 @@
+// Unused extern 
+
+extern exit(i32) void;
+
+fn main() void {
+    
+}

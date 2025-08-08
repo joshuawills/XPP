@@ -1,0 +1,13 @@
+// Incompatible type for return stmt
+
+fn foo() i64 {
+    return;
+}
+
+fn bar() i64 {
+    return true;
+}
+
+fn main() void {
+    return 1;
+}

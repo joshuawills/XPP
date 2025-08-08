@@ -1,0 +1,5 @@
+// Variatic type may only be last specified type in extern declaration
+
+extern bar(..., i8) void;
+
+fn main() void {}

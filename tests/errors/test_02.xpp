@@ -1,0 +1,4 @@
+// Invalid main function signature
+
+fn main(haha: bool) void {
+}

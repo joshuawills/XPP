@@ -19,6 +19,7 @@ auto operator<<(std::ostream& os, Op const& o) -> std::ostream& {
     case LESS_EQUAL: os << "<="; break;
     case GREATER_EQUAL: os << ">="; break;
     case DEREF: os << "*"; break;
+    case ADDRESS_OF: os << "&"; break;
     default: os << "UNRECOGNISED OPERATOR";
     };
     return os;

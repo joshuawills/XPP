@@ -1,0 +1,6 @@
+A
+B
+side effect
+C
+side effect
+D

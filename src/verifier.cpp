@@ -109,8 +109,24 @@ auto Verifier::visit_function(std::shared_ptr<Function> function) -> void {
             stream << "should return void, not " << function->get_type();
             handler_->report_error(current_filename_, all_errors_[2], stream.str(), function->pos());
         }
-        else if (function->get_paras().size() != 0) {
-            handler_->report_error(current_filename_, all_errors_[2], "should not have parameters", function->pos());
+        else if (function->get_paras().size() == 0 or function->get_paras().size() == 2) {
+            auto paras = function->get_paras();
+            if (paras.size() == 2) {
+                if (paras[0]->get_type().get_type_spec() != TypeSpec::I32
+                    or paras[1]->get_type() != handler_->CHAR_POINTER_POINTER_TYPE)
+                {
+                    handler_->report_error(current_filename_,
+                                           all_errors_[2],
+                                           "should have no parameters or an i32 and an i8**",
+                                           function->pos());
+                }
+            }
+        }
+        else {
+            handler_->report_error(current_filename_,
+                                   all_errors_[2],
+                                   "should have no parameters or an i32 and an i8**",
+                                   function->pos());
         }
     }
 
@@ -152,7 +168,7 @@ auto Verifier::visit_assignment_expr(std::shared_ptr<AssignmentExpr> assignment_
     auto r = assignment_expr->get_right();
     auto res = std::dynamic_pointer_cast<VarExpr>(l);
     auto deref_res = std::dynamic_pointer_cast<UnaryExpr>(l);
-    if (!res and (!deref_res and deref_res->get_operator() == Op::DEREF)) {
+    if ((!res and !deref_res) or (deref_res and deref_res->get_operator() != Op::DEREF)) {
         handler_->report_error(current_filename_, all_errors_[7], "", assignment_expr->pos());
         assignment_expr->set_type(handler_->ERROR_TYPE);
         return;
@@ -183,7 +199,8 @@ auto Verifier::visit_assignment_expr(std::shared_ptr<AssignmentExpr> assignment_
     r->visit(shared_from_this());
     current_numerical_type = std::nullopt;
 
-    if (l->get_type() != handler_->ERROR_TYPE and l->get_type() != r->get_type()) {
+    if (l->get_type() != handler_->ERROR_TYPE and r->get_type() != handler_->ERROR_TYPE
+        and l->get_type() != r->get_type()) {
         auto stream = std::stringstream{};
         stream << "expected " << l->get_type() << ", got " << r->get_type();
         if (l->get_type().is_int() and r->get_type().is_int()) {
@@ -299,7 +316,7 @@ auto Verifier::visit_unary_expr(std::shared_ptr<UnaryExpr> unary_expr) -> void {
         }
     }
     else if (unary_expr->get_operator() == Op::PLUS or unary_expr->get_operator() == Op::MINUS) {
-        if (e->get_type().is_int()) {
+        if (!e->get_type().is_int()) {
             auto stream = std::stringstream{};
             stream << "expected an i64 type, got " << e->get_type();
             handler_->report_error(current_filename_, all_errors_[9], stream.str(), unary_expr->pos());
@@ -395,6 +412,12 @@ auto Verifier::visit_call_expr(std::shared_ptr<CallExpr> call_expr) -> void {
     }
 
     auto equivalent_func = current_module_->get_decl(call_expr);
+
+    if (!equivalent_func) {
+        handler_->report_error(current_filename_, all_errors_[14], function_name, call_expr->pos());
+        return;
+    }
+
     if (auto it = std::dynamic_pointer_cast<Function>(*equivalent_func)) {
         auto paras = it->get_paras();
         auto c = 0u;
@@ -420,11 +443,6 @@ auto Verifier::visit_call_expr(std::shared_ptr<CallExpr> call_expr) -> void {
         }
     }
 
-    if (!equivalent_func) {
-        handler_->report_error(current_filename_, all_errors_[14], function_name, call_expr->pos());
-        return;
-    }
-
     (*equivalent_func)->set_used();
     call_expr->set_ref(*equivalent_func);
     call_expr->set_type((*equivalent_func)->get_type());
@@ -448,9 +466,23 @@ auto Verifier::visit_empty_stmt(std::shared_ptr<EmptyStmt> empty_stmt) -> void {
 }
 
 auto Verifier::visit_compound_stmt(std::shared_ptr<CompoundStmt> compound_stmt) -> void {
+    symbol_table_.open_scope();
     for (auto& stmt : compound_stmt->get_stmts()) {
         stmt->visit(shared_from_this());
     }
+
+    if (!handler_->quiet_mode()) {
+        // Check if any variables opened in that scope remained unused
+        for (auto const& var : symbol_table_.retrieve_latest_scope()) {
+            if (!var.attr->is_used()) {
+                auto stream = std::stringstream{};
+                stream << "local variable '" << var.attr->get_ident() << "'";
+                handler_->report_minor_error(current_filename_, all_errors_[21], stream.str(), var.attr->pos());
+            }
+        }
+    }
+
+    symbol_table_.close_scope();
     return;
 }
 
@@ -494,9 +526,7 @@ auto Verifier::visit_while_stmt(std::shared_ptr<WhileStmt> while_stmt) -> void {
         handler_->report_error(current_filename_, all_errors_[19], stream.str(), cond->pos());
     }
 
-    symbol_table_.open_scope();
     while_stmt->get_stmts()->visit(shared_from_this());
-    symbol_table_.close_scope();
     return;
 }
 
@@ -509,15 +539,11 @@ auto Verifier::visit_if_stmt(std::shared_ptr<IfStmt> if_stmt) -> void {
         handler_->report_error(current_filename_, all_errors_[24], stream.str(), cond->pos());
     }
 
-    symbol_table_.open_scope();
     if_stmt->get_body_stmt()->visit(shared_from_this());
-    symbol_table_.close_scope();
 
     if_stmt->get_else_if_stmt()->visit(shared_from_this());
 
-    symbol_table_.open_scope();
     if_stmt->get_else_stmt()->visit(shared_from_this());
-    symbol_table_.close_scope();
 
     return;
 }
@@ -531,9 +557,7 @@ auto Verifier::visit_else_if_stmt(std::shared_ptr<ElseIfStmt> else_if_stmt) -> v
         handler_->report_error(current_filename_, all_errors_[24], stream.str(), cond->pos());
     }
 
-    symbol_table_.open_scope();
     else_if_stmt->get_body_stmt()->visit(shared_from_this());
-    symbol_table_.close_scope();
 
     else_if_stmt->get_nested_else_if_stmt()->visit(shared_from_this());
 
@@ -639,7 +663,7 @@ auto Verifier::declare_variable(std::string ident, std::shared_ptr<Decl> decl) -
         }
         else {
             // Assume it to be a local var for now
-            handler_->report_minor_error(current_filename_, all_errors_[3], error_message, decl->pos());
+            handler_->report_error(current_filename_, all_errors_[3], error_message, decl->pos());
             symbol_table_.remove(*entry);
         }
     }

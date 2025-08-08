@@ -1,0 +1,8 @@
+// Incompatible type for this binary operator
+
+fn main() void {
+
+	let x = 21 && false;
+	let y = (21 as i32) + 19;
+
+}

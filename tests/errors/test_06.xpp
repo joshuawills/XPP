@@ -1,0 +1,9 @@
+// Incompatible type for this assignment
+
+fn main() void {
+	let x: i8 = false;
+	let y: bool = 19;
+
+	let mut z: i32 = 19;
+	let z_p: i8* = &z;
+}

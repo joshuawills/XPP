@@ -1,0 +1,7 @@
+// Address of operand can only be performed to allocated variables
+
+fn main() void {
+    let mut y = true;
+    let z = &y;
+    let x = &21;
+}

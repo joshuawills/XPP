@@ -1,0 +1,6 @@
+// Can't get address of a constant variable
+
+fn main() void {
+    let x = 21;
+    let y = &x;
+}

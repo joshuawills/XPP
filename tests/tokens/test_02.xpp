@@ -1,0 +1,16 @@
+// Simple constructs
+
+extern exit(i64) void;
+
+fn main() void {
+	let x = 21;
+	let y = "hello, world!\n\t";
+	if true && false {
+		exit(0);
+	} else if (21 as i8 == 19 + 2) {
+		exit(1);
+	} else {
+		exit(2);
+	}
+
+}

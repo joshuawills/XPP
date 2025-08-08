@@ -1,0 +1,7 @@
+// User functions can't utilise variatics
+
+fn test(x: ...) void {}
+
+fn main() void {
+
+}
