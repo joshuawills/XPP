@@ -17,6 +17,8 @@ struct Type {
     , lexeme(std::move(lex))
     , sub_type(std::move(sub)) {}
 
+    auto equal_soft(const Type& other) const -> bool;
+
     auto operator==(const Type& other) const -> bool;
 
     auto operator!=(const Type& other) const -> bool {

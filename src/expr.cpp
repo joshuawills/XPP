@@ -2,7 +2,7 @@
 
 #include "emitter.hpp"
 
-auto operator<<(std::ostream& os, Operator const& o) -> std::ostream& {
+auto operator<<(std::ostream& os, Op const& o) -> std::ostream& {
     switch (o) {
     case ASSIGN: os << "="; break;
     case LOGICAL_OR: os << "||"; break;
@@ -61,10 +61,10 @@ auto AssignmentExpr::print(std::ostream& os) const -> void {
 }
 
 auto BinaryExpr::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
-    if (op_ == Operator::LOGICAL_OR) {
+    if (op_ == Op::LOGICAL_OR) {
         return handle_logical_or(emitter);
     }
-    else if (op_ == Operator::LOGICAL_AND) {
+    else if (op_ == Op::LOGICAL_AND) {
         return handle_logical_and(emitter);
     }
 
@@ -75,14 +75,14 @@ auto BinaryExpr::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
     }
 
     switch (op_) {
-    case Operator::PLUS: {
+    case Op::PLUS: {
         if (is_pointer_arithmetic_) {
             auto inner_type = *left_->get_type().sub_type;
             return emitter->llvm_builder->CreateInBoundsGEP(emitter->llvm_type(inner_type), l, r);
         }
         return emitter->llvm_builder->CreateAdd(l, r);
     }
-    case Operator::MINUS: {
+    case Op::MINUS: {
         if (is_pointer_arithmetic_) {
             auto neg = emitter->llvm_builder->CreateNeg(r);
             auto inner_type = *left_->get_type().sub_type;
@@ -90,14 +90,14 @@ auto BinaryExpr::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
         }
         return emitter->llvm_builder->CreateSub(l, r);
     }
-    case Operator::MULTIPLY: return emitter->llvm_builder->CreateMul(l, r);
-    case Operator::DIVIDE: return emitter->llvm_builder->CreateSDiv(l, r);
-    case Operator::EQUAL: return emitter->llvm_builder->CreateICmpEQ(l, r);
-    case Operator::NOT_EQUAL: return emitter->llvm_builder->CreateICmpNE(l, r);
-    case Operator::LESS_THAN: return emitter->llvm_builder->CreateICmpSLT(l, r);
-    case Operator::LESS_EQUAL: return emitter->llvm_builder->CreateICmpSLE(l, r);
-    case Operator::GREATER_THAN: return emitter->llvm_builder->CreateICmpSGT(l, r);
-    case Operator::GREATER_EQUAL: return emitter->llvm_builder->CreateICmpSGE(l, r);
+    case Op::MULTIPLY: return emitter->llvm_builder->CreateMul(l, r);
+    case Op::DIVIDE: return emitter->llvm_builder->CreateSDiv(l, r);
+    case Op::EQUAL: return emitter->llvm_builder->CreateICmpEQ(l, r);
+    case Op::NOT_EQUAL: return emitter->llvm_builder->CreateICmpNE(l, r);
+    case Op::LESS_THAN: return emitter->llvm_builder->CreateICmpSLT(l, r);
+    case Op::LESS_EQUAL: return emitter->llvm_builder->CreateICmpSLE(l, r);
+    case Op::GREATER_THAN: return emitter->llvm_builder->CreateICmpSGT(l, r);
+    case Op::GREATER_EQUAL: return emitter->llvm_builder->CreateICmpSGE(l, r);
     default: std::cout << "UNREACHABLE BinaryExpr::codegen\n";
     }
 
@@ -111,7 +111,7 @@ auto BinaryExpr::print(std::ostream& os) const -> void {
 }
 
 auto UnaryExpr::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
-    if (op_ == Operator::ADDRESS_OF) {
+    if (op_ == Op::ADDRESS_OF) {
         auto var_e = std::dynamic_pointer_cast<VarExpr>(expr_);
         return emitter->named_values[var_e->get_name()];
     }
@@ -121,14 +121,14 @@ auto UnaryExpr::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
         return nullptr;
     }
 
-    if (op_ == Operator::NEGATE) {
+    if (op_ == Op::NEGATE) {
         return emitter->llvm_builder->CreateSub(llvm::ConstantInt::get(llvm::Type::getInt64Ty(*(emitter->context)), 0),
                                                 value);
     }
-    else if (op_ == Operator::MINUS) {
+    else if (op_ == Op::MINUS) {
         return emitter->llvm_builder->CreateICmpEQ(value, llvm::ConstantInt::get(value->getType(), 0));
     }
-    else if (op_ == Operator::DEREF) {
+    else if (op_ == Op::DEREF) {
         return emitter->llvm_builder->CreateLoad(emitter->llvm_type(get_type()), value);
     }
     else {
@@ -145,7 +145,7 @@ auto UnaryExpr::print(std::ostream& os) const -> void {
 
 auto IntExpr::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
     (void)emitter;
-    return llvm::ConstantInt::get(*(emitter->context), llvm::APInt(64, value_, true));
+    return llvm::ConstantInt::get(*(emitter->context), llvm::APInt(width_, value_, true));
 }
 
 auto IntExpr::print(std::ostream& os) const -> void {
@@ -297,4 +297,41 @@ auto CallExpr::print(std::ostream& os) const -> void {
     }
     os << ")";
     return;
+}
+
+auto CastExpr::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
+    auto value = expr_->codegen(emitter);
+    auto expr_type = expr_->get_type();
+
+    if (to_ == expr_type) {
+        return value;
+    }
+
+    if (to_.is_int() and expr_type.is_int()) {
+        auto src_bits = value->getType()->getIntegerBitWidth();
+        auto dest_bits = emitter->llvm_type(to_)->getIntegerBitWidth();
+
+        if (dest_bits > src_bits) {
+            // Extend
+            return emitter->llvm_builder->CreateSExt(value, emitter->llvm_type(to_));
+        }
+        else if (dest_bits < src_bits) {
+            // Truncate
+            return emitter->llvm_builder->CreateTrunc(value, emitter->llvm_type(to_));
+        }
+        else {
+            // They're equal
+            return emitter->llvm_builder->CreateBitCast(value, emitter->llvm_type(to_));
+        }
+    }
+    else {
+        std::cout << "UNREACHABLE CastExpr::codegen\n";
+    }
+
+    return nullptr;
+}
+
+auto CastExpr::print(std::ostream& os) const -> void {
+    expr_->print(os);
+    os << " as " << to_;
 }

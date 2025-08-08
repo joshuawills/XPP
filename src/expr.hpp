@@ -9,7 +9,7 @@
 
 class Decl;
 
-enum Operator {
+enum Op {
     ASSIGN,
     LOGICAL_OR,
     LOGICAL_AND,
@@ -28,7 +28,7 @@ enum Operator {
     ADDRESS_OF
 };
 
-auto operator<<(std::ostream& os, Operator const& o) -> std::ostream&;
+auto operator<<(std::ostream& os, Op const& o) -> std::ostream&;
 
 class Expr : public AST {
  public:
@@ -71,7 +71,7 @@ class AssignmentExpr
 : public Expr
 , public std::enable_shared_from_this<AssignmentExpr> {
  public:
-    AssignmentExpr(Position pos, std::shared_ptr<Expr> const left, Operator const op, std::shared_ptr<Expr> const right)
+    AssignmentExpr(Position pos, std::shared_ptr<Expr> const left, Op const op, std::shared_ptr<Expr> const right)
     : Expr(pos, Type{TypeSpec::UNKNOWN})
     , left_(left)
     , op_(op)
@@ -83,7 +83,7 @@ class AssignmentExpr
     auto get_right() const -> std::shared_ptr<Expr> {
         return right_;
     }
-    auto get_operator() const -> Operator {
+    auto get_operator() const -> Op {
         return op_;
     }
 
@@ -95,7 +95,7 @@ class AssignmentExpr
 
  private:
     std::shared_ptr<Expr> const left_;
-    Operator const op_;
+    Op const op_;
     std::shared_ptr<Expr> const right_;
 };
 
@@ -103,7 +103,7 @@ class BinaryExpr
 : public Expr
 , public std::enable_shared_from_this<BinaryExpr> {
  public:
-    BinaryExpr(Position const pos, std::shared_ptr<Expr> const left, Operator const op, std::shared_ptr<Expr> const right)
+    BinaryExpr(Position const pos, std::shared_ptr<Expr> const left, Op const op, std::shared_ptr<Expr> const right)
     : Expr(pos, Type{TypeSpec::UNKNOWN})
     , left_(left)
     , op_(op)
@@ -115,7 +115,7 @@ class BinaryExpr
     auto get_right() const -> std::shared_ptr<Expr> {
         return right_;
     }
-    auto get_operator() const -> Operator {
+    auto get_operator() const -> Op {
         return op_;
     }
 
@@ -135,7 +135,7 @@ class BinaryExpr
 
  private:
     std::shared_ptr<Expr> const left_;
-    Operator const op_;
+    Op const op_;
     std::shared_ptr<Expr> const right_;
     bool is_pointer_arithmetic_ = false;
 
@@ -147,7 +147,7 @@ class UnaryExpr
 : public Expr
 , public std::enable_shared_from_this<UnaryExpr> {
  public:
-    UnaryExpr(Position const pos, Operator const op, std::shared_ptr<Expr> const expr)
+    UnaryExpr(Position const pos, Op const op, std::shared_ptr<Expr> const expr)
     : Expr(pos, Type{TypeSpec::UNKNOWN})
     , op_(op)
     , expr_(expr) {}
@@ -155,7 +155,7 @@ class UnaryExpr
     auto get_expr() const -> std::shared_ptr<Expr> {
         return expr_;
     }
-    auto get_operator() const -> Operator {
+    auto get_operator() const -> Op {
         return op_;
     }
 
@@ -166,7 +166,7 @@ class UnaryExpr
     auto print(std::ostream& os) const -> void override;
 
  private:
-    Operator const op_;
+    Op const op_;
     std::shared_ptr<Expr> const expr_;
 };
 
@@ -182,6 +182,14 @@ class IntExpr
         return value_;
     }
 
+    auto set_width(uint8_t width) -> void {
+        width_ = width;
+    }
+
+    auto get_width() -> uint8_t {
+        return width_;
+    }
+
     auto visit(std::shared_ptr<Visitor> visitor) -> void override {
         visitor->visit_int_expr(shared_from_this());
     }
@@ -190,6 +198,7 @@ class IntExpr
 
  private:
     int64_t const value_;
+    uint8_t width_ = 64;
 };
 
 class BoolExpr
@@ -333,6 +342,34 @@ class CallExpr
     std::string const name_;
     std::vector<std::shared_ptr<Expr>> const args_;
     std::shared_ptr<Decl> ref_ = nullptr;
+};
+
+class CastExpr
+: public Expr
+, public std::enable_shared_from_this<CastExpr> {
+ public:
+    CastExpr(Position const pos, std::shared_ptr<Expr> const expr, Type const to)
+    : Expr(pos, to)
+    , expr_(expr)
+    , to_(to) {}
+
+    auto visit(std::shared_ptr<Visitor> visitor) -> void override {
+        visitor->visit_cast_expr(shared_from_this());
+    }
+    auto codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* override;
+    auto print(std::ostream& os) const -> void override;
+
+    auto get_expr() const -> std::shared_ptr<Expr> {
+        return expr_;
+    }
+
+    auto get_to_type() const -> Type {
+        return to_;
+    }
+
+ private:
+    std::shared_ptr<Expr> const expr_;
+    Type const to_;
 };
 
 #endif // EXPR_HPP

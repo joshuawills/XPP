@@ -3,6 +3,29 @@
 #include <iostream>
 #include <map>
 
+auto soft_typespec_equals(TypeSpec const& a, TypeSpec const& b) -> bool {
+    auto int_specs = std::vector<TypeSpec>{TypeSpec::I8, TypeSpec::I32, TypeSpec::I64};
+    auto is_int = [int_specs](TypeSpec const& a) -> bool {
+        return std::find(int_specs.begin(), int_specs.end(), a) != int_specs.end();
+    };
+    if (is_int(a) and is_int(b))
+        return true;
+    return a == b;
+}
+
+auto Type::equal_soft(const Type& other) const -> bool {
+    auto res = true;
+    if (sub_type) {
+        if (!other.sub_type) {
+            return false;
+        }
+        res &= *sub_type == *(other.sub_type);
+    }
+    res &= soft_typespec_equals(t, other.t);
+    res &= lexeme == other.lexeme;
+    return res;
+}
+
 auto Type::operator==(const Type& other) const -> bool {
     auto res = true;
     if (sub_type) {

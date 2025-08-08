@@ -93,27 +93,26 @@ auto Parser::parse() -> std::shared_ptr<Module> {
     return module;
 }
 
-auto Parser::parse_operator() -> Operator {
+auto Parser::parse_operator() -> Op {
     if (!curr_token_.has_value()) {
         syntactic_error("OPERATOR expected, but found end of file", "");
     }
 
-    auto const type_to_operator_mapping =
-        std::map<TokenType, Operator>{{TokenType::ASSIGN, Operator::ASSIGN},
-                                      {TokenType::LOGICAL_OR, Operator::LOGICAL_OR},
-                                      {TokenType::LOGICAL_AND, Operator::LOGICAL_AND},
-                                      {TokenType::EQUAL, Operator::EQUAL},
-                                      {TokenType::NOT_EQUAL, Operator::NOT_EQUAL},
-                                      {TokenType::NEGATE, Operator::NEGATE},
-                                      {TokenType::PLUS, Operator::PLUS},
-                                      {TokenType::MINUS, Operator::MINUS},
-                                      {TokenType::MULTIPLY, Operator::MULTIPLY},
-                                      {TokenType::DIVIDE, Operator::DIVIDE},
-                                      {TokenType::LESS_THAN, Operator::LESS_THAN},
-                                      {TokenType::GREATER_THAN, Operator::GREATER_THAN},
-                                      {TokenType::LESS_EQUAL, Operator::LESS_EQUAL},
-                                      {TokenType::AMPERSAND, Operator::ADDRESS_OF},
-                                      {TokenType::GREATER_EQUAL, Operator::GREATER_EQUAL}};
+    auto const type_to_operator_mapping = std::map<TokenType, Op>{{TokenType::ASSIGN, Op::ASSIGN},
+                                                                  {TokenType::LOGICAL_OR, Op::LOGICAL_OR},
+                                                                  {TokenType::LOGICAL_AND, Op::LOGICAL_AND},
+                                                                  {TokenType::EQUAL, Op::EQUAL},
+                                                                  {TokenType::NOT_EQUAL, Op::NOT_EQUAL},
+                                                                  {TokenType::NEGATE, Op::NEGATE},
+                                                                  {TokenType::PLUS, Op::PLUS},
+                                                                  {TokenType::MINUS, Op::MINUS},
+                                                                  {TokenType::MULTIPLY, Op::MULTIPLY},
+                                                                  {TokenType::DIVIDE, Op::DIVIDE},
+                                                                  {TokenType::LESS_THAN, Op::LESS_THAN},
+                                                                  {TokenType::GREATER_THAN, Op::GREATER_THAN},
+                                                                  {TokenType::LESS_EQUAL, Op::LESS_EQUAL},
+                                                                  {TokenType::AMPERSAND, Op::ADDRESS_OF},
+                                                                  {TokenType::GREATER_EQUAL, Op::GREATER_EQUAL}};
 
     if (type_to_operator_mapping.find((*curr_token_)->type()) != type_to_operator_mapping.end()) {
         auto const& op = type_to_operator_mapping.at((*curr_token_)->type());
@@ -124,7 +123,7 @@ auto Parser::parse_operator() -> Operator {
     auto stream = std::stringstream{};
     stream << *curr_token_;
     syntactic_error("UNRECOGNIZED OPERATOR: %", stream.str());
-    return Operator::ASSIGN;
+    return Op::ASSIGN;
 }
 
 auto Parser::parse_ident() -> std::string {
@@ -333,7 +332,15 @@ auto Parser::parse_expr_stmt(Position p) -> std::shared_ptr<ExprStmt> {
 }
 
 auto Parser::parse_expr() -> std::shared_ptr<Expr> {
-    return parse_assignment_expr();
+    auto p = Position{};
+    start(p);
+    auto expr = parse_assignment_expr();
+    if (try_consume(TokenType::AS)) {
+        auto const type = parse_type();
+        finish(p);
+        return std::make_shared<CastExpr>(p, expr, type);
+    }
+    return expr;
 }
 
 auto Parser::parse_assignment_expr() -> std::shared_ptr<Expr> {
@@ -437,8 +444,8 @@ auto Parser::parse_unary_expr() -> std::shared_ptr<Expr> {
         or peek(TokenType::AMPERSAND))
     {
         auto op = parse_operator();
-        if (op == Operator::MULTIPLY) {
-            op = Operator::DEREF;
+        if (op == Op::MULTIPLY) {
+            op = Op::DEREF;
         }
         auto expr = parse_unary_expr();
         finish(p);

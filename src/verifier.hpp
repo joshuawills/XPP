@@ -65,6 +65,7 @@ class Verifier
     auto visit_char_expr(std::shared_ptr<CharExpr> char_expr) -> void override;
     auto visit_var_expr(std::shared_ptr<VarExpr> var_expr) -> void override;
     auto visit_call_expr(std::shared_ptr<CallExpr> call_expr) -> void override;
+    auto visit_cast_expr(std::shared_ptr<CastExpr> cast_expr) -> void override;
 
     auto visit_empty_stmt(std::shared_ptr<EmptyStmt> empty_stmt) -> void override;
     auto visit_compound_stmt(std::shared_ptr<CompoundStmt> compound_stmt) -> void override;
@@ -76,6 +77,8 @@ class Verifier
     auto visit_else_if_stmt(std::shared_ptr<ElseIfStmt> else_if_stmt) -> void override;
 
     auto check(std::string const& filename, bool is_main) -> void;
+
+    std::optional<Type> current_numerical_type = std::nullopt;
 
  private:
     std::shared_ptr<Handler> handler_;
@@ -118,7 +121,8 @@ class Verifier
                                                   "23: unused extern: %",
                                                   "24: if statement condition is not boolean: %",
                                                   "25: address-of operand can only be performed to allocated variables",
-                                                  "26: can't get address of a constant variable: %"};
+                                                  "26: can't get address of a constant variable: %",
+                                                  "27: invalid type cast operation: %"};
 
     auto check_duplicate_function_declaration() -> void;
     auto check_duplicate_extern_declaration() -> void;

@@ -10,12 +10,14 @@
 - ADDITION: basic deref and address-of unary operators
 - ADDITION: pointer arithmetic
 
+## 08 Aug 2025
+
+- ADDITION: implicit and explicit signed integer casting
+
 ## TODO
 
-- Add in support for implicit signed integer casting
 - Write tests
 - Add in conditions/loops
-- Explicit casting
 
 - Composite data types
 - References?

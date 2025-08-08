@@ -24,7 +24,7 @@ auto Module::get_decl(std::shared_ptr<CallExpr> call_expr) const -> std::optiona
             return false;
         }
         for (auto i = 0u; i < call_args.size(); ++i) {
-            if (call_args[i]->get_type() != func_args[i]->get_type()) {
+            if (!call_args[i]->get_type().equal_soft(func_args[i]->get_type())) {
                 return false;
             }
         }
@@ -53,7 +53,7 @@ auto Module::get_decl(std::shared_ptr<CallExpr> call_expr) const -> std::optiona
         }
 
         for (auto i = 0u; i < func_args.size() - 1; ++i) {
-            if (call_args[i]->get_type() != func_args[i]) {
+            if (!call_args[i]->get_type().equal_soft(func_args[i])) {
                 return false;
             }
         }
