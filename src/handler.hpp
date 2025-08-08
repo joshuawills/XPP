@@ -44,6 +44,10 @@ class Handler {
         return llvm_ir_;
     }
 
+    auto run_exe() const noexcept -> bool {
+        return run_;
+    }
+
     auto get_output_filename() -> std::string& {
         return output_filename_;
     }

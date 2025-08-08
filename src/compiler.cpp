@@ -1,10 +1,12 @@
 #include <iostream>
+#include <sstream>
 
 #include "./emitter.hpp"
 #include "./handler.hpp"
 #include "./lexer.hpp"
 #include "./parser.hpp"
 #include "./verifier.hpp"
+
 
 auto main(int argc, char** argv) -> int {
     auto handler = std::make_shared<Handler>();
@@ -47,6 +49,12 @@ auto main(int argc, char** argv) -> int {
 
     auto emitter = std::make_shared<Emitter>(modules, module, handler);
     emitter->emit();
+
+    if (handler->run_exe()) {
+        auto stream = std::string{"./"};
+        stream += handler->get_output_filename();
+        system(stream.c_str());
+    }
 
     return 0;
 }

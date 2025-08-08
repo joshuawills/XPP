@@ -6,6 +6,7 @@
 #include <iostream>
 #include <optional>
 #include <streambuf>
+#include <filesystem>
 
 const Type Handler::VOID_TYPE = Type{TypeSpec::VOID};
 const Type Handler::I64_TYPE = Type{TypeSpec::I64};
@@ -55,7 +56,7 @@ auto Handler::report_error(std::string const& filename,
                            std::string const& message,
                            std::string const& token,
                            Position const& pos) -> void {
-    std::cout << ANSI_RED_ << "ERROR: " << ANSI_RESET_;
+    std::cout << ANSI_RED_ << "ERROR: *" << ANSI_RESET_;
     for (auto c = 0u; c < message.size(); ++c) {
         if (message.at(c) == '%') {
             std::cout << token;
@@ -75,7 +76,7 @@ auto Handler::report_minor_error(std::string const& filename,
                                  Position const& pos) -> void {
     if (quiet_)
         return;
-    std::cout << ANSI_BLUE_ << "MINOR ERROR: " << ANSI_RESET_;
+    std::cout << ANSI_BLUE_ << "MINOR ERROR: *" << ANSI_RESET_;
     for (auto c = 0u; c < message.size(); ++c) {
         if (message.at(c) == '%') {
             std::cout << token;
@@ -179,7 +180,7 @@ auto Handler::parse_cl_args(int argc, std::vector<std::string> const& argv) -> b
                                               "-ir",
                                               "--llvm-ir"};
 
-    source_filename = argv.back();
+    source_filename = std::filesystem::absolute(argv.back());
     if (std::find(valid_cl_args.begin(), valid_cl_args.end(), source_filename) != valid_cl_args.end()) {
         std::cerr << "Error: no source file specified\n";
         return false;
