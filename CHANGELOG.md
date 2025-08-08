@@ -13,11 +13,10 @@
 ## 08 Aug 2025
 
 - ADDITION: implicit and explicit signed integer casting
+- ADDITION: testing script and initial test cases
 
 ## TODO
 
-- Write tests
-- Add in conditions/loops
-
+- Add in loops
 - Composite data types
 - References?
