@@ -81,7 +81,7 @@ class Verifier
 
     auto check(std::string const& filename, bool is_main) -> void;
 
-    std::optional<Type> current_numerical_type = std::nullopt;
+    std::optional<std::shared_ptr<Type>> current_numerical_type = std::nullopt;
 
  private:
     std::shared_ptr<Handler> handler_;

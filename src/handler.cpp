@@ -8,17 +8,8 @@
 #include <optional>
 #include <streambuf>
 
-const Type Handler::VOID_TYPE = Type{TypeSpec::VOID};
-const Type Handler::I64_TYPE = Type{TypeSpec::I64};
-const Type Handler::ERROR_TYPE = Type{TypeSpec::ERROR};
-const Type Handler::BOOL_TYPE = Type{TypeSpec::BOOL};
-const Type Handler::UNKNOWN_TYPE = Type{TypeSpec::UNKNOWN};
-const Type Handler::CHAR_POINTER_TYPE = Type{TypeSpec::POINTER, std::nullopt, std::make_shared<Type>(TypeSpec::I8)};
-const Type Handler::CHAR_POINTER_POINTER_TYPE =
-    Type{TypeSpec::POINTER,
-         std::nullopt,
-         std::make_shared<Type>(TypeSpec::POINTER, std::nullopt, std::make_shared<Type>(TypeSpec::I8))};
-const Type Handler::VARIATIC_TYPE = Type{TypeSpec::VARIATIC};
+const std::shared_ptr<Type> Handler::ERROR_TYPE = std::make_shared<Type>(TypeSpec::ERROR);
+const std::shared_ptr<Type> Handler::BOOL_TYPE = std::make_shared<Type>(TypeSpec::BOOL);
 
 auto read_file(std::string const& filename) -> std::optional<std::string> {
     auto stream = std::ifstream{filename};

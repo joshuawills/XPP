@@ -90,8 +90,8 @@ auto Parser::parse() -> std::shared_ptr<Module> {
         }
         else if (try_consume(TokenType::LET)) {
             auto const is_mut = try_consume(TokenType::MUT);
-            auto ident = parse_ident();
-            auto type = Type{TypeSpec::UNKNOWN};
+            auto const ident = parse_ident();
+            auto type = std::make_shared<Type>();
             if (try_consume(TokenType::COLON)) {
                 type = parse_type();
             }
@@ -159,7 +159,7 @@ auto Parser::parse_ident() -> std::string {
     return spelling;
 }
 
-auto Parser::parse_type() -> Type {
+auto Parser::parse_type() -> std::shared_ptr<Type> {
     if (!curr_token_.has_value()) {
         syntactic_error("TYPE expected, but found end of file", "");
     }
@@ -168,17 +168,17 @@ auto Parser::parse_type() -> Type {
     auto const& type_spec = type_spec_from_lexeme(curr_lexeme);
     if (!type_spec.has_value()) {
         syntactic_error("TYPE expected, but found \"%\"", curr_lexeme);
-        return Type{TypeSpec::UNKNOWN};
+        return std::make_shared<Type>(TypeSpec::UNKNOWN);
     }
 
     consume();
 
     // Handle pointer types
-    auto return_type = Type{*type_spec};
+    std::shared_ptr<Type> return_type = std::make_shared<Type>(*type_spec);
     std::shared_ptr<Type> sub_type = nullptr;
     while (try_consume(TokenType::MULTIPLY)) {
-        sub_type = std::make_shared<Type>(return_type);
-        return_type = Type{TypeSpec::POINTER, std::nullopt, sub_type};
+        sub_type = return_type;
+        return_type = std::make_shared<PointerType>(sub_type);
     }
 
     return return_type;
@@ -210,8 +210,8 @@ auto Parser::parse_para_list() -> std::vector<std::shared_ptr<ParaDecl>> {
     return paras;
 }
 
-auto Parser::parse_type_list() -> std::vector<Type> {
-    auto types = std::vector<Type>{};
+auto Parser::parse_type_list() -> std::vector<std::shared_ptr<Type>> {
+    auto types = std::vector<std::shared_ptr<Type>>{};
     match(TokenType::OPEN_BRACKET);
     while (curr_token_.has_value() and !(*curr_token_)->type_matches(TokenType::CLOSE_BRACKET)) {
         types.push_back(parse_type());
@@ -282,7 +282,7 @@ auto Parser::parse_local_var_stmt() -> std::shared_ptr<LocalVarStmt> {
     start(p);
     auto const is_mut = try_consume(TokenType::MUT);
     auto ident = parse_ident();
-    auto t = Type{TypeSpec::UNKNOWN};
+    auto t = std::make_shared<Type>();
     if (try_consume(TokenType::COLON)) {
         t = parse_type();
     }

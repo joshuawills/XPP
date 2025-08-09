@@ -3,6 +3,11 @@
 #include <iostream>
 #include <map>
 
+auto operator<<(std::ostream& os, Type const& t) -> std::ostream& {
+    t.print(os);
+    return os;
+}
+
 auto soft_typespec_equals(TypeSpec const& a, TypeSpec const& b) -> bool {
     auto signed_int = std::vector<TypeSpec>{TypeSpec::I8, TypeSpec::I32, TypeSpec::I64};
     auto is_signed_int = [signed_int](TypeSpec const& a) -> bool {
@@ -29,43 +34,6 @@ auto soft_typespec_equals(TypeSpec const& a, TypeSpec const& b) -> bool {
         return true;
 
     return a == b;
-}
-
-auto Type::equal_soft(const Type& other) const -> bool {
-    auto res = true;
-    if (sub_type) {
-        if (!other.sub_type) {
-            return false;
-        }
-        res &= *sub_type == *(other.sub_type);
-    }
-    res &= soft_typespec_equals(t, other.t);
-    res &= lexeme == other.lexeme;
-    return res;
-}
-
-auto Type::operator==(const Type& other) const -> bool {
-    auto res = true;
-    if (sub_type) {
-        if (!other.sub_type) {
-            return false;
-        }
-        res &= *sub_type == *(other.sub_type);
-    }
-    res &= t == other.t;
-    res &= lexeme == other.lexeme;
-    return res;
-}
-
-auto operator<<(std::ostream& os, Type const& t) -> std::ostream& {
-    if (t.sub_type != nullptr) {
-        os << *t.sub_type;
-    }
-    os << t.t;
-    if (t.lexeme.has_value()) {
-        os << "." << *t.lexeme;
-    }
-    return os;
 }
 
 auto type_spec_from_lexeme(std::string const& lexeme) -> std::optional<TypeSpec> {

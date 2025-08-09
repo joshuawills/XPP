@@ -7,34 +7,56 @@ enum TypeSpec { VOID, I64, I32, BOOL, UNKNOWN, ERROR, POINTER, I8, VARIATIC, U64
 
 auto operator<<(std::ostream& os, TypeSpec const& ts) -> std::ostream&;
 
-struct Type {
-    TypeSpec t;
-    std::optional<std::string> lexeme = std::nullopt;
-    std::shared_ptr<Type> sub_type = nullptr;
+auto soft_typespec_equals(TypeSpec const& a, TypeSpec const& b) -> bool;
 
-    Type(TypeSpec t, std::optional<std::string> lex = std::nullopt, std::shared_ptr<Type> sub = nullptr)
-    : t(t)
-    , lexeme(std::move(lex))
-    , sub_type(std::move(sub)) {}
+class Type {
+ public:
+    Type(TypeSpec t)
+    : t_(t) {}
 
-    auto equal_soft(const Type& other) const -> bool;
+    Type()
+    : t_(TypeSpec::UNKNOWN) {}
 
-    auto operator==(const Type& other) const -> bool;
+    virtual ~Type() = default;
 
-    auto operator!=(const Type& other) const -> bool {
-        return !(*this == other);
+    virtual auto equals(const Type& other) const -> bool {
+        return t_ == other.t_;
+    }
+
+    virtual auto equal_soft(const Type& other) const -> bool {
+        return soft_typespec_equals(t_, other.get_type_spec());
+    }
+
+    auto operator==(const Type& other) -> bool {
+        return equals(other);
+    }
+
+    auto operator!=(const Type& other) -> bool {
+        return !equals(other);
+    }
+
+    virtual auto print(std::ostream& os) const -> void {
+        os << t_;
     }
 
     auto get_type_spec() const -> TypeSpec {
-        return t;
+        return t_;
+    }
+
+    auto is_variatic() const noexcept -> bool {
+        return t_ == TypeSpec::VARIATIC;
     }
 
     auto is_unknown() const noexcept -> bool {
-        return t == TypeSpec::UNKNOWN;
+        return t_ == TypeSpec::UNKNOWN;
     }
 
     auto is_void() const noexcept -> bool {
-        return t == TypeSpec::VOID;
+        return t_ == TypeSpec::VOID;
+    }
+
+    auto is_error() const noexcept -> bool {
+        return t_ == TypeSpec::ERROR;
     }
 
     auto is_numeric() const noexcept -> bool {
@@ -46,24 +68,65 @@ struct Type {
     }
 
     auto is_signed_int() const noexcept -> bool {
-        return t == TypeSpec::I64 or t == TypeSpec::I32 or t == TypeSpec::I8;
+        return t_ == TypeSpec::I64 or t_ == TypeSpec::I32 or t_ == TypeSpec::I8;
     }
 
     auto is_unsigned_int() const noexcept -> bool {
-        return t == TypeSpec::U64 or t == TypeSpec::U32 or t == TypeSpec::U8;
+        return t_ == TypeSpec::U64 or t_ == TypeSpec::U32 or t_ == TypeSpec::U8;
     }
 
     auto is_decimal() const noexcept -> bool {
-        return t == TypeSpec::F32 or t == TypeSpec::F64;
+        return t_ == TypeSpec::F32 or t_ == TypeSpec::F64;
     }
 
     auto is_pointer() const noexcept -> bool {
-        return t == TypeSpec::POINTER;
+        return t_ == TypeSpec::POINTER;
     }
 
     auto is_bool() const noexcept -> bool {
-        return t == TypeSpec::BOOL;
+        return t_ == TypeSpec::BOOL;
     }
+
+ protected:
+    TypeSpec t_;
+};
+
+class PointerType : public Type {
+ public:
+    PointerType(std::shared_ptr<Type> sub_type)
+    : Type(TypeSpec::POINTER)
+    , sub_type_(sub_type) {}
+
+    auto get_sub_type() const -> std::shared_ptr<Type> {
+        return sub_type_;
+    }
+
+    auto print(std::ostream& os) const -> void override {
+        os << t_;
+        sub_type_->print(os);
+    }
+
+    auto equals(const Type& other) const -> bool override {
+        if (t_ != other.get_type_spec())
+            return false;
+
+        auto* other_ptr = dynamic_cast<const PointerType*>(&other);
+        if (!other_ptr)
+            return false;
+
+        return *sub_type_ == *other_ptr->sub_type_;
+    }
+
+    auto equal_soft(const Type& other) const -> bool override {
+        auto* other_ptr = dynamic_cast<const PointerType*>(&other);
+        if (!other_ptr) {
+            return false;
+        }
+        return soft_typespec_equals(t_, other.get_type_spec()) and sub_type_->equal_soft(*other_ptr->get_sub_type());
+    }
+
+ private:
+    std::shared_ptr<Type> sub_type_;
 };
 
 auto operator<<(std::ostream& os, Type const& t) -> std::ostream&;

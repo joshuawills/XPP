@@ -89,13 +89,14 @@ auto Emitter::emit() -> void {
     }
 }
 
-auto Emitter::llvm_type(Type t) -> llvm::Type* {
-    if (t.sub_type) {
-        auto const element_type = llvm_type(*t.sub_type);
+auto Emitter::llvm_type(std::shared_ptr<Type> t) -> llvm::Type* {
+    if (t->is_pointer()) {
+        auto p_t = std::dynamic_pointer_cast<PointerType>(t);
+        auto const element_type = llvm_type(p_t->get_sub_type());
         return llvm::PointerType::getUnqual(element_type);
     }
 
-    switch (t.get_type_spec()) {
+    switch (t->get_type_spec()) {
     case TypeSpec::BOOL: return llvm::Type::getInt1Ty(*context);
     case TypeSpec::I64:
     case TypeSpec::U64: return llvm::Type::getInt64Ty(*context);

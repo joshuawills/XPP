@@ -11,16 +11,16 @@
 
 class Decl : public AST {
  public:
-    Decl(Position pos, std::string ident, Type t)
+    Decl(Position pos, std::string ident, std::shared_ptr<Type> t)
     : AST(pos)
     , ident_(std::move(ident))
-    , t_(std::move(t)) {}
+    , t_(t) {}
 
     auto visit(std::shared_ptr<Visitor> visitor) -> void override = 0;
     auto codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* override = 0;
     auto print(std::ostream& os) const -> void override = 0;
 
-    auto set_type(Type t) -> void {
+    auto set_type(std::shared_ptr<Type> t) -> void {
         t_ = t;
     }
 
@@ -55,7 +55,7 @@ class Decl : public AST {
     auto get_ident() const -> std::string const& {
         return ident_;
     }
-    auto get_type() const -> Type {
+    auto get_type() const -> std::shared_ptr<Type> {
         return t_;
     }
 
@@ -74,7 +74,7 @@ class Decl : public AST {
  protected:
     bool is_used_ = false, is_reassigned_ = false, is_mut_ = false, is_exported_ = false;
     std::string ident_;
-    Type t_;
+    std::shared_ptr<Type> t_;
     size_t statement_num_ = 0, depth_num_ = 0;
 };
 
@@ -82,7 +82,7 @@ class ParaDecl
 : public Decl
 , public std::enable_shared_from_this<ParaDecl> {
  public:
-    ParaDecl(Position pos, std::string ident, Type t)
+    ParaDecl(Position pos, std::string ident, std::shared_ptr<Type> t)
     : Decl(pos, ident, t) {}
 
     auto visit(std::shared_ptr<Visitor> visitor) -> void override {
@@ -90,7 +90,7 @@ class ParaDecl
     }
 
     auto operator==(const ParaDecl& other) const -> bool {
-        return t_ == other.t_;
+        return *t_ == *other.t_;
     }
 
     auto operator!=(const ParaDecl& other) const -> bool {
@@ -105,7 +105,7 @@ class LocalVarDecl
 : public Decl
 , public std::enable_shared_from_this<LocalVarDecl> {
  public:
-    LocalVarDecl(Position pos, std::string ident, Type t, std::shared_ptr<Expr> e)
+    LocalVarDecl(Position pos, std::string ident, std::shared_ptr<Type> t, std::shared_ptr<Expr> e)
     : Decl(pos, ident, t)
     , expr_(e) {}
 
@@ -128,7 +128,7 @@ class GlobalVarDecl
 : public Decl
 , public std::enable_shared_from_this<GlobalVarDecl> {
  public:
-    GlobalVarDecl(Position pos, std::string const ident, Type const t, std::shared_ptr<Expr> const expr)
+    GlobalVarDecl(Position pos, std::string const ident, std::shared_ptr<Type> t, std::shared_ptr<Expr> const expr)
     : Decl(pos, ident, t)
     , expr_(expr) {}
 
@@ -158,7 +158,7 @@ class Function
     Function(Position const pos,
              std::string const ident,
              std::vector<std::shared_ptr<ParaDecl>> paras,
-             Type t,
+             std::shared_ptr<Type> t,
              std::shared_ptr<CompoundStmt> const stmts)
     : Decl(pos, ident, t)
     , paras_(paras)
@@ -203,11 +203,11 @@ class Extern
 : public Decl
 , public std::enable_shared_from_this<Extern> {
  public:
-    Extern(Position pos, std::string const ident, Type const t, std::vector<Type> types)
+    Extern(Position pos, std::string const ident, std::shared_ptr<Type> const t, std::vector<std::shared_ptr<Type>> types)
     : Decl(pos, ident, t)
     , types_(types) {}
 
-    auto get_types() const -> std::vector<Type> {
+    auto get_types() const -> std::vector<std::shared_ptr<Type>> {
         return types_;
     }
 
@@ -228,7 +228,7 @@ class Extern
     }
 
  private:
-    std::vector<Type> const types_;
+    std::vector<std::shared_ptr<Type>> const types_;
     bool has_variatic_ = false;
 };
 

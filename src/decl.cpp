@@ -84,14 +84,14 @@ auto Extern::operator==(Extern const& other) const -> bool {
     if (ident_ != other.ident_) {
         return false;
     }
-    if (t_ != other.t_) {
+    if (*t_ != *other.t_) {
         return false;
     }
     if (types_.size() != other.types_.size()) {
         return false;
     }
     for (size_t i = 0; i < types_.size(); ++i) {
-        if (types_[i] != other.types_[i]) {
+        if (*types_[i] != *other.types_[i]) {
             return false;
         }
     }

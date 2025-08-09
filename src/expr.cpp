@@ -49,9 +49,9 @@ auto AssignmentExpr::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
     if (!rhs)
         return nullptr;
 
-    auto const is_decimal = get_type().is_decimal();
-    auto const is_unsigned = get_type().is_unsigned_int();
-    auto const is_pointer = get_type().is_pointer();
+    auto const is_decimal = get_type()->is_decimal();
+    auto const is_unsigned = get_type()->is_unsigned_int();
+    auto const is_pointer = get_type()->is_pointer();
 
     llvm::Value* ptr = nullptr;
     if (auto const& lhs = std::dynamic_pointer_cast<VarExpr>(left_)) {
@@ -74,7 +74,8 @@ auto AssignmentExpr::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
                 auto const zero = llvm::ConstantInt::get(rhs->getType(), 0);
                 index = emitter->llvm_builder->CreateSub(zero, rhs);
             }
-            auto inner_type = emitter->llvm_type(*left_->get_type().sub_type);
+            auto p_t = std::dynamic_pointer_cast<PointerType>(left_->get_type());
+            auto inner_type = emitter->llvm_type(p_t->get_sub_type());
             result = emitter->llvm_builder->CreateGEP(inner_type, loaded_ptr, index);
         }
         else if (is_decimal) {
@@ -132,8 +133,8 @@ auto BinaryExpr::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
         return nullptr;
     }
 
-    auto const is_decimal = left_->get_type().is_decimal();
-    auto const is_unsigned = left_->get_type().is_unsigned_int();
+    auto const is_decimal = left_->get_type()->is_decimal();
+    auto const is_unsigned = left_->get_type()->is_unsigned_int();
 
     switch (op_) {
     case Op::MODULO: {
@@ -149,7 +150,8 @@ auto BinaryExpr::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
     }
     case Op::PLUS: {
         if (is_pointer_arithmetic_) {
-            auto inner_type = *left_->get_type().sub_type;
+            auto p_t = std::dynamic_pointer_cast<PointerType>(left_->get_type());
+            auto inner_type = p_t->get_sub_type();
             return emitter->llvm_builder->CreateInBoundsGEP(emitter->llvm_type(inner_type), l, r);
         }
         return (is_decimal) ? emitter->llvm_builder->CreateFAdd(l, r) : emitter->llvm_builder->CreateAdd(l, r);
@@ -157,7 +159,8 @@ auto BinaryExpr::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
     case Op::MINUS: {
         if (is_pointer_arithmetic_) {
             auto neg = emitter->llvm_builder->CreateNeg(r);
-            auto inner_type = *left_->get_type().sub_type;
+            auto p_t = std::dynamic_pointer_cast<PointerType>(left_->get_type());
+            auto inner_type = p_t->get_sub_type();
             return emitter->llvm_builder->CreateInBoundsGEP(emitter->llvm_type(inner_type), l, neg);
         }
         return (is_decimal) ? emitter->llvm_builder->CreateFSub(l, r) : emitter->llvm_builder->CreateSub(l, r);
@@ -245,8 +248,8 @@ auto UnaryExpr::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
     if (!value) {
         return nullptr;
     }
-    auto const is_decimal = expr_->get_type().is_decimal();
-    auto const is_pointer = expr_->get_type().is_pointer();
+    auto const is_decimal = expr_->get_type()->is_decimal();
+    auto const is_pointer = expr_->get_type()->is_pointer();
 
     auto const int_one = llvm::ConstantInt::get(value->getType(), 1);
     auto const decimal_one = llvm::ConstantFP::get(*(emitter->context), llvm::APFloat(1.0));
@@ -264,7 +267,8 @@ auto UnaryExpr::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
         if (is_pointer) {
             auto const index =
                 llvm::ConstantInt::get(llvm::Type::getInt32Ty(*(emitter->context)), (op_ == Op::PREFIX_ADD) ? 1 : -1);
-            auto const inner_type = *expr_->get_type().sub_type;
+            auto const p_t = std::dynamic_pointer_cast<PointerType>(expr_->get_type());
+            auto const inner_type = p_t->get_sub_type();
             new_val = emitter->llvm_builder->CreateGEP(emitter->llvm_type(inner_type), value, index);
         }
         else if (is_decimal) {
@@ -283,7 +287,8 @@ auto UnaryExpr::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
         if (is_pointer) {
             auto const index =
                 llvm::ConstantInt::get(llvm::Type::getInt32Ty(*(emitter->context)), (op_ == Op::POSTFIX_ADD) ? 1 : -1);
-            auto const inner_type = *expr_->get_type().sub_type;
+            auto const p_t = std::dynamic_pointer_cast<PointerType>(expr_->get_type());
+            auto const inner_type = p_t->get_sub_type();
             new_val = emitter->llvm_builder->CreateGEP(emitter->llvm_type(inner_type), value, index);
         }
         else if (is_decimal) {
@@ -526,12 +531,12 @@ auto CastExpr::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
     auto const llvm_type = emitter->llvm_type(to_);
 
     // int -> int
-    if (to_.is_int() and expr_type.is_int()) {
+    if (to_->is_int() and expr_type->is_int()) {
         auto src_bits = value->getType()->getIntegerBitWidth();
         auto dest_bits = llvm_type->getIntegerBitWidth();
 
         if (dest_bits > src_bits) {
-            if (expr_type.is_unsigned_int()) {
+            if (expr_type->is_unsigned_int()) {
                 return emitter->llvm_builder->CreateZExt(value, llvm_type);
             }
             else {
@@ -546,7 +551,7 @@ auto CastExpr::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
         }
     }
     // decimal -> decimal
-    else if (to_.is_decimal() and expr_type.is_decimal()) {
+    else if (to_->is_decimal() and expr_type->is_decimal()) {
         auto src_bits = value->getType()->getPrimitiveSizeInBits();
         auto dest_bits = llvm_type->getPrimitiveSizeInBits();
 
@@ -561,8 +566,8 @@ auto CastExpr::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
         }
     }
     // int -> decimal
-    else if (to_.is_decimal() and expr_type.is_int()) {
-        if (expr_type.is_unsigned_int()) {
+    else if (to_->is_decimal() and expr_type->is_int()) {
+        if (expr_type->is_unsigned_int()) {
             return emitter->llvm_builder->CreateUIToFP(value, llvm_type);
         }
         else {
@@ -570,8 +575,8 @@ auto CastExpr::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
         }
     }
     // decimal -> int
-    else if (to_.is_int() and expr_type.is_decimal()) {
-        if (expr_type.is_unsigned_int()) {
+    else if (to_->is_int() and expr_type->is_decimal()) {
+        if (expr_type->is_unsigned_int()) {
             return emitter->llvm_builder->CreateFPToUI(value, llvm_type);
         }
         else {

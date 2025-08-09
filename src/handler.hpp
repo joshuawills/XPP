@@ -70,15 +70,8 @@ class Handler {
     static auto help() -> void;
 
     std::string source_filename = {};
-
-    static const Type VOID_TYPE;
-    static const Type I64_TYPE;
-    static const Type ERROR_TYPE;
-    static const Type BOOL_TYPE;
-    static const Type UNKNOWN_TYPE;
-    static const Type CHAR_POINTER_TYPE;
-    static const Type CHAR_POINTER_POINTER_TYPE;
-    static const Type VARIATIC_TYPE;
+    static const std::shared_ptr<Type> ERROR_TYPE;
+    static const std::shared_ptr<Type> BOOL_TYPE;
 
     size_t num_errors_ = 0;
 

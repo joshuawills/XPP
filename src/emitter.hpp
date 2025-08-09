@@ -42,7 +42,7 @@ class Emitter : public std::enable_shared_from_this<Emitter> {
     std::unique_ptr<llvm::IRBuilder<>> llvm_builder;
     std::map<std::string, llvm::Value*> named_values;
 
-    auto llvm_type(Type t) -> llvm::Type*;
+    auto llvm_type(std::shared_ptr<Type> t) -> llvm::Type*;
 
  private:
     std::shared_ptr<AllModules> modules_;

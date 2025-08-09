@@ -27,6 +27,7 @@
 - ADDITION: global variables
 - ADDITION: proper variable shadowing
 - ADDITION: basic function overloading
+- INTERNAL: types now represented by classes
 
 ## TODO
 

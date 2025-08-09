@@ -41,15 +41,15 @@ auto operator<<(std::ostream& os, Op const& o) -> std::ostream&;
 
 class Expr : public AST {
  public:
-    Expr(Position pos, Type t)
+    Expr(Position pos, std::shared_ptr<Type> t)
     : AST(pos)
     , t_(t) {}
 
-    auto get_type() const -> Type const& {
+    auto get_type() const -> std::shared_ptr<Type> const& {
         return t_;
     }
 
-    auto set_type(Type t) -> void {
+    auto set_type(std::shared_ptr<Type> t) -> void {
         t_ = t;
     }
 
@@ -59,7 +59,7 @@ class Expr : public AST {
     auto print(std::ostream& os) const -> void override = 0;
 
  private:
-    Type t_;
+    std::shared_ptr<Type> t_;
 };
 
 class EmptyExpr
@@ -67,7 +67,7 @@ class EmptyExpr
 , public std::enable_shared_from_this<EmptyExpr> {
  public:
     EmptyExpr(Position pos)
-    : Expr(pos, Type{TypeSpec::VOID}) {}
+    : Expr(pos, std::make_shared<Type>(TypeSpec::VOID)) {}
 
     auto visit(std::shared_ptr<Visitor> visitor) -> void override {
         visitor->visit_empty_expr(shared_from_this());
@@ -81,7 +81,7 @@ class AssignmentExpr
 , public std::enable_shared_from_this<AssignmentExpr> {
  public:
     AssignmentExpr(Position pos, std::shared_ptr<Expr> const left, Op const op, std::shared_ptr<Expr> const right)
-    : Expr(pos, Type{TypeSpec::UNKNOWN})
+    : Expr(pos, std::make_shared<Type>())
     , left_(left)
     , op_(op)
     , right_(right) {}
@@ -113,7 +113,7 @@ class BinaryExpr
 , public std::enable_shared_from_this<BinaryExpr> {
  public:
     BinaryExpr(Position const pos, std::shared_ptr<Expr> const left, Op const op, std::shared_ptr<Expr> const right)
-    : Expr(pos, Type{TypeSpec::UNKNOWN})
+    : Expr(pos, std::make_shared<Type>())
     , left_(left)
     , op_(op)
     , right_(right) {}
@@ -157,7 +157,7 @@ class UnaryExpr
 , public std::enable_shared_from_this<UnaryExpr> {
  public:
     UnaryExpr(Position const pos, Op const op, std::shared_ptr<Expr> const expr)
-    : Expr(pos, Type{TypeSpec::UNKNOWN})
+    : Expr(pos, std::make_shared<Type>())
     , op_(op)
     , expr_(expr) {}
 
@@ -184,7 +184,7 @@ class IntExpr
 , public std::enable_shared_from_this<IntExpr> {
  public:
     IntExpr(Position const pos, int64_t value)
-    : Expr(pos, Type{TypeSpec::I64})
+    : Expr(pos, std::make_shared<Type>(TypeSpec::I64))
     , value_(value) {}
 
     auto get_value() const -> int64_t {
@@ -215,7 +215,7 @@ class UIntExpr
 , public std::enable_shared_from_this<UIntExpr> {
  public:
     UIntExpr(Position const pos, uint64_t value)
-    : Expr(pos, Type{TypeSpec::U64})
+    : Expr(pos, std::make_shared<Type>(TypeSpec::U64))
     , value_(value) {}
 
     auto get_value() const -> uint64_t {
@@ -246,7 +246,7 @@ class DecimalExpr
 , public std::enable_shared_from_this<DecimalExpr> {
  public:
     DecimalExpr(Position const pos, double value)
-    : Expr(pos, Type{TypeSpec::F64})
+    : Expr(pos, std::make_shared<Type>(TypeSpec::F64))
     , value_(value) {}
 
     auto get_value() const -> double {
@@ -277,7 +277,7 @@ class BoolExpr
 , public std::enable_shared_from_this<BoolExpr> {
  public:
     BoolExpr(Position const pos, bool value)
-    : Expr(pos, Type{TypeSpec::BOOL})
+    : Expr(pos, std::make_shared<Type>(TypeSpec::BOOL))
     , value_(value) {}
 
     auto get_value() const -> bool {
@@ -299,7 +299,7 @@ class StringExpr
 , public std::enable_shared_from_this<StringExpr> {
  public:
     StringExpr(Position const pos, std::string value)
-    : Expr(pos, Type{TypeSpec::POINTER, std::nullopt, std::make_shared<Type>(TypeSpec::I8)})
+    : Expr(pos, std::make_shared<PointerType>(std::make_shared<Type>(TypeSpec::I8)))
     , value_(value) {}
 
     auto get_value() const -> std::string {
@@ -321,7 +321,7 @@ class CharExpr
 , public std::enable_shared_from_this<CharExpr> {
  public:
     CharExpr(Position const pos, char const value)
-    : Expr(pos, Type{TypeSpec::I8})
+    : Expr(pos, std::make_shared<Type>(TypeSpec::I8))
     , value_(value) {}
 
     auto get_value() const -> char {
@@ -342,12 +342,12 @@ class VarExpr
 : public Expr
 , public std::enable_shared_from_this<VarExpr> {
  public:
-    VarExpr(Position pos, std::string name, Type t)
+    VarExpr(Position pos, std::string name, std::shared_ptr<Type> t)
     : Expr(pos, t)
     , name_(name) {}
 
     VarExpr(Position const pos, std::string const name)
-    : Expr(pos, Type{TypeSpec::UNKNOWN})
+    : Expr(pos, std::make_shared<Type>())
     , name_(name) {}
 
     auto get_name() const -> std::string const& {
@@ -378,11 +378,14 @@ class CallExpr
 , public std::enable_shared_from_this<CallExpr> {
  public:
     CallExpr(Position const pos, std::string const name, std::vector<std::shared_ptr<Expr>> const args)
-    : Expr(pos, Type{TypeSpec::UNKNOWN})
+    : Expr(pos, std::make_shared<Type>())
     , name_(name)
     , args_(args) {}
 
-    CallExpr(Position const pos, std::string const name, Type t, std::vector<std::shared_ptr<Expr>> const args)
+    CallExpr(Position const pos,
+             std::string const name,
+             std::shared_ptr<Type> t,
+             std::vector<std::shared_ptr<Expr>> const args)
     : Expr(pos, t)
     , name_(name)
     , args_(args) {}
@@ -419,7 +422,7 @@ class CastExpr
 : public Expr
 , public std::enable_shared_from_this<CastExpr> {
  public:
-    CastExpr(Position const pos, std::shared_ptr<Expr> const expr, Type const to)
+    CastExpr(Position const pos, std::shared_ptr<Expr> const expr, std::shared_ptr<Type> const to)
     : Expr(pos, to)
     , expr_(expr)
     , to_(to) {}
@@ -434,13 +437,13 @@ class CastExpr
         return expr_;
     }
 
-    auto get_to_type() const -> Type {
+    auto get_to_type() const -> std::shared_ptr<Type> {
         return to_;
     }
 
  private:
     std::shared_ptr<Expr> const expr_;
-    Type const to_;
+    std::shared_ptr<Type> const to_;
 };
 
 #endif // EXPR_HPP
