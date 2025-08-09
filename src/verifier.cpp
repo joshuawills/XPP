@@ -298,13 +298,14 @@ auto Verifier::visit_binary_expr(std::shared_ptr<BinaryExpr> binary_expr) -> voi
 
 auto Verifier::visit_unary_expr(std::shared_ptr<UnaryExpr> unary_expr) -> void {
     auto e = unary_expr->get_expr();
+    auto op = unary_expr->get_operator();
     e->visit(shared_from_this());
     if (e->get_type() == handler_->ERROR_TYPE) {
         unary_expr->set_type(handler_->ERROR_TYPE);
         return;
     }
 
-    if (unary_expr->get_operator() == Op::NEGATE) {
+    if (op == Op::NEGATE) {
         if (e->get_type() != handler_->BOOL_TYPE) {
             auto stream = std::stringstream{};
             stream << "expected a bool type, got " << e->get_type();
@@ -315,7 +316,43 @@ auto Verifier::visit_unary_expr(std::shared_ptr<UnaryExpr> unary_expr) -> void {
             unary_expr->set_type(handler_->BOOL_TYPE);
         }
     }
-    else if (unary_expr->get_operator() == Op::PLUS or unary_expr->get_operator() == Op::MINUS) {
+    else if (op == Op::PREFIX_ADD or op == Op::PREFIX_MINUS or op == Op::POSTFIX_ADD or op == Op::POSTFIX_MINUS) {
+        if (!e->get_type().is_numeric() and !e->get_type().is_pointer()) {
+            auto stream = std::stringstream{};
+            stream << "expected a numeric type, got " << e->get_type();
+            handler_->report_error(current_filename_, all_errors_[9], stream.str(), unary_expr->pos());
+            unary_expr->set_type(handler_->ERROR_TYPE);
+            return;
+        }
+        auto is_mut = false;
+        auto is_lvalue = false;
+        auto var_name = std::string{};
+        if (auto l = std::dynamic_pointer_cast<VarExpr>(e)) {
+            is_mut |= l->get_ref()->is_mut();
+            is_lvalue = true;
+            var_name = l->get_name();
+        }
+        if (auto l = std::dynamic_pointer_cast<UnaryExpr>(e)) {
+            if (l->get_operator() == Op::DEREF) {
+                auto v = std::dynamic_pointer_cast<VarExpr>(l->get_expr());
+                is_mut |= v->get_ref()->is_mut();
+                is_lvalue = true;
+                var_name = v->get_name();
+            }
+        }
+        if (!is_lvalue) {
+            handler_->report_error(current_filename_, all_errors_[28], "", unary_expr->pos());
+            unary_expr->set_type(handler_->ERROR_TYPE);
+        }
+        else if (!is_mut) {
+            handler_->report_error(current_filename_, all_errors_[20], var_name, unary_expr->pos());
+            unary_expr->set_type(handler_->ERROR_TYPE);
+        }
+        else {
+            unary_expr->set_type(e->get_type());
+        }
+    }
+    else if (op == Op::PLUS or op == Op::MINUS) {
         if (!e->get_type().is_numeric()) {
             auto stream = std::stringstream{};
             stream << "expected a numeric type, got " << e->get_type();
@@ -326,7 +363,7 @@ auto Verifier::visit_unary_expr(std::shared_ptr<UnaryExpr> unary_expr) -> void {
             unary_expr->set_type(e->get_type());
         }
     }
-    else if (unary_expr->get_operator() == Op::DEREF) {
+    else if (op == Op::DEREF) {
         if (!e->get_type().is_pointer()) {
             auto stream = std::stringstream{};
             stream << "expected a pointer type, received " << e->get_type();
@@ -337,7 +374,7 @@ auto Verifier::visit_unary_expr(std::shared_ptr<UnaryExpr> unary_expr) -> void {
             unary_expr->set_type(*e->get_type().sub_type);
         }
     }
-    else if (unary_expr->get_operator() == Op::ADDRESS_OF) {
+    else if (op == Op::ADDRESS_OF) {
         auto const var = std::dynamic_pointer_cast<VarExpr>(e);
         if (!var) {
             handler_->report_error(current_filename_, all_errors_[25], "", unary_expr->pos());

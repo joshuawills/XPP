@@ -443,6 +443,14 @@ auto Parser::parse_unary_expr() -> std::shared_ptr<Expr> {
     auto p = Position{};
     start(p);
 
+    if (peek(TokenType::PLUS_PLUS) or peek(TokenType::MINUS_MINUS)) {
+        auto const is_plus = peek(TokenType::PLUS_PLUS);
+        consume();
+        auto const expr = parse_unary_expr();
+        finish(p);
+        return std::make_shared<UnaryExpr>(p, is_plus ? Op::PREFIX_ADD : Op::PREFIX_MINUS, expr);
+    }
+
     if (peek(TokenType::NEGATE) or peek(TokenType::PLUS) or peek(TokenType::MINUS) or peek(TokenType::MULTIPLY)
         or peek(TokenType::AMPERSAND))
     {
@@ -469,6 +477,12 @@ auto Parser::parse_postfix_expr() -> std::shared_ptr<Expr> {
         auto args = parse_arg_list();
         finish(p);
         return std::make_shared<CallExpr>(p, v->get_name(), args);
+    }
+    else if (peek(TokenType::PLUS_PLUS) or peek(TokenType::MINUS_MINUS)) {
+        auto const is_plus = peek(TokenType::PLUS_PLUS);
+        consume();
+        finish(p);
+        return std::make_shared<UnaryExpr>(p, (is_plus) ? Op::POSTFIX_ADD : Op::POSTFIX_MINUS, p_expr);
     }
     else {
         return p_expr;

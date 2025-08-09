@@ -124,7 +124,8 @@ class Verifier
                                                   "24: if statement condition is not boolean: %",
                                                   "25: address-of operand can only be performed to allocated variables",
                                                   "26: can't get address of a constant variable: %",
-                                                  "27: invalid type cast operation: %"};
+                                                  "27: invalid type cast operation: %",
+                                                  "28: prefix/postfix operators may only be applied to lvalue types"};
 
     auto check_duplicate_function_declaration() -> void;
     auto check_duplicate_extern_declaration() -> void;

@@ -19,6 +19,7 @@
 ## 09 Aug 2025
 
 - ADDITION: decimal types (f32 and f64) including casting for them
+- ADDITION: prefix/postfix operators for numerical types and pointer types
 
 ## TODO
 

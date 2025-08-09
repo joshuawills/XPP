@@ -111,8 +111,22 @@ auto Lexer::generate_token() -> std::optional<Token> {
         }
         return Token{"&", line_, col_ - 1, col_ - 1, TokenType::AMPERSAND};
     }
-    case '-': consume(); return Token{"-", line_, col_ - 1, col_ - 1, TokenType::MINUS};
-    case '+': consume(); return Token{"+", line_, col_ - 1, col_ - 1, TokenType::PLUS};
+    case '-': {
+        consume();
+        if (peek('-')) {
+            consume();
+            return Token{"--", line_, col_ - 2, col_ - 1, TokenType::MINUS_MINUS};
+        }
+        return Token{"-", line_, col_ - 1, col_ - 1, TokenType::MINUS};
+    }
+    case '+': {
+        consume();
+        if (peek('+')) {
+            consume();
+            return Token{"++", line_, col_ - 2, col_ - 1, TokenType::PLUS_PLUS};
+        }
+        return Token{"+", line_, col_ - 1, col_ - 1, TokenType::PLUS};
+    }
     case '/': consume(); return Token{"/", line_, col_ - 1, col_ - 1, TokenType::DIVIDE};
     case '*': consume(); return Token{"*", line_, col_ - 1, col_ - 1, TokenType::MULTIPLY};
     case '"': {

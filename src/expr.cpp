@@ -20,6 +20,10 @@ auto operator<<(std::ostream& os, Op const& o) -> std::ostream& {
     case GREATER_EQUAL: os << ">="; break;
     case DEREF: os << "*"; break;
     case ADDRESS_OF: os << "&"; break;
+    case POSTFIX_ADD:
+    case PREFIX_ADD: os << "++"; break;
+    case POSTFIX_MINUS:
+    case PREFIX_MINUS: os << "--"; break;
     default: os << "UNRECOGNISED OPERATOR";
     };
     return os;
@@ -41,8 +45,8 @@ auto AssignmentExpr::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
     auto const& lhs = std::dynamic_pointer_cast<VarExpr>(left_);
 
     if (lhs) {
-        auto alloca = emitter->named_values[lhs->get_name()];
-        emitter->llvm_builder->CreateStore(rhs, alloca);
+        auto ptr = emitter->named_values[lhs->get_name()];
+        emitter->llvm_builder->CreateStore(rhs, ptr);
     }
     else {
         auto const& lhs = std::dynamic_pointer_cast<UnaryExpr>(left_);
@@ -177,14 +181,72 @@ auto UnaryExpr::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
     if (!value) {
         return nullptr;
     }
+    auto const is_decimal = expr_->get_type().is_decimal();
+    auto const is_pointer = expr_->get_type().is_pointer();
 
-    if (op_ == Op::NEGATE) {
+    auto const int_one = llvm::ConstantInt::get(value->getType(), 1);
+    auto const decimal_one = llvm::ConstantFP::get(*(emitter->context), llvm::APFloat(1.0));
+
+    llvm::Value* ptr = nullptr;
+    if (auto l = std::dynamic_pointer_cast<VarExpr>(expr_)) {
+        ptr = emitter->named_values[l->get_name()];
+    }
+    else {
+        auto const& unary_expr_ = std::dynamic_pointer_cast<UnaryExpr>(expr_);
+        ptr = unary_expr_->get_expr()->codegen(emitter);
+    }
+
+    if (op_ == Op::PREFIX_ADD or op_ == Op::PREFIX_MINUS) {
+        llvm::Value* new_val;
+        if (is_pointer) {
+            auto const index =
+                llvm::ConstantInt::get(llvm::Type::getInt32Ty(*(emitter->context)), (op_ == Op::PREFIX_ADD) ? 1 : -1);
+            auto const inner_type = *expr_->get_type().sub_type;
+            new_val = emitter->llvm_builder->CreateGEP(emitter->llvm_type(inner_type), value, index);
+        }
+        else if (is_decimal) {
+            new_val = (op_ == Op::PREFIX_ADD) ? emitter->llvm_builder->CreateFAdd(value, decimal_one)
+                                              : emitter->llvm_builder->CreateFSub(value, decimal_one);
+        }
+        else {
+            new_val = (op_ == Op::PREFIX_ADD) ? emitter->llvm_builder->CreateAdd(value, int_one)
+                                              : emitter->llvm_builder->CreateSub(value, int_one);
+        }
+        emitter->llvm_builder->CreateStore(new_val, ptr);
+        return new_val;
+    }
+    else if (op_ == Op::POSTFIX_ADD or op_ == Op::POSTFIX_MINUS) {
+        llvm::Value* new_val;
+        if (is_pointer) {
+            auto const index =
+                llvm::ConstantInt::get(llvm::Type::getInt32Ty(*(emitter->context)), (op_ == Op::POSTFIX_ADD) ? 1 : -1);
+            auto const inner_type = *expr_->get_type().sub_type;
+            new_val = emitter->llvm_builder->CreateGEP(emitter->llvm_type(inner_type), value, index);
+        }
+        else if (is_decimal) {
+            new_val = (op_ == Op::POSTFIX_ADD) ? emitter->llvm_builder->CreateFAdd(value, decimal_one)
+                                               : emitter->llvm_builder->CreateFSub(value, decimal_one);
+        }
+        else {
+            new_val = (op_ == Op::POSTFIX_ADD) ? emitter->llvm_builder->CreateAdd(value, int_one)
+                                               : emitter->llvm_builder->CreateSub(value, int_one);
+        }
+        emitter->llvm_builder->CreateStore(new_val, ptr);
+        return value;
+    }
+    else if (op_ == Op::NEGATE) {
         return emitter->llvm_builder->CreateICmpEQ(value, llvm::ConstantInt::get(value->getType(), 0));
     }
     else if (op_ == Op::MINUS) {
         auto ty = value->getType();
-        auto zero = llvm::ConstantInt::get(ty, 0);
-        return emitter->llvm_builder->CreateSub(zero, value);
+        auto int_zero = llvm::ConstantInt::get(ty, 0);
+        auto decimal_zero = llvm::ConstantFP::get(*(emitter->context), llvm::APFloat(0.0));
+        if (is_decimal) {
+            return emitter->llvm_builder->CreateFSub(decimal_zero, value);
+        }
+        else {
+            return emitter->llvm_builder->CreateSub(int_zero, value);
+        }
     }
     else if (op_ == Op::DEREF) {
         return emitter->llvm_builder->CreateLoad(emitter->llvm_type(get_type()), value);

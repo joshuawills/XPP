@@ -3,6 +3,12 @@
 fn main() void {
     let x = 21;
     x = 22;
+	++x;
+	x++;
     let mut y = x;
     y = y + 1;
+
+    let mut z = 21;
+    let z_ref = &z;
+    ++z_ref;
 }

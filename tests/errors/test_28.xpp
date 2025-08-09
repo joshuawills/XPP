@@ -1,0 +1,6 @@
+// Prefix postfix operators may only be applied to lvalue types
+
+fn main() void {
+	21++;
+	++19.0;
+}

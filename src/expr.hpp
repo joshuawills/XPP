@@ -25,7 +25,11 @@ enum Op {
     LESS_EQUAL,
     GREATER_EQUAL,
     DEREF,
-    ADDRESS_OF
+    ADDRESS_OF,
+    PREFIX_ADD,
+    PREFIX_MINUS,
+    POSTFIX_ADD,
+    POSTFIX_MINUS
 };
 
 auto operator<<(std::ostream& os, Op const& o) -> std::ostream&;

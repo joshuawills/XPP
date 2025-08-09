@@ -1,0 +1,26 @@
+// Prefix and postfix operators
+
+extern printf(i8*, ...) i32;
+
+fn main() void {
+	let mut y = 21;
+	printf("%d\n", y++);
+	printf("%d\n", ++y);
+
+	let mut a = 21;
+	printf("%d\n", a--);
+	printf("%d\n", --a);
+
+    let mut z = 21.0;
+	printf("%lf\n", z++);
+	printf("%lf\n", ++z);
+
+	let mut b = 21.0;
+	printf("%lf\n", b--);
+	printf("%lf\n", --b);
+
+    let mut char_p = "hello world!\n";
+    while *char_p != '\0' {
+        printf("%c", *(char_p++));
+    }
+}
