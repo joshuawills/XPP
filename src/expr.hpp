@@ -29,7 +29,8 @@ enum Op {
     PREFIX_ADD,
     PREFIX_MINUS,
     POSTFIX_ADD,
-    POSTFIX_MINUS
+    POSTFIX_MINUS,
+    MODULO
 };
 
 auto operator<<(std::ostream& os, Op const& o) -> std::ostream&;

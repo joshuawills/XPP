@@ -20,6 +20,8 @@
 
 - ADDITION: decimal types (f32 and f64) including casting for them
 - ADDITION: prefix/postfix operators for numerical types and pointer types
+- ADDITION: modulo operator for numerical types
+- ADDITION: more tests
 
 ## TODO
 
@@ -28,3 +30,4 @@
 - Moduling system
 - Composite data types
 - References?
+- Documentation!

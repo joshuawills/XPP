@@ -129,6 +129,7 @@ auto Lexer::generate_token() -> std::optional<Token> {
     }
     case '/': consume(); return Token{"/", line_, col_ - 1, col_ - 1, TokenType::DIVIDE};
     case '*': consume(); return Token{"*", line_, col_ - 1, col_ - 1, TokenType::MULTIPLY};
+    case '%': consume(); return Token{"%", line_, col_ - 1, col_ - 1, TokenType::MODULO};
     case '"': {
         consume();
         auto buf = std::string{};

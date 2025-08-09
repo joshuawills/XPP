@@ -112,6 +112,7 @@ auto Parser::parse_operator() -> Op {
                                                                   {TokenType::GREATER_THAN, Op::GREATER_THAN},
                                                                   {TokenType::LESS_EQUAL, Op::LESS_EQUAL},
                                                                   {TokenType::AMPERSAND, Op::ADDRESS_OF},
+                                                                  {TokenType::MODULO, Op::MODULO},
                                                                   {TokenType::GREATER_EQUAL, Op::GREATER_EQUAL}};
 
     if (type_to_operator_mapping.find((*curr_token_)->type()) != type_to_operator_mapping.end()) {
@@ -430,7 +431,7 @@ auto Parser::parse_multiplicative_expr() -> std::shared_ptr<Expr> {
     auto p = Position{};
     start(p);
     std::shared_ptr<Expr> left = parse_unary_expr();
-    while (peek(TokenType::MULTIPLY) or peek(TokenType::DIVIDE)) {
+    while (peek(TokenType::MULTIPLY) or peek(TokenType::DIVIDE) or peek(TokenType::MODULO)) {
         auto op = parse_operator();
         auto right = parse_unary_expr();
         finish(p);

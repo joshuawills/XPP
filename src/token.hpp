@@ -57,7 +57,8 @@ enum class TokenType {
     UNSIGNED_INTEGER,
     FLOAT_LITERAL,
     PLUS_PLUS,
-    MINUS_MINUS
+    MINUS_MINUS,
+    MODULO
 };
 
 class Token {

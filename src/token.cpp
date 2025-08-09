@@ -85,6 +85,7 @@ auto operator<<(std::ostream& os, TokenType const& t) -> std::ostream& {
     case TokenType::FLOAT_LITERAL: os << "FLOAT_LITERAL"; break;
     case TokenType::PLUS_PLUS: os << "PLUS_PLUS"; break;
     case TokenType::MINUS_MINUS: os << "MINUS_MINUS"; break;
+    case TokenType::MODULO: os << "MODULO"; break;
     default: os << "UNKNOWN";
     }
     return os;

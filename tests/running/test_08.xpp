@@ -1,0 +1,19 @@
+// operator precedence and maths
+
+extern printf(i8*, ...) i32;
+
+fn main() void {
+
+    let x = 19;
+    let y = 21;
+
+    printf("%d\n", 2 + x - 19);
+    printf("%d\n", 19 * y % x);
+    printf("%d\n", x + y * 2);
+    printf("%d\n", (x + y) * 2);
+    
+    printf("%d\n", x - -1);
+    printf("%d\n", -y * -19);
+
+    printf("%d\n", x + y - 21 * 41 / 3);
+}

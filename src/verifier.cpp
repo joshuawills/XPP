@@ -274,7 +274,7 @@ auto Verifier::visit_binary_expr(std::shared_ptr<BinaryExpr> binary_expr) -> voi
     }
 
     // "+", "-", "*", "/" operators
-    if (op == Op::PLUS or op == Op::MINUS or op == Op::MULTIPLY or op == Op::DIVIDE) {
+    if (op == Op::PLUS or op == Op::MINUS or op == Op::MULTIPLY or op == Op::DIVIDE or op == Op::MODULO) {
         if (l_t.is_pointer() and r_t.is_int()) {
             if (op == Op::MULTIPLY or op == Op::DIVIDE) {
                 auto stream = std::stringstream{};

@@ -24,6 +24,7 @@ auto operator<<(std::ostream& os, Op const& o) -> std::ostream& {
     case PREFIX_ADD: os << "++"; break;
     case POSTFIX_MINUS:
     case PREFIX_MINUS: os << "--"; break;
+    case MODULO: os << "%"; break;
     default: os << "UNRECOGNISED OPERATOR";
     };
     return os;
@@ -83,6 +84,17 @@ auto BinaryExpr::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
     auto const is_unsigned = left_->get_type().is_unsigned_int();
 
     switch (op_) {
+    case Op::MODULO: {
+        if (is_decimal) {
+            return emitter->llvm_builder->CreateFRem(l, r);
+        }
+        else if (is_unsigned) {
+            return emitter->llvm_builder->CreateURem(l, r);
+        }
+        else {
+            return emitter->llvm_builder->CreateSRem(l, r);
+        }
+    }
     case Op::PLUS: {
         if (is_pointer_arithmetic_) {
             auto inner_type = *left_->get_type().sub_type;
@@ -191,9 +203,8 @@ auto UnaryExpr::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
     if (auto l = std::dynamic_pointer_cast<VarExpr>(expr_)) {
         ptr = emitter->named_values[l->get_name()];
     }
-    else {
-        auto const& unary_expr_ = std::dynamic_pointer_cast<UnaryExpr>(expr_);
-        ptr = unary_expr_->get_expr()->codegen(emitter);
+    else if (auto l = std::dynamic_pointer_cast<UnaryExpr>(expr_)) {
+        ptr = l->get_expr()->codegen(emitter);
     }
 
     if (op_ == Op::PREFIX_ADD or op_ == Op::PREFIX_MINUS) {
