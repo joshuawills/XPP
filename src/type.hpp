@@ -29,6 +29,10 @@ struct Type {
         return t;
     }
 
+    auto is_void() const noexcept -> bool {
+        return t == TypeSpec::VOID;
+    }
+
     auto is_numeric() const noexcept -> bool {
         return is_signed_int() or is_unsigned_int() or is_decimal();
     }

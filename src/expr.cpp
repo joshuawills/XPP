@@ -25,6 +25,10 @@ auto operator<<(std::ostream& os, Op const& o) -> std::ostream& {
     case POSTFIX_MINUS:
     case PREFIX_MINUS: os << "--"; break;
     case MODULO: os << "%"; break;
+    case PLUS_ASSIGN: os << "+="; break;
+    case MINUS_ASSIGN: os << "-="; break;
+    case MULTIPLY_ASSIGN: os << "*="; break;
+    case DIVIDE_ASSIGN: os << "/="; break;
     default: os << "UNRECOGNISED OPERATOR";
     };
     return os;
@@ -40,22 +44,69 @@ auto EmptyExpr::print(std::ostream& os) const -> void {
 }
 
 auto AssignmentExpr::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
-    auto const& rhs = right_->codegen(emitter);
+    auto rhs = right_->codegen(emitter);
     if (!rhs)
         return nullptr;
-    auto const& lhs = std::dynamic_pointer_cast<VarExpr>(left_);
 
-    if (lhs) {
-        auto ptr = emitter->named_values[lhs->get_name()];
-        emitter->llvm_builder->CreateStore(rhs, ptr);
+    auto const is_decimal = get_type().is_decimal();
+    auto const is_unsigned = get_type().is_unsigned_int();
+    auto const is_pointer = get_type().is_pointer();
+
+    llvm::Value* ptr = nullptr;
+    if (auto const& lhs = std::dynamic_pointer_cast<VarExpr>(left_)) {
+        ptr = emitter->named_values[lhs->get_name()];
+    }
+    else if (auto const& lhs = std::dynamic_pointer_cast<UnaryExpr>(left_)) {
+        ptr = lhs->get_expr()->codegen(emitter);
     }
     else {
-        auto const& lhs = std::dynamic_pointer_cast<UnaryExpr>(left_);
-        auto ptr = lhs->get_expr()->codegen(emitter);
-        emitter->llvm_builder->CreateStore(rhs, ptr);
+        std::cout << "UNREACHABLE AssignmentExpr::codegen";
+    }
+    auto const loaded_ptr = emitter->llvm_builder->CreateLoad(emitter->llvm_type(get_type()), ptr);
+
+    auto result = rhs;
+    if (op_ == Op::PLUS_ASSIGN or op_ == Op::MINUS_ASSIGN) {
+        auto const is_plus = op_ == Op::PLUS_ASSIGN;
+        if (is_pointer) {
+            auto index = rhs;
+            if (!is_plus) {
+                auto const zero = llvm::ConstantInt::get(rhs->getType(), 0);
+                index = emitter->llvm_builder->CreateSub(zero, rhs);
+            }
+            auto inner_type = emitter->llvm_type(*left_->get_type().sub_type);
+            result = emitter->llvm_builder->CreateGEP(inner_type, loaded_ptr, index);
+        }
+        else if (is_decimal) {
+            result = (is_plus) ? emitter->llvm_builder->CreateFAdd(loaded_ptr, rhs)
+                               : emitter->llvm_builder->CreateFSub(loaded_ptr, rhs);
+        }
+        else {
+            result = (is_plus) ? emitter->llvm_builder->CreateAdd(loaded_ptr, rhs)
+                               : emitter->llvm_builder->CreateSub(loaded_ptr, rhs);
+        }
+    }
+    else if (op_ == Op::MULTIPLY_ASSIGN) {
+        if (is_decimal) {
+            result = emitter->llvm_builder->CreateFMul(loaded_ptr, rhs);
+        }
+        else {
+            result = emitter->llvm_builder->CreateMul(loaded_ptr, rhs);
+        }
+    }
+    else if (op_ == Op::DIVIDE_ASSIGN) {
+        if (is_decimal) {
+            result = emitter->llvm_builder->CreateFDiv(loaded_ptr, rhs);
+        }
+        else if (is_unsigned) {
+            result = emitter->llvm_builder->CreateUDiv(loaded_ptr, rhs);
+        }
+        else {
+            result = emitter->llvm_builder->CreateSDiv(loaded_ptr, rhs);
+        }
     }
 
-    return rhs;
+    emitter->llvm_builder->CreateStore(result, ptr);
+    return result;
 }
 
 auto AssignmentExpr::print(std::ostream& os) const -> void {

@@ -86,6 +86,10 @@ auto operator<<(std::ostream& os, TokenType const& t) -> std::ostream& {
     case TokenType::PLUS_PLUS: os << "PLUS_PLUS"; break;
     case TokenType::MINUS_MINUS: os << "MINUS_MINUS"; break;
     case TokenType::MODULO: os << "MODULO"; break;
+    case TokenType::PLUS_ASSIGN: os << "PLUS_ASSIGN"; break;
+    case TokenType::MINUS_ASSIGN: os << "MINUS_ASSIGN"; break;
+    case TokenType::MULTIPLY_ASSIGN: os << "MULTIPLY_ASSIGN"; break;
+    case TokenType::DIVIDE_ASSIGN: os << "DIVIDE_ASSIGN"; break;
     default: os << "UNKNOWN";
     }
     return os;

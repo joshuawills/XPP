@@ -68,6 +68,10 @@ auto Verifier::visit_local_var_decl(std::shared_ptr<LocalVarDecl> local_var_decl
     local_var_decl->get_expr()->visit(shared_from_this());
     auto const& expr_type = local_var_decl->get_expr()->get_type();
     if (local_var_decl->get_type() == handler_->UNKNOWN_TYPE) {
+        if (expr_type.is_void()) {
+            handler_->report_error(current_filename_, all_errors_[29], local_var_decl->get_ident(), local_var_decl->pos());
+            local_var_decl->set_type(handler_->ERROR_TYPE);
+        }
         local_var_decl->set_type(expr_type);
     }
     else if (local_var_decl->get_type() != expr_type) {
@@ -75,6 +79,9 @@ auto Verifier::visit_local_var_decl(std::shared_ptr<LocalVarDecl> local_var_decl
         stream << "expected " << local_var_decl->get_type() << ", got " << expr_type;
         if (local_var_decl->get_type().is_numeric() and expr_type.is_numeric()) {
             stream << ". You may require an explicit type cast";
+        }
+        if (local_var_decl->get_type().is_unsigned_int()) {
+            stream << ". Note that unsigned integer literals should end with a 'u'.";
         }
         handler_->report_error(current_filename_, all_errors_[6], stream.str(), local_var_decl->pos());
         local_var_decl->set_type(handler_->ERROR_TYPE);
@@ -164,6 +171,7 @@ auto Verifier::visit_empty_expr(std::shared_ptr<EmptyExpr> empty_expr) -> void {
 }
 
 auto Verifier::visit_assignment_expr(std::shared_ptr<AssignmentExpr> assignment_expr) -> void {
+    auto const op = assignment_expr->get_operator();
     auto l = assignment_expr->get_left();
     auto r = assignment_expr->get_right();
     auto res = std::dynamic_pointer_cast<VarExpr>(l);
@@ -201,14 +209,26 @@ auto Verifier::visit_assignment_expr(std::shared_ptr<AssignmentExpr> assignment_
 
     if (l->get_type() != handler_->ERROR_TYPE and r->get_type() != handler_->ERROR_TYPE
         and l->get_type() != r->get_type()) {
-        auto stream = std::stringstream{};
-        stream << "expected " << l->get_type() << ", got " << r->get_type();
-        if (l->get_type().is_numeric() and r->get_type().is_numeric()) {
-            stream << ". You may require an explicit type cast";
+        auto const special_op = op == Op::PLUS_ASSIGN or op == Op::MINUS_ASSIGN;
+        auto const non_special_op = op == Op::MULTIPLY_ASSIGN or op == Op::DIVIDE_ASSIGN;
+        if (!(special_op and l->get_type().is_pointer() and r->get_type().is_int())) {
+            auto stream = std::stringstream{};
+            if (non_special_op) {
+                stream << "*= and /= can't be applied to pointer types";
+            }
+            else {
+                stream << "expected " << l->get_type() << ", got " << r->get_type();
+                if (l->get_type().is_numeric() and r->get_type().is_numeric()) {
+                    stream << ". You may require an explicit type cast";
+                }
+                if (l->get_type().is_unsigned_int()) {
+                    stream << ". Note that unsigned integer literals should end with a 'u'.";
+                }
+            }
+            handler_->report_error(current_filename_, all_errors_[6], stream.str(), assignment_expr->pos());
+            assignment_expr->set_type(handler_->ERROR_TYPE);
+            return;
         }
-        handler_->report_error(current_filename_, all_errors_[6], stream.str(), assignment_expr->pos());
-        assignment_expr->set_type(handler_->ERROR_TYPE);
-        return;
     }
 
     assignment_expr->set_type(l->get_type());
@@ -414,7 +434,6 @@ auto Verifier::visit_int_expr(std::shared_ptr<IntExpr> int_expr) -> void {
 
 auto Verifier::visit_decimal_expr(std::shared_ptr<DecimalExpr> decimal_expr) -> void {
     if (current_numerical_type.has_value() and !current_numerical_type->is_decimal()) {
-        std::cout << "haha\n";
         decimal_expr->set_type(handler_->ERROR_TYPE);
         return;
     }
@@ -431,7 +450,6 @@ auto Verifier::visit_decimal_expr(std::shared_ptr<DecimalExpr> decimal_expr) -> 
 
 auto Verifier::visit_uint_expr(std::shared_ptr<UIntExpr> uint_expr) -> void {
     if (current_numerical_type.has_value() and !current_numerical_type->is_unsigned_int()) {
-        uint_expr->set_type(handler_->ERROR_TYPE);
         return;
     }
 

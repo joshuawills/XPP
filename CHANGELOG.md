@@ -22,6 +22,8 @@
 - ADDITION: prefix/postfix operators for numerical types and pointer types
 - ADDITION: modulo operator for numerical types
 - ADDITION: more tests
+- ADDITION: checking for unspecified types in var declaration
+- ADDITION: support for +=, -=, *=, and /=
 
 ## TODO
 
@@ -31,3 +33,5 @@
 - Composite data types
 - References?
 - Documentation!
+- Function overloading
+- Global variables

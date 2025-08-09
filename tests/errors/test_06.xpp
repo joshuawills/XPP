@@ -6,4 +6,7 @@ fn main() void {
 
 	let mut z: i32 = 19;
 	let z_p: i8* = &z;
+
+    let mut p = &z;
+    p *= 3;
 }

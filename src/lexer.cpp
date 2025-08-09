@@ -117,6 +117,10 @@ auto Lexer::generate_token() -> std::optional<Token> {
             consume();
             return Token{"--", line_, col_ - 2, col_ - 1, TokenType::MINUS_MINUS};
         }
+        else if (peek('=')) {
+            consume();
+            return Token{"-=", line_, col_ - 2, col_ - 1, TokenType::MINUS_ASSIGN};
+        }
         return Token{"-", line_, col_ - 1, col_ - 1, TokenType::MINUS};
     }
     case '+': {
@@ -125,10 +129,28 @@ auto Lexer::generate_token() -> std::optional<Token> {
             consume();
             return Token{"++", line_, col_ - 2, col_ - 1, TokenType::PLUS_PLUS};
         }
+        else if (peek('=')) {
+            consume();
+            return Token{"+=", line_, col_ - 2, col_ - 1, TokenType::PLUS_ASSIGN};
+        }
         return Token{"+", line_, col_ - 1, col_ - 1, TokenType::PLUS};
     }
-    case '/': consume(); return Token{"/", line_, col_ - 1, col_ - 1, TokenType::DIVIDE};
-    case '*': consume(); return Token{"*", line_, col_ - 1, col_ - 1, TokenType::MULTIPLY};
+    case '/': {
+        consume();
+        if (peek('=')) {
+            consume();
+            return Token{"/=", line_, col_ - 2, col_ - 1, TokenType::DIVIDE_ASSIGN};
+        }
+        return Token{"/", line_, col_ - 1, col_ - 1, TokenType::DIVIDE};
+    }
+    case '*': {
+        consume();
+        if (peek('=')) {
+            consume();
+            return Token{"*=", line_, col_ - 2, col_ - 1, TokenType::MULTIPLY_ASSIGN};
+        }
+        return Token{"*", line_, col_ - 1, col_ - 1, TokenType::MULTIPLY};
+    }
     case '%': consume(); return Token{"%", line_, col_ - 1, col_ - 1, TokenType::MODULO};
     case '"': {
         consume();

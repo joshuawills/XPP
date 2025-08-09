@@ -1,0 +1,67 @@
+// More boolean logic and conditional branching
+
+extern printf(i8*, ...) i32;
+
+fn doSomething() bool {
+    printf("%c\n", 'z');
+    return true;
+}
+
+fn main() void {
+
+    if true && true {
+        printf("%d\n", 1);
+    }
+
+    if true && false {
+        printf("%d\n", 2);
+    }
+
+    if false && true {
+        printf("%d\n", 3);
+    }
+
+    if false && false {
+        printf("%d\n", 4);
+    }
+
+    if true && doSomething() {
+        printf("%d\n", 5);
+    }
+
+    if false && doSomething() {
+        printf("%d\n", 6);
+    }
+
+    if true || doSomething() {
+        printf("%d\n", 7);
+    }
+
+    if false || doSomething() {
+        printf("%d\n", 8);
+    }
+
+    if !false {
+        printf("%d\n", 9);
+    }
+
+    if !true {
+        printf("%d\n", 10);
+    }
+
+    if true || true {
+        printf("%d\n", 11);
+    }
+
+    if false || true {
+        printf("%d\n", 12);
+    }
+
+    if true || false {
+        printf("%d\n", 13);
+    }
+
+    if false || false {
+        printf("%d\n", 14);
+    }
+}

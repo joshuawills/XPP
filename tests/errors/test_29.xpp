@@ -1,0 +1,5 @@
+// Can't initialise variable without type or value
+
+fn main() void {
+    let x;
+}

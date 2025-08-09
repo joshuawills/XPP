@@ -30,7 +30,11 @@ enum Op {
     PREFIX_MINUS,
     POSTFIX_ADD,
     POSTFIX_MINUS,
-    MODULO
+    MODULO,
+    PLUS_ASSIGN,
+    MINUS_ASSIGN,
+    MULTIPLY_ASSIGN,
+    DIVIDE_ASSIGN
 };
 
 auto operator<<(std::ostream& os, Op const& o) -> std::ostream&;

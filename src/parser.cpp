@@ -113,6 +113,10 @@ auto Parser::parse_operator() -> Op {
                                                                   {TokenType::LESS_EQUAL, Op::LESS_EQUAL},
                                                                   {TokenType::AMPERSAND, Op::ADDRESS_OF},
                                                                   {TokenType::MODULO, Op::MODULO},
+                                                                  {TokenType::PLUS_ASSIGN, Op::PLUS_ASSIGN},
+                                                                  {TokenType::MINUS_ASSIGN, Op::MINUS_ASSIGN},
+                                                                  {TokenType::MULTIPLY_ASSIGN, Op::MULTIPLY_ASSIGN},
+                                                                  {TokenType::DIVIDE_ASSIGN, Op::DIVIDE_ASSIGN},
                                                                   {TokenType::GREATER_EQUAL, Op::GREATER_EQUAL}};
 
     if (type_to_operator_mapping.find((*curr_token_)->type()) != type_to_operator_mapping.end()) {
@@ -230,7 +234,7 @@ auto Parser::parse_compound_stmt() -> std::shared_ptr<CompoundStmt> {
             stmts.push_back(std::make_shared<EmptyStmt>(p));
         }
         else if (try_consume(TokenType::LET)) {
-            stmts.push_back(parse_local_var_stmt(p));
+            stmts.push_back(parse_local_var_stmt());
         }
         else if (try_consume(TokenType::RETURN)) {
             stmts.push_back(parse_return_stmt(p));
@@ -254,7 +258,9 @@ auto Parser::parse_compound_stmt() -> std::shared_ptr<CompoundStmt> {
     return std::make_shared<CompoundStmt>(p, stmts);
 }
 
-auto Parser::parse_local_var_stmt(Position p) -> std::shared_ptr<LocalVarStmt> {
+auto Parser::parse_local_var_stmt() -> std::shared_ptr<LocalVarStmt> {
+    Position p;
+    start(p);
     auto const is_mut = try_consume(TokenType::MUT);
     auto ident = parse_ident();
     auto t = Type{TypeSpec::UNKNOWN};
@@ -499,7 +505,7 @@ auto Parser::parse_primary_expr() -> std::shared_ptr<Expr> {
         return std::make_shared<VarExpr>(p, value);
     }
     else if (peek(TokenType::INTEGER)) {
-        auto const value = std::stoi((*curr_token_)->lexeme());
+        auto const value = std::stoll((*curr_token_)->lexeme());
         consume();
         finish(p);
         return std::make_shared<IntExpr>(p, value);
@@ -511,7 +517,7 @@ auto Parser::parse_primary_expr() -> std::shared_ptr<Expr> {
         return std::make_shared<DecimalExpr>(p, value);
     }
     else if (peek(TokenType::UNSIGNED_INTEGER)) {
-        auto const value = std::stoul((*curr_token_)->lexeme());
+        auto const value = std::stoull((*curr_token_)->lexeme());
         consume();
         finish(p);
         return std::make_shared<UIntExpr>(p, value);
@@ -551,5 +557,6 @@ auto Parser::parse_primary_expr() -> std::shared_ptr<Expr> {
 }
 
 auto Parser::is_assignment_operator() -> bool {
-    return curr_token_.has_value() and (*curr_token_)->type_matches(TokenType::ASSIGN);
+    return peek(TokenType::ASSIGN) or peek(TokenType::PLUS_ASSIGN) or peek(TokenType::MINUS_ASSIGN)
+           or peek(TokenType::MULTIPLY_ASSIGN) or peek(TokenType::DIVIDE_ASSIGN);
 }

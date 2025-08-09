@@ -1,0 +1,89 @@
+// Assign operators with different numerical types and pointer types
+
+extern printf(i8*, ...) i32;
+
+fn main() void {
+    let mut si32 = 10;
+    let ri32 = si32 += 5;
+    printf("i32 +=: %d %d\n", si32, ri32);
+
+    let ri32_sub = si32 -= 20;
+    printf("i32 -=: %d %d\n", si32, ri32_sub);
+
+    let ri32_mul = si32 *= -3;
+    printf("i32 *=: %d %d\n", si32, ri32_mul);
+
+    let ri32_div = si32 /= 4;
+    printf("i32 /=: %d %d\n", si32, ri32_div);
+
+    let mut ui32: u32 = 100u;
+    let rui32_add = ui32 += 50;
+    printf("u32 +=: %u %u\n", ui32, rui32_add);
+
+    let rui32_sub = ui32 -= 200;
+    printf("u32 -=: %u %u\n", ui32, rui32_sub);
+
+    let rui32_mul = ui32 *= 3;
+    printf("u32 *=: %u %u\n", ui32, rui32_mul);
+
+    let rui32_div = ui32 /= 7;
+    printf("u32 /=: %u %u\n", ui32, rui32_div);
+
+    let mut si64: i64 = -9223372036854775800;
+    let rsi64_add = si64 += 100;
+    printf("i64 +=: %lld %lld\n", si64, rsi64_add);
+
+    let rsi64_sub = si64 -= 200;
+    printf("i64 -=: %lld %lld\n", si64, rsi64_sub);
+
+    let rsi64_mul = si64 *= -2;
+    printf("i64 *=: %lld %lld\n", si64, rsi64_mul);
+
+    let rsi64_div = si64 /= 8;
+    printf("i64 /=: %lld %lld\n", si64, rsi64_div);
+
+    let mut ui64: u64 = 18446744073709551615u;
+    let rui64_add = ui64 += 5;
+    printf("u64 +=: %llu %llu\n", ui64, rui64_add);
+
+    let rui64_sub = ui64 -= 10;
+    printf("u64 -=: %llu %llu\n", ui64, rui64_sub);
+
+    let rui64_mul = ui64 *= 3;
+    printf("u64 *=: %llu %llu\n", ui64, rui64_mul);
+
+    let rui64_div = ui64 /= 2;
+    printf("u64 /=: %llu %llu\n", ui64, rui64_div);
+
+    let mut si8: i8 = 120;
+    let rsi8_add = si8 += 10;
+    printf("i8 +=: %d %d\n", si8, rsi8_add);
+
+    let rsi8_sub = si8 -= 5;
+    printf("i8 -=: %d %d\n", si8, rsi8_sub);
+
+    let rsi8_mul = si8 *= -2;
+    printf("i8 *=: %d %d\n", si8, rsi8_mul);
+
+    let rsi8_div = si8 /= 3;
+    printf("i8 /=: %d %d\n", si8, rsi8_div);
+
+    let mut ui8: u8 = 250u;
+    let rui8_add = ui8 += 10;
+    printf("u8 +=: %u %u\n", ui8, rui8_add);
+
+    let rui8_sub = ui8 -= 20;
+    printf("u8 -=: %u %u\n", ui8, rui8_sub);
+
+    let rui8_mul = ui8 *= 4;
+    printf("u8 *=: %u %u\n", ui8, rui8_mul);
+
+    let rui8_div = ui8 /= 5;
+    printf("u8 /=: %u %u\n", ui8, rui8_div);
+
+	let mut p = "hello world!\n";
+	while *p != '\0' {
+		printf("%c", *(p += 1));
+	}
+
+}
