@@ -3,6 +3,10 @@
 auto operator<<(std::ostream& os, Module const& mod) -> std::ostream& {
     os << "Module " << mod.get_filepath() << "\n";
 
+    for (auto const& global_var : mod.get_global_vars()) {
+        global_var->print(os);
+    }
+
     for (auto const& extern_ : mod.get_externs()) {
         extern_->print(os);
     }

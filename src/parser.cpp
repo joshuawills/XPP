@@ -88,6 +88,25 @@ auto Parser::parse() -> std::shared_ptr<Module> {
             auto extern_ = std::make_shared<Extern>(p, ident, return_type, types);
             module->add_extern(extern_);
         }
+        else if (try_consume(TokenType::LET)) {
+            auto const is_mut = try_consume(TokenType::MUT);
+            auto ident = parse_ident();
+            auto type = Type{TypeSpec::UNKNOWN};
+            if (try_consume(TokenType::COLON)) {
+                type = parse_type();
+            }
+            finish(p);
+            std::shared_ptr<Expr> expr = std::make_shared<EmptyExpr>(p);
+            if (try_consume(TokenType::ASSIGN)) {
+                expr = parse_expr();
+            }
+            auto global_var = std::make_shared<GlobalVarDecl>(p, ident, type, expr);
+            if (is_mut) {
+                global_var->set_mut();
+            }
+            module->add_global_var(global_var);
+            match(TokenType::SEMICOLON);
+        }
     }
 
     return module;

@@ -1,5 +1,6 @@
 #include "expr.hpp"
 
+#include "decl.hpp"
 #include "emitter.hpp"
 
 auto operator<<(std::ostream& os, Op const& o) -> std::ostream& {
@@ -54,7 +55,7 @@ auto AssignmentExpr::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
 
     llvm::Value* ptr = nullptr;
     if (auto const& lhs = std::dynamic_pointer_cast<VarExpr>(left_)) {
-        ptr = emitter->named_values[lhs->get_name()];
+        ptr = emitter->named_values[lhs->get_name() + lhs->get_ref()->get_append()];
     }
     else if (auto const& lhs = std::dynamic_pointer_cast<UnaryExpr>(left_)) {
         ptr = lhs->get_expr()->codegen(emitter);
@@ -237,7 +238,7 @@ auto BinaryExpr::print(std::ostream& os) const -> void {
 auto UnaryExpr::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
     if (op_ == Op::ADDRESS_OF) {
         auto var_e = std::dynamic_pointer_cast<VarExpr>(expr_);
-        return emitter->named_values[var_e->get_name()];
+        return emitter->named_values[var_e->get_name() + var_e->get_ref()->get_append()];
     }
 
     auto const& value = expr_->codegen(emitter);
@@ -252,7 +253,7 @@ auto UnaryExpr::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
 
     llvm::Value* ptr = nullptr;
     if (auto l = std::dynamic_pointer_cast<VarExpr>(expr_)) {
-        ptr = emitter->named_values[l->get_name()];
+        ptr = emitter->named_values[l->get_name() + l->get_ref()->get_append()];
     }
     else if (auto l = std::dynamic_pointer_cast<UnaryExpr>(expr_)) {
         ptr = l->get_expr()->codegen(emitter);
@@ -407,7 +408,7 @@ auto CharExpr::print(std::ostream& os) const -> void {
 }
 
 auto VarExpr::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
-    auto ptr = emitter->named_values[name_];
+    auto ptr = emitter->named_values[name_ + get_ref()->get_append()];
     return emitter->llvm_builder->CreateLoad(emitter->llvm_type(get_type()), ptr, name_);
 }
 

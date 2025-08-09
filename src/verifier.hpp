@@ -53,6 +53,7 @@ class Verifier
 
     auto visit_para_decl(std::shared_ptr<ParaDecl> para_decl) -> void override;
     auto visit_local_var_decl(std::shared_ptr<LocalVarDecl> local_var_decl) -> void override;
+    auto visit_global_var_decl(std::shared_ptr<GlobalVarDecl> global_var_decl) -> void override;
     auto visit_function(std::shared_ptr<Function> function) -> void override;
     auto visit_extern(std::shared_ptr<Extern> extern_) -> void override;
     auto visit_empty_expr(std::shared_ptr<EmptyExpr> empty_expr) -> void override;
@@ -90,7 +91,7 @@ class Verifier
 
     bool has_main_ = false, has_return_ = false, in_main_ = false;
 
-    size_t base_statement_counter = 0;
+    size_t global_statement_counter_ = 0, loop_depth_ = 0;
 
     std::string current_filename_;
     std::shared_ptr<Module> current_module_ = nullptr;
@@ -99,7 +100,7 @@ class Verifier
     std::vector<std::string> const all_errors_ = {"0: main function is missing",
                                                   "1: duplicate function declaration: %",
                                                   "2: invalid main function signature: %",
-                                                  "3: identifier redeclared: %",
+                                                  "3: identifier redeclared in the same scope: %",
                                                   "4: identifier declared void: %",
                                                   "5: incompatible type for this binary operator: %",
                                                   "6: incompatible type for this assignment: %",
@@ -126,11 +127,14 @@ class Verifier
                                                   "26: can't get address of a constant variable: %",
                                                   "27: invalid type cast operation: %",
                                                   "28: prefix/postfix operators may only be applied to lvalue types",
-                                                  "29: can't initialise variable without type or value: %"};
+                                                  "29: can't initialise variable without type or value: %",
+                                                  "30: duplicate global var declaration: %"};
 
     auto check_duplicate_function_declaration() -> void;
     auto check_duplicate_extern_declaration() -> void;
+    auto check_duplicate_globals() -> void;
     auto check_unused_declarations() -> void;
+    auto load_all_global_variables() -> void;
 
     auto declare_variable(std::string ident, std::shared_ptr<Decl> decl) -> void;
 };

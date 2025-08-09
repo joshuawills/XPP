@@ -1,5 +1,7 @@
 // Incompatible type for this assignment
 
+let x: i8 = false;
+
 fn main() void {
 	let x: i8 = false;
 	let y: bool = 19;

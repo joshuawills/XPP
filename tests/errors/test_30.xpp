@@ -1,0 +1,6 @@
+// Duplicate global var declarations
+
+let x: i32;
+let x: bool;
+
+fn main() void {}

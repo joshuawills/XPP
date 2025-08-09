@@ -19,6 +19,10 @@ class Module {
         externs_.push_back(extern_);
     }
 
+    auto add_global_var(std::shared_ptr<GlobalVarDecl> global_var) -> void {
+        global_vars_.push_back(global_var);
+    }
+
     auto get_filepath() const -> std::string const& {
         return filepath_;
     }
@@ -29,6 +33,10 @@ class Module {
 
     auto get_externs() const -> std::vector<std::shared_ptr<Extern>> {
         return externs_;
+    }
+
+    auto get_global_vars() const -> std::vector<std::shared_ptr<GlobalVarDecl>> {
+        return global_vars_;
     }
 
     auto function_with_name_exists(std::string const& name) const -> bool {
@@ -48,6 +56,7 @@ class Module {
     std::string filepath_;
     std::vector<std::shared_ptr<Function>> functions_ = {};
     std::vector<std::shared_ptr<Extern>> externs_ = {};
+    std::vector<std::shared_ptr<GlobalVarDecl>> global_vars_ = {};
 };
 
 auto operator<<(std::ostream& os, Module const& mod) -> std::ostream&;

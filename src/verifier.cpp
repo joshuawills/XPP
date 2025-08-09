@@ -13,7 +13,9 @@ auto SymbolTable::retrieve_one_level(std::string const& id) -> std::optional<Tab
         if (it->level != level_) {
             return std::nullopt;
         }
-        if (it->id == id) {
+        auto dot_pos = it->id.find('.');
+        auto prefix = it->id.substr(0, dot_pos);
+        if (prefix == id) {
             return *it;
         }
     }
@@ -22,7 +24,9 @@ auto SymbolTable::retrieve_one_level(std::string const& id) -> std::optional<Tab
 
 auto SymbolTable::retrieve(std::string const& id) -> std::optional<TableEntry> {
     for (auto it = entries_.rbegin(); it != entries_.rend(); ++it) {
-        if (it->id == id) {
+        auto dot_pos = it->id.find('.');
+        auto prefix = it->id.substr(0, dot_pos);
+        if (prefix == id) {
             return *it;
         }
     }
@@ -43,9 +47,11 @@ auto SymbolTable::retrieve_latest_scope() -> std::vector<TableEntry> {
 }
 
 auto Verifier::visit_para_decl(std::shared_ptr<ParaDecl> para_decl) -> void {
-    declare_variable(para_decl->get_ident(), para_decl);
+    para_decl->set_statement_num(global_statement_counter_);
+    para_decl->set_depth_num(loop_depth_);
+    declare_variable(para_decl->get_ident() + para_decl->get_append(), para_decl);
 
-    if (para_decl->get_type() == handler_->VOID_TYPE) {
+    if (para_decl->get_type().is_void()) {
         handler_->report_error(current_filename_, all_errors_[4], para_decl->get_ident(), para_decl->pos());
     }
     else if (para_decl->get_type() == handler_->VARIATIC_TYPE) {
@@ -56,9 +62,11 @@ auto Verifier::visit_para_decl(std::shared_ptr<ParaDecl> para_decl) -> void {
 }
 
 auto Verifier::visit_local_var_decl(std::shared_ptr<LocalVarDecl> local_var_decl) -> void {
-    declare_variable(local_var_decl->get_ident(), local_var_decl);
+    local_var_decl->set_statement_num(global_statement_counter_);
+    local_var_decl->set_depth_num(loop_depth_);
+    declare_variable(local_var_decl->get_ident() + local_var_decl->get_append(), local_var_decl);
 
-    if (local_var_decl->get_type() == handler_->VOID_TYPE) {
+    if (local_var_decl->get_type().is_void()) {
         handler_->report_error(current_filename_, all_errors_[4], local_var_decl->get_ident(), local_var_decl->pos());
     }
 
@@ -66,15 +74,20 @@ auto Verifier::visit_local_var_decl(std::shared_ptr<LocalVarDecl> local_var_decl
         current_numerical_type = local_var_decl->get_type();
     }
     local_var_decl->get_expr()->visit(shared_from_this());
+    current_numerical_type = std::nullopt;
+
     auto const& expr_type = local_var_decl->get_expr()->get_type();
-    if (local_var_decl->get_type() == handler_->UNKNOWN_TYPE) {
+    auto const has_expr = !(std::dynamic_pointer_cast<EmptyExpr>(local_var_decl->get_expr()));
+    if (local_var_decl->get_type().is_unknown()) {
         if (expr_type.is_void()) {
             handler_->report_error(current_filename_, all_errors_[29], local_var_decl->get_ident(), local_var_decl->pos());
             local_var_decl->set_type(handler_->ERROR_TYPE);
         }
-        local_var_decl->set_type(expr_type);
+        else {
+            local_var_decl->set_type(expr_type);
+        }
     }
-    else if (local_var_decl->get_type() != expr_type) {
+    else if (has_expr and local_var_decl->get_type() != expr_type) {
         auto stream = std::stringstream{};
         stream << "expected " << local_var_decl->get_type() << ", got " << expr_type;
         if (local_var_decl->get_type().is_numeric() and expr_type.is_numeric()) {
@@ -87,7 +100,45 @@ auto Verifier::visit_local_var_decl(std::shared_ptr<LocalVarDecl> local_var_decl
         local_var_decl->set_type(handler_->ERROR_TYPE);
     }
 
+    return;
+}
+
+auto Verifier::visit_global_var_decl(std::shared_ptr<GlobalVarDecl> global_var_decl) -> void {
+    auto const name = global_var_decl->get_ident();
+
+    if (global_var_decl->get_type().is_void()) {
+        handler_->report_error(current_filename_, all_errors_[4], name, global_var_decl->pos());
+    }
+    if (global_var_decl->get_type().is_numeric()) {
+        current_numerical_type = global_var_decl->get_type();
+    }
+    global_var_decl->get_expr()->visit(shared_from_this());
     current_numerical_type = std::nullopt;
+
+    auto const& expr_type = global_var_decl->get_expr()->get_type();
+    auto const has_expr = !(std::dynamic_pointer_cast<EmptyExpr>(global_var_decl->get_expr()));
+    if (global_var_decl->get_type().is_unknown()) {
+        if (expr_type.is_void()) {
+            handler_->report_error(current_filename_, all_errors_[29], name, global_var_decl->pos());
+            global_var_decl->set_type(handler_->ERROR_TYPE);
+        }
+        else {
+            global_var_decl->set_type(expr_type);
+        }
+    }
+    else if (has_expr and global_var_decl->get_type() != expr_type) {
+        auto stream = std::stringstream{};
+        stream << "expected " << global_var_decl->get_type() << ", got " << expr_type;
+        if (global_var_decl->get_type().is_numeric() and expr_type.is_numeric()) {
+            stream << ". You may require an explicit type cast";
+        }
+        if (global_var_decl->get_type().is_unsigned_int()) {
+            stream << ". Note that unsigned integer literals should end with a 'u'.";
+        }
+        handler_->report_error(current_filename_, all_errors_[6], stream.str(), global_var_decl->pos());
+        global_var_decl->set_type(handler_->ERROR_TYPE);
+    }
+
     return;
 }
 
@@ -107,11 +158,11 @@ auto Verifier::visit_extern(std::shared_ptr<Extern> extern_) -> void {
 }
 
 auto Verifier::visit_function(std::shared_ptr<Function> function) -> void {
-    base_statement_counter = 0;
+    global_statement_counter_ = 0;
     // Verifying main function
     if (function->get_ident() == "main") {
         in_main_ = has_main_ = true;
-        if (function->get_type() != handler_->VOID_TYPE) {
+        if (!function->get_type().is_void()) {
             auto stream = std::stringstream{};
             stream << "should return void, not " << function->get_type();
             handler_->report_error(current_filename_, all_errors_[2], stream.str(), function->pos());
@@ -157,11 +208,11 @@ auto Verifier::visit_function(std::shared_ptr<Function> function) -> void {
 
     symbol_table_.close_scope();
 
-    if (!has_return_ and function->get_type() != handler_->VOID_TYPE) {
+    if (!has_return_ and !function->get_type().is_void()) {
         handler_->report_error(current_filename_, all_errors_[10], "in function " + function->get_ident(), function->pos());
     }
 
-    base_statement_counter = 0;
+    global_statement_counter_ = 0;
     in_main_ = false;
 }
 
@@ -565,9 +616,9 @@ auto Verifier::visit_empty_stmt(std::shared_ptr<EmptyStmt> empty_stmt) -> void {
 auto Verifier::visit_compound_stmt(std::shared_ptr<CompoundStmt> compound_stmt) -> void {
     symbol_table_.open_scope();
     for (auto& stmt : compound_stmt->get_stmts()) {
+        ++global_statement_counter_;
         stmt->visit(shared_from_this());
     }
-
     if (!handler_->quiet_mode()) {
         // Check if any variables opened in that scope remained unused
         for (auto const& var : symbol_table_.retrieve_latest_scope()) {
@@ -684,6 +735,12 @@ auto Verifier::check(std::string const& filename, bool is_main) -> void {
 
     current_module_ = module;
 
+    check_duplicate_globals();
+    load_all_global_variables();
+    for (auto& global_var : current_module_->get_global_vars()) {
+        global_var->visit(shared_from_this());
+    }
+
     check_duplicate_extern_declaration();
     for (auto& extern_ : current_module_->get_externs()) {
         extern_->visit(shared_from_this());
@@ -722,6 +779,27 @@ auto Verifier::check_unused_declarations() -> void {
     }
 }
 
+auto Verifier::load_all_global_variables() -> void {
+    for (auto const& global_var : current_module_->get_global_vars()) {
+        global_var->set_statement_num(global_statement_counter_);
+        global_var->set_depth_num(loop_depth_);
+        declare_variable(global_var->get_ident() + global_var->get_append(), global_var);
+    }
+}
+
+auto Verifier::check_duplicate_globals() -> void {
+    std::vector<GlobalVarDecl> seen_globals;
+    for (const auto& global_var : current_module_->get_global_vars()) {
+        auto it = std::find(seen_globals.begin(), seen_globals.end(), *global_var);
+        if (it != seen_globals.end()) {
+            handler_->report_error(current_filename_, all_errors_[30], global_var->get_ident(), global_var->pos());
+        }
+        else {
+            seen_globals.push_back(*global_var);
+        }
+    }
+}
+
 auto Verifier::check_duplicate_function_declaration() -> void {
     std::vector<Function> seen_functions;
     for (const auto& func : current_module_->get_functions()) {
@@ -749,18 +827,19 @@ auto Verifier::check_duplicate_extern_declaration() -> void {
 }
 
 auto Verifier::declare_variable(std::string ident, std::shared_ptr<Decl> decl) -> void {
-    auto entry = symbol_table_.retrieve_one_level(ident);
+    auto pos = ident.find('.');
+    auto entry = symbol_table_.retrieve_one_level(ident.substr(0, pos));
     if (entry.has_value()) {
-        const std::string error_message = "'" + ident + "'. Previously declared at line "
+        const std::string error_message = "'" + ident.substr(0, pos) + "'. Previously declared at line "
                                           + std::to_string(entry->attr->pos().line_start_) + ", column "
                                           + std::to_string(entry->attr->pos().col_start_);
         if (auto derived_para_decl = std::dynamic_pointer_cast<ParaDecl>(decl)) {
-            handler_->report_error(current_filename_, all_errors_[3], error_message, decl->pos());
+            handler_->report_minor_error(current_filename_, all_errors_[3], error_message, decl->pos());
             return;
         }
         else {
             // Assume it to be a local var for now
-            handler_->report_error(current_filename_, all_errors_[3], error_message, decl->pos());
+            handler_->report_minor_error(current_filename_, all_errors_[3], error_message, decl->pos());
             symbol_table_.remove(*entry);
         }
     }

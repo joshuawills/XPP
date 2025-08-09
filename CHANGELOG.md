@@ -24,6 +24,8 @@
 - ADDITION: more tests
 - ADDITION: checking for unspecified types in var declaration
 - ADDITION: support for +=, -=, *=, and /=
+- ADDITION: global variables
+- ADDITION: proper variable shadowing
 
 ## TODO
 
@@ -34,4 +36,3 @@
 - References?
 - Documentation!
 - Function overloading
-- Global variables

@@ -57,10 +57,23 @@ class Decl : public AST {
         return t_;
     }
 
+    auto set_statement_num(size_t num) -> void {
+        statement_num_ = num;
+    }
+
+    auto set_depth_num(size_t num) -> void {
+        depth_num_ = num;
+    }
+
+    auto get_append() -> std::string {
+        return "." + std::to_string(statement_num_) + "_" + std::to_string(depth_num_);
+    }
+
  protected:
     bool is_used_ = false, is_reassigned_ = false, is_mut_ = false, is_exported_ = false;
     std::string ident_;
     Type t_;
+    size_t statement_num_ = 0, depth_num_ = 0;
 };
 
 class ParaDecl
@@ -92,7 +105,7 @@ class LocalVarDecl
  public:
     LocalVarDecl(Position pos, std::string ident, Type t, std::shared_ptr<Expr> e)
     : Decl(pos, ident, t)
-    , e_(e) {}
+    , expr_(e) {}
 
     auto visit(std::shared_ptr<Visitor> visitor) -> void override {
         visitor->visit_local_var_decl(shared_from_this());
@@ -102,11 +115,38 @@ class LocalVarDecl
     auto print(std::ostream& os) const -> void override;
 
     auto get_expr() const -> std::shared_ptr<Expr> {
-        return e_;
+        return expr_;
     }
 
  private:
-    std::shared_ptr<Expr> e_;
+    std::shared_ptr<Expr> expr_;
+};
+
+class GlobalVarDecl
+: public Decl
+, public std::enable_shared_from_this<GlobalVarDecl> {
+ public:
+    GlobalVarDecl(Position pos, std::string const ident, Type const t, std::shared_ptr<Expr> const expr)
+    : Decl(pos, ident, t)
+    , expr_(expr) {}
+
+    auto visit(std::shared_ptr<Visitor> visitor) -> void override {
+        visitor->visit_global_var_decl(shared_from_this());
+    }
+
+    auto codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* override;
+    auto print(std::ostream& os) const -> void override;
+
+    auto operator==(GlobalVarDecl const& other) -> bool {
+        return get_ident() == other.get_ident();
+    }
+
+    auto get_expr() const -> std::shared_ptr<Expr> {
+        return expr_;
+    }
+
+ private:
+    std::shared_ptr<Expr> const expr_;
 };
 
 class Function

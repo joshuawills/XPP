@@ -1,0 +1,16 @@
+// Identifier redeclared
+
+extern printf(i8*, ...) i32;
+
+fn foo(bar: i32) bool {
+	printf("%d\n", bar);
+	let bar = false;
+	return bar;
+}
+
+fn main() void {
+	let x = 1;
+	printf("%d\n", x);
+	let x = 1;
+	foo(x as i32);
+}

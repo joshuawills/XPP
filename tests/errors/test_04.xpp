@@ -1,5 +1,7 @@
 // Identifier declared void
 
+let y: void;
+
 fn sigma(x: void) void {}
 
 fn main() void {

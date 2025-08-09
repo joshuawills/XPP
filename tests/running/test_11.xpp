@@ -1,0 +1,23 @@
+// Global vars basic and variable shadowing
+
+extern printf(i8*, ...) i32;
+
+let mut g_counter: i64;
+
+let mut g_string = "my name is ben";
+
+fn main() void {
+    ++g_counter;
+	printf("%d\n", g_counter);
+
+	{
+		++g_counter;
+		printf("%d\n", g_counter);
+		let g_counter = 21;
+		printf("%d\n", g_counter);
+	}
+
+	printf("%d\n", g_counter);
+
+	printf("%s\n", g_string);
+}

@@ -29,6 +29,10 @@ struct Type {
         return t;
     }
 
+    auto is_unknown() const noexcept -> bool {
+        return t == TypeSpec::UNKNOWN;
+    }
+
     auto is_void() const noexcept -> bool {
         return t == TypeSpec::VOID;
     }

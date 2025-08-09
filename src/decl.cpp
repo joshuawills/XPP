@@ -36,7 +36,8 @@ auto Function::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
     // Setting names of function params
     auto idx = 0u;
     for (auto& arg : func->args()) {
-        arg.setName(paras_[idx++]->get_ident());
+        arg.setName(paras_[idx]->get_ident() + paras_[idx]->get_append());
+        idx++;
     }
 
     auto entry_name = std::to_string(emitter->global_counter++);
@@ -138,17 +139,46 @@ auto LocalVarDecl::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
     auto llvm_type = emitter->llvm_type(get_type());
     auto alloca = emitter->llvm_builder->CreateAlloca(llvm_type, nullptr, get_ident());
 
-    auto init_val = e_->codegen(emitter);
+    auto init_val = expr_->codegen(emitter);
     if (init_val) {
         emitter->llvm_builder->CreateStore(init_val, alloca);
     }
 
-    emitter->named_values[get_ident()] = alloca;
+    emitter->named_values[get_ident() + get_append()] = alloca;
     return alloca;
 }
 
 auto LocalVarDecl::print(std::ostream& os) const -> void {
     os << "let " << ident_ << " : " << t_ << " = ";
-    e_->print(os);
+    expr_->print(os);
+    return;
+}
+
+auto GlobalVarDecl::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
+    auto const llvm_type = emitter->llvm_type(get_type());
+    auto global_var = new llvm::GlobalVariable(*emitter->llvm_module,
+                                               llvm_type,
+                                               false,
+                                               llvm::GlobalValue::ExternalLinkage,
+                                               nullptr,
+                                               ident_);
+
+    auto const has_expr = !(std::dynamic_pointer_cast<EmptyExpr>(expr_));
+    if (has_expr) {
+        auto val = expr_->codegen(emitter);
+        global_var->setInitializer(llvm::dyn_cast<llvm::Constant>(val));
+    }
+    else {
+        global_var->setInitializer(llvm::Constant::getNullValue(llvm_type));
+    }
+
+    emitter->named_values[ident_ + get_append()] = global_var;
+    return global_var;
+}
+
+auto GlobalVarDecl::print(std::ostream& os) const -> void {
+    os << "let " << ident_ << " : " << t_ << " = ";
+    expr_->print(os);
+    os << ";\n";
     return;
 }

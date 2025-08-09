@@ -5,6 +5,7 @@
 
 class ParaDecl;
 class LocalVarDecl;
+class GlobalVarDecl;
 class Function;
 class EmptyExpr;
 class AssignmentExpr;
@@ -33,6 +34,7 @@ class Visitor {
  public:
     virtual auto visit_para_decl(std::shared_ptr<ParaDecl> para_decl) -> void = 0;
     virtual auto visit_local_var_decl(std::shared_ptr<LocalVarDecl> local_var_decl) -> void = 0;
+    virtual auto visit_global_var_decl(std::shared_ptr<GlobalVarDecl> global_var_decl) -> void = 0;
     virtual auto visit_function(std::shared_ptr<Function> function) -> void = 0;
     virtual auto visit_extern(std::shared_ptr<Extern> extern_) -> void = 0;
     virtual auto visit_empty_expr(std::shared_ptr<EmptyExpr> empty_expr) -> void = 0;
