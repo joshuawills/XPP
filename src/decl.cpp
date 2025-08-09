@@ -30,8 +30,12 @@ auto Function::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
     }
 
     // Instantiating function
+    auto name = get_ident();
+    if (name != "main") {
+        name += get_type_output();
+    }
     auto func_type = llvm::FunctionType::get(return_type, param_types, false);
-    auto func = llvm::Function::Create(func_type, llvm::Function::ExternalLinkage, get_ident(), *emitter->llvm_module);
+    auto func = llvm::Function::Create(func_type, llvm::Function::ExternalLinkage, name, *emitter->llvm_module);
 
     // Setting names of function params
     auto idx = 0u;

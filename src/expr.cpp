@@ -487,7 +487,14 @@ auto BinaryExpr::handle_logical_or(std::shared_ptr<Emitter> emitter) -> llvm::Va
 }
 
 auto CallExpr::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
-    auto callee = emitter->llvm_module->getFunction(name_);
+    auto name = std::string{};
+    if (auto l = std::dynamic_pointer_cast<Function>(ref_)) {
+        name = l->get_ident() + l->get_type_output();
+    }
+    else {
+        name = name_;
+    }
+    auto callee = emitter->llvm_module->getFunction(name);
     auto arg_vals = std::vector<llvm::Value*>{};
     for (auto& arg : args_) {
         auto const val = arg->codegen(emitter);

@@ -63,7 +63,7 @@ auto operator<<(std::ostream& os, Type const& t) -> std::ostream& {
     }
     os << t.t;
     if (t.lexeme.has_value()) {
-        os << ", " << *t.lexeme;
+        os << "." << *t.lexeme;
     }
     return os;
 }

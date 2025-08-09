@@ -26,6 +26,7 @@
 - ADDITION: support for +=, -=, *=, and /=
 - ADDITION: global variables
 - ADDITION: proper variable shadowing
+- ADDITION: basic function overloading
 
 ## TODO
 
@@ -35,4 +36,3 @@
 - Composite data types
 - References?
 - Documentation!
-- Function overloading

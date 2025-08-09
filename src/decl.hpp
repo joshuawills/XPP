@@ -7,6 +7,8 @@
 #include "./type.hpp"
 #include "./visitor.hpp"
 
+#include <sstream>
+
 class Decl : public AST {
  public:
     Decl(Position pos, std::string ident, Type t)
@@ -175,11 +177,26 @@ class Function
     auto codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* override;
     auto print(std::ostream& os) const -> void override;
 
+    auto get_type_output() -> std::string {
+        if (type_output.size() != 0) {
+            return type_output;
+        }
+
+        auto buffer = std::stringstream{};
+        for (auto& para : paras_) {
+            buffer << para->get_type();
+        }
+        buffer << '.';
+        type_output = buffer.str();
+        return type_output;
+    }
+
     auto operator==(const Function& other) const -> bool;
 
  private:
     std::vector<std::shared_ptr<ParaDecl>> const paras_;
     std::shared_ptr<CompoundStmt> const stmts_;
+    std::string type_output = "";
 };
 
 class Extern

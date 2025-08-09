@@ -1,0 +1,27 @@
+// Basic function overloading support
+
+extern printf(i8*, ...) i32;
+
+fn add(x: i64, y: i64) i64 {
+	return x + y;
+}
+
+fn add(x: i64) i64 {
+	return add(0, x);
+}
+
+fn add(x: f64, y: f64) f64 {
+    return x + y; 
+}
+
+fn add(x: f64) f64 {
+    return add(x, 0.0);
+}
+
+fn main() void {
+    printf("%d\n", add(2));
+    printf("%d\n", add(2, 3));
+
+    printf("%lf\n", add(2.0));
+    printf("%lf\n", add(2.0, 3.0));
+}

@@ -556,6 +556,10 @@ auto Verifier::visit_call_expr(std::shared_ptr<CallExpr> call_expr) -> void {
         return;
     }
 
+    for (auto& arg : call_expr->get_args()) {
+        arg->visit(shared_from_this());
+    }
+
     auto equivalent_func = current_module_->get_decl(call_expr);
 
     if (!equivalent_func) {

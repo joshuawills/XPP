@@ -19,7 +19,9 @@ auto operator<<(std::ostream& os, Module const& mod) -> std::ostream& {
 
 auto Module::get_decl(std::shared_ptr<CallExpr> call_expr) const -> std::optional<std::shared_ptr<Decl>> {
     auto it = std::find_if(functions_.begin(), functions_.end(), [&call_expr](auto const& func) {
-        if (func->get_ident() != call_expr->get_name()) {
+        auto dot_pos = func->get_ident().find('.');
+        auto prefix = func->get_ident().substr(0, dot_pos);
+        if (prefix != call_expr->get_name()) {
             return false;
         }
         auto const& call_args = call_expr->get_args();
