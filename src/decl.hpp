@@ -147,6 +147,8 @@ class GlobalVarDecl
         return expr_;
     }
 
+    auto handle_global_arr(std::shared_ptr<Emitter> emitter) -> llvm::Value*;
+
  private:
     std::shared_ptr<Expr> const expr_;
 };

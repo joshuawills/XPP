@@ -446,4 +446,26 @@ class CastExpr
     std::shared_ptr<Type> const to_;
 };
 
+class ArrayInitExpr
+: public Expr
+, public std::enable_shared_from_this<ArrayInitExpr> {
+ public:
+    ArrayInitExpr(Position const pos, std::vector<std::shared_ptr<Expr>> const exprs)
+    : Expr(pos, std::make_shared<Type>())
+    , exprs_(exprs) {}
+
+    auto visit(std::shared_ptr<Visitor> visitor) -> void override {
+        visitor->visit_array_init_expr(shared_from_this());
+    }
+    auto codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* override;
+    auto print(std::ostream& os) const -> void override;
+
+    auto get_exprs() const -> std::vector<std::shared_ptr<Expr>> {
+        return exprs_;
+    }
+
+ private:
+    std::vector<std::shared_ptr<Expr>> const exprs_;
+};
+
 #endif // EXPR_HPP

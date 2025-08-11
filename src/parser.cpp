@@ -101,6 +101,7 @@ auto Parser::parse() -> std::shared_ptr<Module> {
                 expr = parse_expr();
             }
             auto global_var = std::make_shared<GlobalVarDecl>(p, ident, type, expr);
+            expr->set_parent(global_var);
             if (is_mut) {
                 global_var->set_mut();
             }
@@ -176,9 +177,25 @@ auto Parser::parse_type() -> std::shared_ptr<Type> {
     // Handle pointer types
     std::shared_ptr<Type> return_type = std::make_shared<Type>(*type_spec);
     std::shared_ptr<Type> sub_type = nullptr;
-    while (try_consume(TokenType::MULTIPLY)) {
+    if (try_consume(TokenType::OPEN_SQUARE)) {
         sub_type = return_type;
-        return_type = std::make_shared<PointerType>(sub_type);
+        if (peek(TokenType::INTEGER)) {
+            auto value = std::stoul((*curr_token_)->lexeme());
+            consume();
+            match(TokenType::CLOSE_SQUARE);
+            return std::make_shared<ArrayType>(sub_type, size_t{value});
+        }
+        else {
+            match(TokenType::CLOSE_SQUARE);
+            return std::make_shared<ArrayType>(sub_type);
+        }
+        match(TokenType::CLOSE_SQUARE);
+    }
+    else {
+        while (try_consume(TokenType::MULTIPLY)) {
+            sub_type = return_type;
+            return_type = std::make_shared<PointerType>(sub_type);
+        }
     }
 
     return return_type;
@@ -293,6 +310,7 @@ auto Parser::parse_local_var_stmt() -> std::shared_ptr<LocalVarStmt> {
     }
     match(TokenType::SEMICOLON);
     std::shared_ptr<LocalVarDecl> decl = std::make_shared<LocalVarDecl>(p, ident, t, e);
+    e->set_parent(decl);
     if (is_mut) {
         decl->set_mut();
     }
@@ -476,9 +494,8 @@ auto Parser::parse_unary_expr() -> std::shared_ptr<Expr> {
         finish(p);
         return std::make_shared<UnaryExpr>(p, is_plus ? Op::PREFIX_ADD : Op::PREFIX_MINUS, expr);
     }
-
-    if (peek(TokenType::NEGATE) or peek(TokenType::PLUS) or peek(TokenType::MINUS) or peek(TokenType::MULTIPLY)
-        or peek(TokenType::AMPERSAND))
+    else if (peek(TokenType::NEGATE) or peek(TokenType::PLUS) or peek(TokenType::MINUS) or peek(TokenType::MULTIPLY)
+             or peek(TokenType::AMPERSAND))
     {
         auto op = parse_operator();
         if (op == Op::MULTIPLY) {
@@ -488,9 +505,29 @@ auto Parser::parse_unary_expr() -> std::shared_ptr<Expr> {
         finish(p);
         return std::make_shared<UnaryExpr>(p, op, expr);
     }
+    else if (peek(TokenType::OPEN_SQUARE)) {
+        return parse_array_init_expr();
+    }
     else {
         return parse_postfix_expr();
     }
+}
+
+auto Parser::parse_array_init_expr() -> std::shared_ptr<Expr> {
+    auto p = Position{};
+    start(p);
+    auto exprs = std::vector<std::shared_ptr<Expr>>{};
+    match(TokenType::OPEN_SQUARE);
+    while (curr_token_.has_value() and !peek(TokenType::CLOSE_SQUARE)) {
+        exprs.push_back(parse_expr());
+        if (peek(TokenType::CLOSE_SQUARE)) {
+            break;
+        }
+        match(TokenType::COMMA);
+    }
+    match(TokenType::CLOSE_SQUARE);
+    finish(p);
+    return std::make_shared<ArrayInitExpr>(p, exprs);
 }
 
 auto Parser::parse_postfix_expr() -> std::shared_ptr<Expr> {

@@ -67,7 +67,7 @@ auto Function::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
 }
 
 auto Function::print(std::ostream& os) const -> void {
-    os << "Function " << pos() << " " << ident_ << " : " << t_ << "\n";
+    os << "Function " << pos() << " " << ident_ << " : " << *t_ << "\n";
 
     for (auto const& para : paras_) {
         os << "\t\t";
@@ -117,10 +117,10 @@ auto Extern::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
 }
 
 auto Extern::print(std::ostream& os) const -> void {
-    os << "Extern" << pos() << " " << ident_ << " : " << t_ << "\n";
+    os << "Extern" << pos() << " " << ident_ << " : " << *t_ << "\n";
 
     for (auto const& type : types_) {
-        os << ", " << type;
+        os << ", " << *type;
     }
     os << "\n";
 }
@@ -135,7 +135,7 @@ auto ParaDecl::print(std::ostream& os) const -> void {
     if (is_mut_) {
         os << "(is_mut) ";
     }
-    os << "\t " << ident_ << " : " << t_;
+    os << "\t " << ident_ << " : " << *t_;
     return;
 }
 
@@ -153,12 +153,49 @@ auto LocalVarDecl::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
 }
 
 auto LocalVarDecl::print(std::ostream& os) const -> void {
-    os << "let " << ident_ << " : " << t_ << " = ";
+    os << "let " << ident_ << " : " << *t_ << " = ";
     expr_->print(os);
     return;
 }
 
+auto GlobalVarDecl::handle_global_arr(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
+    auto const arr_type = std::dynamic_pointer_cast<ArrayType>(get_type());
+    auto const arr_len = *arr_type->get_length();
+    auto const llvm_type = static_cast<llvm::ArrayType*>(emitter->llvm_type(arr_type));
+
+    auto const_elems = std::vector<llvm::Constant*>{};
+    const_elems.reserve(arr_len);
+
+    if (auto const l = std::dynamic_pointer_cast<ArrayInitExpr>(expr_)) {
+        auto i = 0u;
+        llvm::Constant* last_seen;
+        for (auto& elem : l->get_exprs()) {
+            auto const c_val = llvm::dyn_cast<llvm::Constant>(elem->codegen(emitter));
+            last_seen = c_val;
+            if (!c_val) {
+                std::cout << "Global array initialiser is not constant\n";
+                return nullptr;
+            }
+            const_elems.push_back(c_val);
+            i++;
+        }
+
+        while (i and i < arr_len) {
+            const_elems.push_back(last_seen);
+            i++;
+        }
+    }
+
+    auto const const_array = llvm::ConstantArray::get(llvm_type, const_elems);
+    auto const global_var =
+        new llvm::GlobalVariable(*emitter->llvm_module, llvm_type, false, llvm::GlobalValue::ExternalLinkage, const_array);
+    return global_var;
+}
+
 auto GlobalVarDecl::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
+    if (get_type()->is_array()) {
+        return handle_global_arr(emitter);
+    }
     auto const llvm_type = emitter->llvm_type(get_type());
     auto global_var = new llvm::GlobalVariable(*emitter->llvm_module,
                                                llvm_type,
@@ -181,7 +218,7 @@ auto GlobalVarDecl::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
 }
 
 auto GlobalVarDecl::print(std::ostream& os) const -> void {
-    os << "let " << ident_ << " : " << t_ << " = ";
+    os << "let " << ident_ << " : " << *t_ << " = ";
     expr_->print(os);
     os << ";\n";
     return;

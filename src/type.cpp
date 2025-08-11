@@ -70,6 +70,7 @@ auto operator<<(std::ostream& os, TypeSpec const& ts) -> std::ostream& {
     case TypeSpec::U8: os << "u8"; break;
     case TypeSpec::VARIATIC: os << "..."; break;
     case TypeSpec::UNKNOWN: os << "unknown"; break;
+    case TypeSpec::ARRAY: os << "array"; break;
     default: os << "invalid typespec"; break;
     }
     return os;

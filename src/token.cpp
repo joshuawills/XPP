@@ -90,6 +90,8 @@ auto operator<<(std::ostream& os, TokenType const& t) -> std::ostream& {
     case TokenType::MINUS_ASSIGN: os << "MINUS_ASSIGN"; break;
     case TokenType::MULTIPLY_ASSIGN: os << "MULTIPLY_ASSIGN"; break;
     case TokenType::DIVIDE_ASSIGN: os << "DIVIDE_ASSIGN"; break;
+    case TokenType::OPEN_SQUARE: os << "OPEN_SQUARE"; break;
+    case TokenType::CLOSE_SQUARE: os << "OPEN_SQUARE"; break;
     default: os << "UNKNOWN";
     }
     return os;

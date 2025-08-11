@@ -69,6 +69,7 @@ class Verifier
     auto visit_var_expr(std::shared_ptr<VarExpr> var_expr) -> void override;
     auto visit_call_expr(std::shared_ptr<CallExpr> call_expr) -> void override;
     auto visit_cast_expr(std::shared_ptr<CastExpr> cast_expr) -> void override;
+    auto visit_array_init_expr(std::shared_ptr<ArrayInitExpr> array_init_expr) -> void override;
 
     auto visit_empty_stmt(std::shared_ptr<EmptyStmt> empty_stmt) -> void override;
     auto visit_compound_stmt(std::shared_ptr<CompoundStmt> compound_stmt) -> void override;
@@ -128,7 +129,10 @@ class Verifier
                                                   "27: invalid type cast operation: %",
                                                   "28: prefix/postfix operators may only be applied to lvalue types",
                                                   "29: can't initialise variable without type or value: %",
-                                                  "30: duplicate global var declaration: %"};
+                                                  "30: duplicate global var declaration: %",
+                                                  "31: excess elements provided in array init expression: %",
+                                                  "32: array initialised with 0 elements",
+                                                  "33: incompatible type for array initialiser expression: %"};
 
     auto check_duplicate_function_declaration() -> void;
     auto check_duplicate_extern_declaration() -> void;

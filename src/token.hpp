@@ -62,7 +62,9 @@ enum class TokenType {
     PLUS_ASSIGN,
     MINUS_ASSIGN,
     MULTIPLY_ASSIGN,
-    DIVIDE_ASSIGN
+    DIVIDE_ASSIGN,
+    OPEN_SQUARE,
+    CLOSE_SQUARE,
 };
 
 class Token {

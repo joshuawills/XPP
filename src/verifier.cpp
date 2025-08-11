@@ -100,6 +100,11 @@ auto Verifier::visit_local_var_decl(std::shared_ptr<LocalVarDecl> local_var_decl
         local_var_decl->set_type(handler_->ERROR_TYPE);
     }
 
+    std::shared_ptr<ArrayType> l;
+    if (has_expr and (l = std::dynamic_pointer_cast<ArrayType>(expr_type))) {
+        local_var_decl->set_type(l);
+    }
+
     return;
 }
 
@@ -137,6 +142,11 @@ auto Verifier::visit_global_var_decl(std::shared_ptr<GlobalVarDecl> global_var_d
         }
         handler_->report_error(current_filename_, all_errors_[6], stream.str(), global_var_decl->pos());
         global_var_decl->set_type(handler_->ERROR_TYPE);
+    }
+
+    std::shared_ptr<ArrayType> l;
+    if (has_expr and (l = std::dynamic_pointer_cast<ArrayType>(expr_type))) {
+        global_var_decl->set_type(l);
     }
 
     return;
@@ -609,6 +619,86 @@ auto Verifier::visit_cast_expr(std::shared_ptr<CastExpr> cast_expr) -> void {
         handler_->report_error(current_filename_, all_errors_[27], stream.str(), cast_expr->pos());
         cast_expr->set_type(handler_->ERROR_TYPE);
     }
+    return;
+}
+
+auto Verifier::visit_array_init_expr(std::shared_ptr<ArrayInitExpr> array_init_expr) -> void {
+    auto const arg_count = array_init_expr->get_exprs().size();
+    auto p = array_init_expr->get_parent();
+    auto has_size_specified = false;
+    auto size_specified = size_t{0};
+    auto has_sub_type_specified = false;
+    std::shared_ptr<Type> parent_t;
+    std::shared_ptr<Type> individual_type;
+    auto error_occured = false;
+
+    if (auto l = std::dynamic_pointer_cast<LocalVarDecl>(p)) {
+        parent_t = l->get_type();
+    }
+    else if (auto g = std::dynamic_pointer_cast<GlobalVarDecl>(p)) {
+        parent_t = g->get_type();
+    }
+
+    if (parent_t and parent_t->is_array()) {
+        if (auto l = std::dynamic_pointer_cast<ArrayType>(parent_t)) {
+            has_sub_type_specified = true;
+            individual_type = l->get_sub_type();
+            if (individual_type->is_numeric()) {
+                current_numerical_type = parent_t;
+            }
+            auto len = l->get_length();
+            if (len.has_value()) {
+                has_size_specified = true;
+                size_specified = *len;
+            }
+        }
+    }
+
+    auto element_types = individual_type;
+    auto elem_num = 0u;
+    for (auto& expr : array_init_expr->get_exprs()) {
+        expr->visit(shared_from_this());
+        if (elem_num == 0 and !has_sub_type_specified) {
+            element_types = expr->get_type();
+        }
+
+        if (!expr->get_type()->is_error() and expr->get_type() != element_types) {
+            auto stream = std::stringstream{};
+            stream << "position " << elem_num << ". Expected " << *element_types << ", got " << *expr->get_type();
+            if (element_types->is_numeric() and expr->get_type()->is_numeric()) {
+                stream << ". You may require an explicit type cast";
+            }
+            if (element_types->is_numeric()) {
+                stream << ". Note that unsigned integer literals should end with a 'u'.";
+            }
+            handler_->report_error(current_filename_, all_errors_[33], stream.str(), expr->pos());
+            error_occured = true;
+        }
+        ++elem_num;
+    }
+
+    current_numerical_type = std::nullopt;
+
+    if (has_size_specified and arg_count > size_specified) {
+        handler_->report_error(current_filename_,
+                               all_errors_[31],
+                               "expected " + std::to_string(size_specified) + ", received " + std::to_string(arg_count),
+                               array_init_expr->pos());
+        error_occured = true;
+    }
+    else if (has_size_specified and size_specified == 0) {
+        handler_->report_error(current_filename_, all_errors_[32], "", array_init_expr->pos());
+        error_occured = true;
+    }
+
+    if (error_occured) {
+        array_init_expr->set_type(handler_->ERROR_TYPE);
+    }
+    else {
+        array_init_expr->set_type(
+            std::make_shared<ArrayType>(element_types, (has_size_specified) ? size_specified : arg_count));
+    }
+
     return;
 }
 

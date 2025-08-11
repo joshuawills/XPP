@@ -17,8 +17,12 @@ class AST {
     : pos_(pos)
     , parent_(parent) {}
 
-    auto set_parent(AST* parent) {
+    auto set_parent(std::shared_ptr<AST> parent) {
         parent_ = parent;
+    }
+
+    auto get_parent() -> std::shared_ptr<AST> {
+        return parent_;
     }
 
     virtual ~AST() = default;
@@ -34,7 +38,7 @@ class AST {
 
  private:
     const Position pos_;
-    AST* parent_ = nullptr;
+    std::shared_ptr<AST> parent_ = nullptr;
 };
 
 #endif // AST_HPP

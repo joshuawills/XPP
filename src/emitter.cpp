@@ -95,6 +95,12 @@ auto Emitter::llvm_type(std::shared_ptr<Type> t) -> llvm::Type* {
         auto const element_type = llvm_type(p_t->get_sub_type());
         return llvm::PointerType::getUnqual(element_type);
     }
+    else if (t->is_array()) {
+        auto a_t = std::dynamic_pointer_cast<ArrayType>(t);
+        auto const element_type = llvm_type(a_t->get_sub_type());
+        auto const num_element = *a_t->get_length();
+        return llvm::ArrayType::get(element_type, num_element);
+    }
 
     switch (t->get_type_spec()) {
     case TypeSpec::BOOL: return llvm::Type::getInt1Ty(*context);

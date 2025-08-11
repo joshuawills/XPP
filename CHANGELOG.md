@@ -29,10 +29,14 @@
 - ADDITION: basic function overloading
 - INTERNAL: types now represented by classes
 
+## 11 Aug 2025
+
+- ADDITION: ArrayInitExpr and ArrayType
+
 ## TODO
 
+- Array access exprs
 - Add in for loops 
-- Array types
 - Moduling system
 - Composite data types
 - References?

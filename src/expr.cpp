@@ -594,3 +594,50 @@ auto CastExpr::print(std::ostream& os) const -> void {
     expr_->print(os);
     os << " as " << to_;
 }
+
+// Assume this is NOT for GlobalVariableDecl (handled there)
+auto ArrayInitExpr::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
+    auto const array_t = std::dynamic_pointer_cast<ArrayType>(get_type());
+    if (!array_t)
+        return nullptr;
+
+    auto const llvm_type = emitter->llvm_type(array_t);
+
+    auto const temp_name = std::to_string(emitter->global_counter++);
+    auto alloca = emitter->llvm_builder->CreateAlloca(llvm_type, nullptr, temp_name);
+
+    auto i = 0u;
+    llvm::Value* last_val;
+    for (auto& expr : exprs_) {
+        auto elem_val = expr->codegen(emitter);
+        if (!elem_val)
+            return nullptr;
+
+        llvm::Value* indices[] = {llvm::ConstantInt::get(llvm::Type::getInt32Ty(*emitter->context), 0),
+                                  llvm::ConstantInt::get(llvm::Type::getInt32Ty(*emitter->context), i)};
+
+        auto elem_ptr = emitter->llvm_builder->CreateInBoundsGEP(llvm_type, alloca, indices);
+        emitter->llvm_builder->CreateStore(elem_val, elem_ptr);
+        ++i;
+        last_val = elem_val;
+    }
+    while (i != 0 and i < *array_t->get_length()) {
+        llvm::Value* indices[] = {llvm::ConstantInt::get(llvm::Type::getInt32Ty(*emitter->context), 0),
+                                  llvm::ConstantInt::get(llvm::Type::getInt32Ty(*emitter->context), i)};
+
+        auto elem_ptr = emitter->llvm_builder->CreateInBoundsGEP(llvm_type, alloca, indices);
+        emitter->llvm_builder->CreateStore(last_val, elem_ptr);
+        ++i;
+    }
+
+    return alloca;
+}
+
+auto ArrayInitExpr::print(std::ostream& os) const -> void {
+    os << "[";
+    for (auto& expr : exprs_) {
+        expr->print(os);
+        os << " ";
+    }
+    os << "]";
+}

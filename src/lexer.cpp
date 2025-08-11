@@ -73,6 +73,8 @@ auto Lexer::generate_token() -> std::optional<Token> {
     }
     case '{': consume(); return Token{"{", line_, col_ - 1, col_ - 1, TokenType::OPEN_CURLY};
     case '}': consume(); return Token{"}", line_, col_ - 1, col_ - 1, TokenType::CLOSE_CURLY};
+    case '[': consume(); return Token{"[", line_, col_ - 1, col_ - 1, TokenType::OPEN_SQUARE};
+    case ']': consume(); return Token{"]", line_, col_ - 1, col_ - 1, TokenType::CLOSE_SQUARE};
     case ':': consume(); return Token{":", line_, col_ - 1, col_ - 1, TokenType::COLON};
     case ';': consume(); return Token{";", line_, col_ - 1, col_ - 1, TokenType::SEMICOLON};
     case '(': consume(); return Token{"(", line_, col_ - 1, col_ - 1, TokenType::OPEN_BRACKET};
