@@ -77,6 +77,7 @@ auto Parser::parse() -> std::shared_ptr<Module> {
             auto stmt = parse_compound_stmt();
             finish(p);
             auto func = std::make_shared<Function>(p, ident, paras, type, stmt);
+            stmt->set_parent(func);
             module->add_function(func);
         }
         else if (try_consume(TokenType::EXTERN)) {
@@ -114,6 +115,13 @@ auto Parser::parse() -> std::shared_ptr<Module> {
             }
             module->add_global_var(global_var);
             match(TokenType::SEMICOLON);
+        }
+        else {
+            auto stream = std::stringstream{};
+            stream << *(*curr_token_);
+            syntactic_error("Expected a type declaration, function declaration or global varariable declaration, "
+                            "received %",
+                            stream.str());
         }
     }
 
@@ -360,7 +368,9 @@ auto Parser::parse_while_stmt(Position p) -> std::shared_ptr<WhileStmt> {
     auto const cond = parse_expr();
     auto const stmts_ = parse_compound_stmt();
     finish(p);
-    return std::make_shared<WhileStmt>(p, cond, stmts_);
+    auto while_stmt = std::make_shared<WhileStmt>(p, cond, stmts_);
+    stmts_->set_parent(while_stmt);
+    return while_stmt;
 }
 
 auto Parser::parse_if_stmt(Position p) -> std::shared_ptr<IfStmt> {

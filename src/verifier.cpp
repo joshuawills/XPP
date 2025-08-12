@@ -106,6 +106,13 @@ auto Verifier::visit_local_var_decl(std::shared_ptr<LocalVarDecl> local_var_decl
     if (has_expr and (l = std::dynamic_pointer_cast<ArrayType>(expr_type))) {
         local_var_decl->set_type(l);
     }
+    if (local_var_decl->get_type()->is_array() and !expr_type->is_error()) {
+        auto a_t = std::dynamic_pointer_cast<ArrayType>(local_var_decl->get_type());
+        if (!a_t->get_length().has_value()) {
+            handler_->report_error(current_filename_, all_errors_[46], local_var_decl->get_ident(), local_var_decl->pos());
+            local_var_decl->set_type(handler_->ERROR_TYPE);
+        }
+    }
 
     return;
 }
@@ -149,6 +156,16 @@ auto Verifier::visit_global_var_decl(std::shared_ptr<GlobalVarDecl> global_var_d
     std::shared_ptr<ArrayType> l;
     if (has_expr and (l = std::dynamic_pointer_cast<ArrayType>(expr_type))) {
         global_var_decl->set_type(l);
+    }
+    if (global_var_decl->get_type()->is_array() and !expr_type->is_error()) {
+        auto a_t = std::dynamic_pointer_cast<ArrayType>(global_var_decl->get_type());
+        if (!a_t->get_length().has_value()) {
+            handler_->report_error(current_filename_,
+                                   all_errors_[46],
+                                   global_var_decl->get_ident(),
+                                   global_var_decl->pos());
+            global_var_decl->set_type(handler_->ERROR_TYPE);
+        }
     }
 
     return;
@@ -230,11 +247,15 @@ auto Verifier::visit_function(std::shared_ptr<Function> function) -> void {
 
     if (!handler_->quiet_mode()) {
         // Check if any variables opened in that scope remained unused
+        // or if they were declared mutable but never reassigned
         for (auto const& var : symbol_table_.retrieve_latest_scope()) {
             if (!var.attr->is_used()) {
-                auto stream = std::stringstream{};
-                stream << "local variable '" << var.attr->get_ident() << "'";
-                handler_->report_minor_error(current_filename_, all_errors_[21], stream.str(), var.attr->pos());
+                auto err = "local variable '" + var.attr->get_ident() + "'";
+                handler_->report_minor_error(current_filename_, all_errors_[21], err, var.attr->pos());
+            }
+            if (var.attr->is_mut() and !var.attr->is_reassigned()) {
+                auto err = "variable '" + var.attr->get_ident() + "'";
+                handler_->report_minor_error(current_filename_, all_errors_[44], err, var.attr->pos());
             }
         }
     }
@@ -280,6 +301,11 @@ auto Verifier::visit_assignment_expr(std::shared_ptr<AssignmentExpr> assignment_
             if (!ref->is_mut()) {
                 handler_->report_error(current_filename_, all_errors_[20], res->get_name(), assignment_expr->pos());
             }
+            if (l->get_type()->is_array()) {
+                handler_->report_error(current_filename_, all_errors_[45], res->get_name(), assignment_expr->pos());
+                assignment_expr->set_type(handler_->ERROR_TYPE);
+                return;
+            }
         }
     }
     else if (deref_res) {
@@ -288,6 +314,11 @@ auto Verifier::visit_assignment_expr(std::shared_ptr<AssignmentExpr> assignment_
             if (!ref->is_mut()) {
                 handler_->report_error(current_filename_, all_errors_[20], ref->get_ident(), assignment_expr->pos());
             }
+            if (l->get_type()->is_array()) {
+                handler_->report_error(current_filename_, all_errors_[45], ref->get_ident(), assignment_expr->pos());
+                assignment_expr->set_type(handler_->ERROR_TYPE);
+                return;
+            }
         }
     }
     else if (array_index_res) {
@@ -295,6 +326,11 @@ auto Verifier::visit_assignment_expr(std::shared_ptr<AssignmentExpr> assignment_
             ref->set_reassigned();
             if (!ref->is_mut()) {
                 handler_->report_error(current_filename_, all_errors_[20], ref->get_ident(), assignment_expr->pos());
+            }
+            if (l->get_type()->is_array()) {
+                handler_->report_error(current_filename_, all_errors_[45], ref->get_ident(), assignment_expr->pos());
+                assignment_expr->set_type(handler_->ERROR_TYPE);
+                return;
             }
         }
     }
@@ -812,12 +848,26 @@ auto Verifier::visit_empty_stmt(std::shared_ptr<EmptyStmt> empty_stmt) -> void {
 }
 
 auto Verifier::visit_compound_stmt(std::shared_ptr<CompoundStmt> compound_stmt) -> void {
-    symbol_table_.open_scope();
+    auto p = compound_stmt->get_parent();
+    auto parent_is_function = p != nullptr and std::dynamic_pointer_cast<Function>(p);
+
+    if (!parent_is_function) {
+        symbol_table_.open_scope();
+    }
+    auto i = 0u;
+    auto const s = compound_stmt->get_stmts().size();
     for (auto& stmt : compound_stmt->get_stmts()) {
         ++global_statement_counter_;
         stmt->visit(shared_from_this());
+        if (i != s - 1 and !handler_->quiet_mode()) {
+            auto const is_return_stmt = std::dynamic_pointer_cast<ReturnStmt>(stmt);
+            if (is_return_stmt) {
+                handler_->report_error(current_filename_, all_errors_[43], "", stmt->pos());
+            }
+        }
+        ++i;
     }
-    if (!handler_->quiet_mode()) {
+    if (!parent_is_function and !handler_->quiet_mode()) {
         // Check if any variables opened in that scope remained unused
         for (auto const& var : symbol_table_.retrieve_latest_scope()) {
             if (!var.attr->is_used()) {
@@ -825,10 +875,16 @@ auto Verifier::visit_compound_stmt(std::shared_ptr<CompoundStmt> compound_stmt) 
                 stream << "local variable '" << var.attr->get_ident() << "'";
                 handler_->report_minor_error(current_filename_, all_errors_[21], stream.str(), var.attr->pos());
             }
+            if (var.attr->is_mut() and !var.attr->is_reassigned()) {
+                auto err = "variable '" + var.attr->get_ident() + "'";
+                handler_->report_minor_error(current_filename_, all_errors_[44], err, var.attr->pos());
+            }
         }
     }
 
-    symbol_table_.close_scope();
+    if (!parent_is_function) {
+        symbol_table_.close_scope();
+    }
     return;
 }
 
@@ -1085,7 +1141,12 @@ auto Verifier::unmurk(std::shared_ptr<Type> murky_t) -> std::shared_ptr<Type> {
     }
     else if (murky_t->is_array()) {
         auto l = std::dynamic_pointer_cast<ArrayType>(murky_t);
-        return std::make_shared<ArrayType>(unmurk(l->get_sub_type()), *l->get_length());
+        if (l->get_length().has_value()) {
+            return std::make_shared<ArrayType>(unmurk(l->get_sub_type()), *l->get_length());
+        }
+        else {
+            return std::make_shared<ArrayType>(unmurk(l->get_sub_type()));
+        }
     }
     else if (murky_t->is_pointer()) {
         auto l = std::dynamic_pointer_cast<PointerType>(murky_t);

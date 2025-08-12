@@ -147,7 +147,11 @@ class Verifier
                                                   "39: no such field present on enum: %",
                                                   "40: enum declared with duplicate fields: %",
                                                   "41: unused enum: %",
-                                                  "42: unknown type declared: %"};
+                                                  "42: unknown type declared: %",
+                                                  "43: statement(s) not reached",
+                                                  "44: variable declared mutable but never reassigned: %",
+                                                  "45: attempted reassignment of array: %",
+                                                  "46: unknown array size at compile time: %"};
 
     auto check_duplicate_function_declaration() -> void;
     auto check_duplicate_extern_declaration() -> void;

@@ -37,6 +37,7 @@
 
 - ADDITION: Array and pointer indexing capabilities
 - ADDITION: Enum types, murky types and demurking
+- FIXES: more error checking re. arrays and minor errors
 
 ## TODO
 

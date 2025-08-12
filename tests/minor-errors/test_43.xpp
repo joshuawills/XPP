@@ -1,0 +1,16 @@
+// Statements not reached 
+
+extern printf(i8*, ...) i32;
+
+fn foo() void {
+    return; 
+    printf("hi");
+}
+
+fn main() void {
+    if true {
+        foo();
+        return;
+        foo();
+    }
+}

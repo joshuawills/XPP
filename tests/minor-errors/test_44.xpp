@@ -1,0 +1,12 @@
+// Variable declared mutable but never reassigned
+
+extern printf(i8*, ...) i32;
+
+fn foo(mut a: i32) void {
+    printf("%d\n", a); 
+}
+
+fn main() void {
+    let mut x = 1;
+    foo(x);
+}
