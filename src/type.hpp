@@ -127,44 +127,6 @@ class Type {
     TypeSpec t_;
 };
 
-class PointerType : public Type {
- public:
-    PointerType(std::shared_ptr<Type> sub_type)
-    : Type(TypeSpec::POINTER)
-    , sub_type_(sub_type) {}
-
-    auto get_sub_type() const -> std::shared_ptr<Type> {
-        return sub_type_;
-    }
-
-    auto print(std::ostream& os) const -> void override {
-        os << t_;
-        sub_type_->print(os);
-    }
-
-    auto equals(const Type& other) const -> bool override {
-        if (t_ != other.get_type_spec())
-            return false;
-
-        auto* other_ptr = dynamic_cast<const PointerType*>(&other);
-        if (!other_ptr)
-            return false;
-
-        return *sub_type_ == *other_ptr->sub_type_;
-    }
-
-    auto equal_soft(const Type& other) const -> bool override {
-        auto* other_ptr = dynamic_cast<const PointerType*>(&other);
-        if (!other_ptr) {
-            return false;
-        }
-        return soft_typespec_equals(t_, other.get_type_spec()) and sub_type_->equal_soft(*other_ptr->get_sub_type());
-    }
-
- private:
-    std::shared_ptr<Type> sub_type_;
-};
-
 class ArrayType : public Type {
  public:
     ArrayType(std::shared_ptr<Type> sub_type)
@@ -216,6 +178,48 @@ class ArrayType : public Type {
  private:
     std::shared_ptr<Type> sub_type_;
     std::optional<size_t> length_ = std::nullopt;
+};
+
+class PointerType : public Type {
+ public:
+    PointerType(std::shared_ptr<Type> sub_type)
+    : Type(TypeSpec::POINTER)
+    , sub_type_(sub_type) {}
+
+    auto get_sub_type() const -> std::shared_ptr<Type> {
+        return sub_type_;
+    }
+
+    auto print(std::ostream& os) const -> void override {
+        os << t_;
+        sub_type_->print(os);
+    }
+
+    auto equals(const Type& other) const -> bool override {
+        if (t_ != other.get_type_spec())
+            return false;
+
+        auto* other_ptr = dynamic_cast<const PointerType*>(&other);
+        if (!other_ptr)
+            return false;
+
+        return *sub_type_ == *other_ptr->sub_type_;
+    }
+
+    auto equal_soft(const Type& other) const -> bool override {
+        auto* other_ptr = dynamic_cast<const PointerType*>(&other);
+        if (!other_ptr) {
+            auto* other_ptr = dynamic_cast<const ArrayType*>(&other);
+            if (other_ptr) {
+                return sub_type_->equal_soft(*other_ptr->get_sub_type());
+            }
+            return false;
+        }
+        return soft_typespec_equals(t_, other.get_type_spec()) and sub_type_->equal_soft(*other_ptr->get_sub_type());
+    }
+
+ private:
+    std::shared_ptr<Type> sub_type_;
 };
 
 class EnumType : public Type {

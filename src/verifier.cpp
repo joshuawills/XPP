@@ -1062,6 +1062,10 @@ auto Verifier::check(std::string const& filename, bool is_main) -> void {
         unmurk_decl(func);
         for (auto& para : func->get_paras()) {
             unmurk_decl(para);
+            if (para->get_type()->is_array()) {
+                auto a_t = std::dynamic_pointer_cast<ArrayType>(para->get_type());
+                para->set_type(std::make_shared<PointerType>(a_t->get_sub_type()));
+            }
         }
         func->visit(shared_from_this());
     }

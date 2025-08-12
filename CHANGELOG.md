@@ -43,6 +43,7 @@
 ## 13 Aug 2025
 
 - FIXES: regarding array initialisation
+- ADDITIONS: decaying arrays to pointers in function calls
 
 ## TODO
 
