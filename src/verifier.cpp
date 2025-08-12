@@ -91,7 +91,6 @@ auto Verifier::visit_local_var_decl(std::shared_ptr<LocalVarDecl> local_var_decl
         }
     }
     else if (has_expr and !expr_type->is_error() and *local_var_decl->get_type() != *expr_type) {
-
         // Implicit casting from array to pointer in assignment expressions
         auto r = local_var_decl->get_expr();
         if (local_var_decl->get_type()->is_pointer() and r->get_type()->is_array()) {
@@ -103,11 +102,8 @@ auto Verifier::visit_local_var_decl(std::shared_ptr<LocalVarDecl> local_var_decl
                 stream << ". You can cast from array to pointer, but the inner types must remain the same";
                 handler_->report_error(current_filename_, all_errors_[6], stream.str(), local_var_decl->pos());
                 local_var_decl->set_type(handler_->ERROR_TYPE);
-            } else {
-                auto const pos = local_var_decl->get_expr()->pos();
-                auto array_index_expr = std::make_shared<ArrayIndexExpr>(pos, local_var_decl->get_expr(), std::make_shared<IntExpr>(pos, 0));
-                local_var_decl->set_expr(array_index_expr);
-                local_var_decl->get_expr()->visit(shared_from_this());
+            }
+            else {
                 local_var_decl->set_type(local_var_decl->get_type());
             }
             return;
@@ -374,13 +370,9 @@ auto Verifier::visit_assignment_expr(std::shared_ptr<AssignmentExpr> assignment_
             stream << ". You can cast from array to pointer, but the inner types must remain the same";
             handler_->report_error(current_filename_, all_errors_[6], stream.str(), assignment_expr->pos());
             assignment_expr->set_type(handler_->ERROR_TYPE);
-        } else {
-            auto const pos = r->pos();
-            auto array_index_expr = std::make_shared<ArrayIndexExpr>(pos, r, std::make_shared<IntExpr>(pos, 0));
-            assignment_expr->set_rhs_expression(array_index_expr);
-            assignment_expr->get_right()->visit(shared_from_this());
+        }
+        else {
             assignment_expr->set_type(l->get_type());
-
         }
         return;
     }
@@ -598,6 +590,7 @@ auto Verifier::visit_unary_expr(std::shared_ptr<UnaryExpr> unary_expr) -> void {
                 handler_->report_error(current_filename_, all_errors_[26], stream.str(), unary_expr->pos());
                 unary_expr->set_type(handler_->ERROR_TYPE);
             }
+            unary_expr->get_expr()->set_parent(unary_expr);
             unary_expr->set_type(std::make_shared<PointerType>(e->get_type()));
         }
         else {

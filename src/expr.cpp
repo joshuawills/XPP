@@ -616,8 +616,7 @@ auto ArrayInitExpr::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
 
     auto const llvm_type = emitter->llvm_type(array_t);
 
-    auto const temp_name = std::to_string(emitter->global_counter++);
-    auto alloca = emitter->llvm_builder->CreateAlloca(llvm_type, nullptr, temp_name);
+    auto alloca = emitter->get_array_alloca();
 
     auto i = 0u;
     llvm::Value* last_val;
@@ -677,6 +676,16 @@ auto ArrayIndexExpr::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
     }
     else {
         std::cout << "UNREACHABLE ArrayIndexExpr::codegen\n";
+    }
+
+    auto v = std::dynamic_pointer_cast<UnaryExpr>(get_parent());
+    if (v) {
+        if (v->get_operator() == Op::ADDRESS_OF) {
+            return gep_ptr;
+        }
+        else {
+            return emitter->llvm_builder->CreateLoad(elem_type, gep_ptr);
+        }
     }
 
     if (auto l = std::dynamic_pointer_cast<AssignmentExpr>(get_parent())) {

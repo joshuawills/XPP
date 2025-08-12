@@ -143,8 +143,13 @@ auto LocalVarDecl::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
     auto llvm_type = emitter->llvm_type(get_type());
     auto alloca = emitter->llvm_builder->CreateAlloca(llvm_type, nullptr, get_ident());
 
+    if (get_type()->is_array()) {
+        emitter->set_array_alloca(alloca);
+    }
+
     auto init_val = expr_->codegen(emitter);
-    if (init_val) {
+    auto is_array_init_expr = std::dynamic_pointer_cast<ArrayInitExpr>(expr_);
+    if (!is_array_init_expr and init_val) {
         emitter->llvm_builder->CreateStore(init_val, alloca);
     }
 

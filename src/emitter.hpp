@@ -44,8 +44,17 @@ class Emitter : public std::enable_shared_from_this<Emitter> {
 
     auto llvm_type(std::shared_ptr<Type> t) -> llvm::Type*;
 
+    auto set_array_alloca(llvm::AllocaInst* a) -> void {
+        array_alloca_ = a;
+    }
+
+    auto get_array_alloca() -> llvm::AllocaInst* {
+        return array_alloca_;
+    }
+
  private:
     std::shared_ptr<AllModules> modules_;
+    llvm::AllocaInst* array_alloca_;
     std::shared_ptr<Module> main_module_;
     std::shared_ptr<Handler> handler_;
 };

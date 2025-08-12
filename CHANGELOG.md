@@ -40,6 +40,10 @@
 - FIXES: more error checking re. arrays and minor errors
 - ADDITION: ability to implictly degrade array types to pointer types
 
+## 13 Aug 2025
+
+- FIXES: regarding array initialisation
+
 ## TODO
 
 - Add in for loops 
