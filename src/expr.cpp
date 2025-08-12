@@ -244,7 +244,14 @@ auto BinaryExpr::print(std::ostream& os) const -> void {
 auto UnaryExpr::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
     if (op_ == Op::ADDRESS_OF) {
         auto var_e = std::dynamic_pointer_cast<VarExpr>(expr_);
-        return emitter->named_values[var_e->get_name() + var_e->get_ref()->get_append()];
+        if (var_e) {
+            return emitter->named_values[var_e->get_name() + var_e->get_ref()->get_append()];
+        }
+        auto index_e = std::dynamic_pointer_cast<ArrayIndexExpr>(expr_);
+        if (index_e) {
+            return index_e->codegen(emitter);
+        }
+        std::cout << "UNREACHABLE UnaryExpr::codegen\n";
     }
 
     auto const& value = expr_->codegen(emitter);

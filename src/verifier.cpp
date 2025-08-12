@@ -80,6 +80,7 @@ auto Verifier::visit_local_var_decl(std::shared_ptr<LocalVarDecl> local_var_decl
 
     auto const& expr_type = local_var_decl->get_expr()->get_type();
     auto const has_expr = !(std::dynamic_pointer_cast<EmptyExpr>(local_var_decl->get_expr()));
+
     if (local_var_decl->get_type()->is_unknown()) {
         if (expr_type->is_void()) {
             handler_->report_error(current_filename_, all_errors_[29], local_var_decl->get_ident(), local_var_decl->pos());
@@ -90,6 +91,28 @@ auto Verifier::visit_local_var_decl(std::shared_ptr<LocalVarDecl> local_var_decl
         }
     }
     else if (has_expr and !expr_type->is_error() and *local_var_decl->get_type() != *expr_type) {
+
+        // Implicit casting from array to pointer in assignment expressions
+        auto r = local_var_decl->get_expr();
+        if (local_var_decl->get_type()->is_pointer() and r->get_type()->is_array()) {
+            auto p_l = std::dynamic_pointer_cast<PointerType>(local_var_decl->get_type());
+            auto a_r = std::dynamic_pointer_cast<ArrayType>(r->get_type());
+            if (*p_l->get_sub_type() != *a_r->get_sub_type()) {
+                auto stream = std::stringstream{};
+                stream << "expected " << *p_l->get_sub_type() << " as an inner type, got " << *a_r->get_sub_type();
+                stream << ". You can cast from array to pointer, but the inner types must remain the same";
+                handler_->report_error(current_filename_, all_errors_[6], stream.str(), local_var_decl->pos());
+                local_var_decl->set_type(handler_->ERROR_TYPE);
+            } else {
+                auto const pos = local_var_decl->get_expr()->pos();
+                auto array_index_expr = std::make_shared<ArrayIndexExpr>(pos, local_var_decl->get_expr(), std::make_shared<IntExpr>(pos, 0));
+                local_var_decl->set_expr(array_index_expr);
+                local_var_decl->get_expr()->visit(shared_from_this());
+                local_var_decl->set_type(local_var_decl->get_type());
+            }
+            return;
+        }
+
         auto stream = std::stringstream{};
         stream << "expected " << *local_var_decl->get_type() << ", got " << *expr_type;
         if (local_var_decl->get_type()->is_numeric() and expr_type->is_numeric()) {
@@ -341,6 +364,27 @@ auto Verifier::visit_assignment_expr(std::shared_ptr<AssignmentExpr> assignment_
     r->visit(shared_from_this());
     current_numerical_type = std::nullopt;
 
+    // Implicit casting from array to pointer in assignment expressions
+    if (l->get_type()->is_pointer() and r->get_type()->is_array()) {
+        auto p_l = std::dynamic_pointer_cast<PointerType>(l->get_type());
+        auto a_r = std::dynamic_pointer_cast<ArrayType>(r->get_type());
+        if (*p_l->get_sub_type() != *a_r->get_sub_type()) {
+            auto stream = std::stringstream{};
+            stream << "expected " << *p_l->get_sub_type() << " as an inner type, got " << *a_r->get_sub_type();
+            stream << ". You can cast from array to pointer, but the inner types must remain the same";
+            handler_->report_error(current_filename_, all_errors_[6], stream.str(), assignment_expr->pos());
+            assignment_expr->set_type(handler_->ERROR_TYPE);
+        } else {
+            auto const pos = r->pos();
+            auto array_index_expr = std::make_shared<ArrayIndexExpr>(pos, r, std::make_shared<IntExpr>(pos, 0));
+            assignment_expr->set_rhs_expression(array_index_expr);
+            assignment_expr->get_right()->visit(shared_from_this());
+            assignment_expr->set_type(l->get_type());
+
+        }
+        return;
+    }
+
     if (!l->get_type()->is_error() and !r->get_type()->is_error() and *l->get_type() != *r->get_type()) {
         auto const special_op = op == Op::PLUS_ASSIGN or op == Op::MINUS_ASSIGN;
         auto const non_special_op = op == Op::MULTIPLY_ASSIGN or op == Op::DIVIDE_ASSIGN;
@@ -531,11 +575,12 @@ auto Verifier::visit_unary_expr(std::shared_ptr<UnaryExpr> unary_expr) -> void {
     }
     else if (op == Op::ADDRESS_OF) {
         auto const var = std::dynamic_pointer_cast<VarExpr>(e);
-        if (!var) {
+        auto const index = std::dynamic_pointer_cast<ArrayIndexExpr>(e);
+        if (!var and !index) {
             handler_->report_error(current_filename_, all_errors_[25], "", unary_expr->pos());
             unary_expr->set_type(handler_->ERROR_TYPE);
         }
-        else {
+        else if (var) {
             auto const decl = var->get_ref();
             if (!decl or !decl->is_mut()) {
                 auto stream = std::stringstream{};
@@ -544,6 +589,19 @@ auto Verifier::visit_unary_expr(std::shared_ptr<UnaryExpr> unary_expr) -> void {
                 unary_expr->set_type(handler_->ERROR_TYPE);
             }
             unary_expr->set_type(std::make_shared<PointerType>(e->get_type()));
+        }
+        else if (index) {
+            auto const var_expr = std::dynamic_pointer_cast<VarExpr>(index->get_array_expr());
+            if (var_expr and !var_expr->get_ref()->is_mut()) {
+                auto stream = std::stringstream{};
+                stream << "array '" << var_expr->get_name() << "' defined at " << var_expr->get_ref()->pos();
+                handler_->report_error(current_filename_, all_errors_[26], stream.str(), unary_expr->pos());
+                unary_expr->set_type(handler_->ERROR_TYPE);
+            }
+            unary_expr->set_type(std::make_shared<PointerType>(e->get_type()));
+        }
+        else {
+            std::cout << "UNREACHABLE Verifier::visit_unary_expr\n";
         }
     }
 
@@ -780,6 +838,7 @@ auto Verifier::visit_array_init_expr(std::shared_ptr<ArrayInitExpr> array_init_e
 auto Verifier::visit_array_index_expr(std::shared_ptr<ArrayIndexExpr> array_index_expr) -> void {
     auto has_error = false;
     array_index_expr->get_array_expr()->visit(shared_from_this());
+    array_index_expr->get_array_expr()->set_parent(array_index_expr);
     auto const array_expr_t = array_index_expr->get_array_expr()->get_type();
 
     if (!array_expr_t->is_array() and !array_expr_t->is_pointer()) {

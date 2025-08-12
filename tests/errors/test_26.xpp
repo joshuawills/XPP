@@ -3,4 +3,7 @@
 fn main() void {
     let x = 21;
     let y = &x;
+
+    let x2: i64[] = [1, 2, 3, 4, 5];
+    let y2: i64* = &x2[0];
 }

@@ -80,7 +80,7 @@ class AssignmentExpr
 : public Expr
 , public std::enable_shared_from_this<AssignmentExpr> {
  public:
-    AssignmentExpr(Position pos, std::shared_ptr<Expr> const left, Op const op, std::shared_ptr<Expr> const right)
+    AssignmentExpr(Position pos, std::shared_ptr<Expr> left, Op const op, std::shared_ptr<Expr> right)
     : Expr(pos, std::make_shared<Type>())
     , left_(left)
     , op_(op)
@@ -96,6 +96,10 @@ class AssignmentExpr
         return op_;
     }
 
+    auto set_rhs_expression(std::shared_ptr<Expr> expr) -> void {
+        right_ = expr;
+    }
+
     auto visit(std::shared_ptr<Visitor> visitor) -> void override {
         visitor->visit_assignment_expr(shared_from_this());
     }
@@ -103,9 +107,9 @@ class AssignmentExpr
     auto print(std::ostream& os) const -> void override;
 
  private:
-    std::shared_ptr<Expr> const left_;
+    std::shared_ptr<Expr> left_;
     Op const op_;
-    std::shared_ptr<Expr> const right_;
+    std::shared_ptr<Expr> right_;
 };
 
 class BinaryExpr

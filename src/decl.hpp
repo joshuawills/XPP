@@ -113,6 +113,10 @@ class LocalVarDecl
         visitor->visit_local_var_decl(shared_from_this());
     }
 
+    auto set_expr(std::shared_ptr<Expr> expr) -> void {
+        expr_ = expr;
+    }
+
     auto codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* override;
     auto print(std::ostream& os) const -> void override;
 

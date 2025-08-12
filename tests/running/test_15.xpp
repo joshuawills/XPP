@@ -1,0 +1,44 @@
+// Implicitly degrading arrays to pointers
+
+extern printf(i8*, ...) i32;
+
+fn main() void {
+    let mut x: i64[] = [1, 2, 3, 4, 5];
+    let y: i64* = &x[0];
+    let foo = y[1];
+    printf("%d\n", foo);
+
+    printf("hi!\n");
+    let mut i = 0;
+    while i < 5 {
+        printf("%d\n", y[i]);
+        ++i;
+    }
+
+    printf("hi!\n");
+    let mut z: i64*;
+    z = &x[0];
+    i = 0;
+    while i < 5 {
+        printf("%d\n", z[i]);
+        ++i;
+    }
+
+    printf("hi!\n");
+    let mut a: i64* = x;
+    i = 0;
+    while i < 5 {
+        printf("%d\n", a[i]);
+        ++i;
+    }
+
+    printf("hi!\n");
+    let mut b: i64*;
+    b = x;
+    i = 0;
+    while i < 5 {
+        printf("%d\n", b[i]);
+        ++i;
+    }
+
+}

@@ -16,4 +16,10 @@ fn main() void {
 
     let a: i64 = Boolean::TRUE;
     let b: Boolean = Boolean::FALSE;
+
+	let mut what = [1, 2, 3, 4, 5];
+	let v: i8* = what;
+
+	let mut a: bool*;
+	a = what;
 }
