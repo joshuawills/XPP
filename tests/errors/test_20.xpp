@@ -11,4 +11,7 @@ fn main() void {
     let mut z = 21;
     let z_ref = &z;
     ++z_ref;
+
+	let arr = [1, 2, 3, 4, 5];
+	arr[0] = 19;
 }

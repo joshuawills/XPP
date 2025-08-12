@@ -60,6 +60,9 @@ auto AssignmentExpr::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
     else if (auto const& lhs = std::dynamic_pointer_cast<UnaryExpr>(left_)) {
         ptr = lhs->get_expr()->codegen(emitter);
     }
+    else if (auto const& lhs = std::dynamic_pointer_cast<ArrayIndexExpr>(left_)) {
+        ptr = lhs->codegen(emitter);
+    }
     else {
         std::cout << "UNREACHABLE AssignmentExpr::codegen";
     }
@@ -413,8 +416,13 @@ auto CharExpr::print(std::ostream& os) const -> void {
 }
 
 auto VarExpr::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
-    auto ptr = emitter->named_values[name_ + get_ref()->get_append()];
-    return emitter->llvm_builder->CreateLoad(emitter->llvm_type(get_type()), ptr, name_);
+    auto const ptr = emitter->named_values[name_ + get_ref()->get_append()];
+    if (get_type()->is_array()) {
+        return ptr;
+    }
+    else {
+        return emitter->llvm_builder->CreateLoad(emitter->llvm_type(get_type()), ptr, name_);
+    }
 }
 
 auto VarExpr::print(std::ostream& os) const -> void {
@@ -639,5 +647,44 @@ auto ArrayInitExpr::print(std::ostream& os) const -> void {
         expr->print(os);
         os << " ";
     }
+    os << "]";
+}
+
+auto ArrayIndexExpr::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
+    auto const base_ptr = array_expr_->codegen(emitter);
+    if (!base_ptr)
+        return nullptr;
+
+    auto const index_val = index_expr_->codegen(emitter);
+    if (!index_val)
+        return nullptr;
+
+    auto const elem_type = emitter->llvm_type(get_type());
+    auto const zero = llvm::ConstantInt::get(llvm::Type::getInt64Ty(*emitter->context), 0);
+
+    llvm::Value* gep_ptr;
+    if (auto l = std::dynamic_pointer_cast<ArrayType>(array_expr_->get_type())) {
+        llvm::Value* indices[] = {zero, index_val};
+        gep_ptr = emitter->llvm_builder->CreateInBoundsGEP(emitter->llvm_type(l), base_ptr, indices);
+    }
+    else if (auto l2 = std::dynamic_pointer_cast<PointerType>(array_expr_->get_type())) {
+        gep_ptr = emitter->llvm_builder->CreateInBoundsGEP(elem_type, base_ptr, index_val);
+    }
+    else {
+        std::cout << "UNREACHABLE ArrayIndexExpr::codegen\n";
+    }
+
+    if (auto l = std::dynamic_pointer_cast<AssignmentExpr>(get_parent())) {
+        return gep_ptr;
+    }
+    else {
+        return emitter->llvm_builder->CreateLoad(elem_type, gep_ptr);
+    }
+}
+
+auto ArrayIndexExpr::print(std::ostream& os) const -> void {
+    array_expr_->print(os);
+    os << "[";
+    index_expr_->print(os);
     os << "]";
 }

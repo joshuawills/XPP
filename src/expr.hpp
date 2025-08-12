@@ -468,4 +468,35 @@ class ArrayInitExpr
     std::vector<std::shared_ptr<Expr>> const exprs_;
 };
 
+class ArrayIndexExpr
+: public Expr
+, public std::enable_shared_from_this<ArrayIndexExpr> {
+ public:
+    ArrayIndexExpr(Position const pos, std::shared_ptr<Expr> array_expr, std::shared_ptr<Expr> index_expr)
+    : Expr(pos, std::make_shared<Type>())
+    , array_expr_(array_expr)
+    , index_expr_(index_expr) {}
+
+    auto visit(std::shared_ptr<Visitor> visitor) -> void override {
+        visitor->visit_array_index_expr(shared_from_this());
+    }
+    auto codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* override;
+    auto print(std::ostream& os) const -> void override;
+
+    auto get_array_expr() const -> std::shared_ptr<Expr> {
+        return array_expr_;
+    }
+
+    auto get_index_expr() const -> std::shared_ptr<Expr> {
+        return index_expr_;
+    }
+
+    auto set_index_expr(std::shared_ptr<Expr> e) -> void {
+        index_expr_ = e;
+    }
+
+ private:
+    std::shared_ptr<Expr> array_expr_, index_expr_;
+};
+
 #endif // EXPR_HPP

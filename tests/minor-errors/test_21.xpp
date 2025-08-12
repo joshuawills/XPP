@@ -9,4 +9,6 @@ fn main() void {
         let x = 19;
     }
     printf("%d\n", x);
+
+	let a = [1, 2, 3];
 }

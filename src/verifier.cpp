@@ -87,7 +87,7 @@ auto Verifier::visit_local_var_decl(std::shared_ptr<LocalVarDecl> local_var_decl
             local_var_decl->set_type(expr_type);
         }
     }
-    else if (has_expr and *local_var_decl->get_type() != *expr_type) {
+    else if (has_expr and !expr_type->is_error() and *local_var_decl->get_type() != *expr_type) {
         auto stream = std::stringstream{};
         stream << "expected " << *local_var_decl->get_type() << ", got " << *expr_type;
         if (local_var_decl->get_type()->is_numeric() and expr_type->is_numeric()) {
@@ -236,7 +236,8 @@ auto Verifier::visit_assignment_expr(std::shared_ptr<AssignmentExpr> assignment_
     auto r = assignment_expr->get_right();
     auto res = std::dynamic_pointer_cast<VarExpr>(l);
     auto deref_res = std::dynamic_pointer_cast<UnaryExpr>(l);
-    if ((!res and !deref_res) or (deref_res and deref_res->get_operator() != Op::DEREF)) {
+    auto array_index_res = std::dynamic_pointer_cast<ArrayIndexExpr>(l);
+    if ((!res and !deref_res and !array_index_res) or (deref_res and deref_res->get_operator() != Op::DEREF)) {
         handler_->report_error(current_filename_, all_errors_[7], "", assignment_expr->pos());
         assignment_expr->set_type(handler_->ERROR_TYPE);
         return;
@@ -254,6 +255,14 @@ auto Verifier::visit_assignment_expr(std::shared_ptr<AssignmentExpr> assignment_
     }
     else if (deref_res) {
         if (auto ref = std::dynamic_pointer_cast<VarExpr>(deref_res->get_expr())->get_ref()) {
+            ref->set_reassigned();
+            if (!ref->is_mut()) {
+                handler_->report_error(current_filename_, all_errors_[20], ref->get_ident(), assignment_expr->pos());
+            }
+        }
+    }
+    else if (array_index_res) {
+        if (auto ref = std::dynamic_pointer_cast<VarExpr>(array_index_res->get_array_expr())->get_ref()) {
             ref->set_reassigned();
             if (!ref->is_mut()) {
                 handler_->report_error(current_filename_, all_errors_[20], ref->get_ident(), assignment_expr->pos());
@@ -662,7 +671,7 @@ auto Verifier::visit_array_init_expr(std::shared_ptr<ArrayInitExpr> array_init_e
             element_types = expr->get_type();
         }
 
-        if (!expr->get_type()->is_error() and expr->get_type() != element_types) {
+        if (!expr->get_type()->is_error() and *expr->get_type() != *element_types) {
             auto stream = std::stringstream{};
             stream << "position " << elem_num << ". Expected " << *element_types << ", got " << *expr->get_type();
             if (element_types->is_numeric() and expr->get_type()->is_numeric()) {
@@ -686,7 +695,7 @@ auto Verifier::visit_array_init_expr(std::shared_ptr<ArrayInitExpr> array_init_e
                                array_init_expr->pos());
         error_occured = true;
     }
-    else if (has_size_specified and size_specified == 0) {
+    else if ((has_size_specified and size_specified == 0) or (!has_size_specified and arg_count == 0)) {
         handler_->report_error(current_filename_, all_errors_[32], "", array_init_expr->pos());
         error_occured = true;
     }
@@ -697,6 +706,47 @@ auto Verifier::visit_array_init_expr(std::shared_ptr<ArrayInitExpr> array_init_e
     else {
         array_init_expr->set_type(
             std::make_shared<ArrayType>(element_types, (has_size_specified) ? size_specified : arg_count));
+    }
+
+    return;
+}
+
+auto Verifier::visit_array_index_expr(std::shared_ptr<ArrayIndexExpr> array_index_expr) -> void {
+    auto has_error = false;
+    array_index_expr->get_array_expr()->visit(shared_from_this());
+    auto const array_expr_t = array_index_expr->get_array_expr()->get_type();
+
+    if (!array_expr_t->is_array() and !array_expr_t->is_pointer()) {
+        auto stream = std::stringstream{};
+        stream << "received type " << array_expr_t;
+        handler_->report_error(current_filename_, all_errors_[34], stream.str(), array_index_expr->pos());
+        has_error = true;
+    }
+
+    array_index_expr->get_index_expr()->visit(shared_from_this());
+    auto const array_index_t = array_index_expr->get_index_expr()->get_type();
+    if (!array_index_t->is_int()) {
+        auto stream = std::stringstream{};
+        stream << "received type " << *array_index_t;
+        handler_->report_error(current_filename_, all_errors_[35], stream.str(), array_index_expr->pos());
+        has_error = true;
+    }
+    else if (!array_index_t->is_i64()) {
+        auto const old_expr = array_index_expr->get_index_expr();
+        auto new_expr = std::make_shared<CastExpr>(old_expr->pos(), old_expr, std::make_shared<Type>(TypeSpec::I64));
+        array_index_expr->set_index_expr(new_expr);
+    }
+
+    if (!has_error) {
+        if (auto l = std::dynamic_pointer_cast<ArrayType>(array_expr_t)) {
+            array_index_expr->set_type(l->get_sub_type());
+        }
+        else if (auto l2 = std::dynamic_pointer_cast<PointerType>(array_expr_t)) {
+            array_index_expr->set_type(l2->get_sub_type());
+        }
+    }
+    else {
+        array_index_expr->set_type(handler_->ERROR_TYPE);
     }
 
     return;

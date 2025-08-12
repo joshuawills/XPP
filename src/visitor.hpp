@@ -21,6 +21,7 @@ class VarExpr;
 class CallExpr;
 class CastExpr;
 class ArrayInitExpr;
+class ArrayIndexExpr;
 class EmptyStmt;
 class CompoundStmt;
 class LocalVarStmt;
@@ -52,6 +53,7 @@ class Visitor {
     virtual auto visit_call_expr(std::shared_ptr<CallExpr> call_expr) -> void = 0;
     virtual auto visit_cast_expr(std::shared_ptr<CastExpr> cast_expr) -> void = 0;
     virtual auto visit_array_init_expr(std::shared_ptr<ArrayInitExpr> array_init_expr) -> void = 0;
+    virtual auto visit_array_index_expr(std::shared_ptr<ArrayIndexExpr> array_index_expr) -> void = 0;
 
     virtual auto visit_empty_stmt(std::shared_ptr<EmptyStmt> empty_stmt) -> void = 0;
     virtual auto visit_compound_stmt(std::shared_ptr<CompoundStmt> compound_stmt) -> void = 0;

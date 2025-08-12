@@ -187,8 +187,13 @@ auto GlobalVarDecl::handle_global_arr(std::shared_ptr<Emitter> emitter) -> llvm:
     }
 
     auto const const_array = llvm::ConstantArray::get(llvm_type, const_elems);
-    auto const global_var =
-        new llvm::GlobalVariable(*emitter->llvm_module, llvm_type, false, llvm::GlobalValue::ExternalLinkage, const_array);
+    auto const global_var = new llvm::GlobalVariable(*emitter->llvm_module,
+                                                     llvm_type,
+                                                     false,
+                                                     llvm::GlobalValue::ExternalLinkage,
+                                                     const_array,
+                                                     ident_ + get_append());
+    emitter->named_values[ident_ + get_append()] = global_var;
     return global_var;
 }
 

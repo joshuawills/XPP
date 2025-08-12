@@ -1,0 +1,6 @@
+// Incompatible type for array initialiser expression
+
+fn main() void {
+	let x: bool[] = [31, false, "hi"];
+	let z = [21, 19.0, 13];
+}

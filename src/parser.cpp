@@ -400,7 +400,9 @@ auto Parser::parse_assignment_expr() -> std::shared_ptr<Expr> {
     auto op = parse_operator();
     auto right = parse_assignment_expr();
     finish(p);
-    return std::make_shared<AssignmentExpr>(p, left, op, right);
+    auto assignment_expr = std::make_shared<AssignmentExpr>(p, left, op, right);
+    left->set_parent(assignment_expr);
+    return assignment_expr;
 }
 
 auto Parser::parse_logical_or_expr() -> std::shared_ptr<Expr> {
@@ -546,6 +548,13 @@ auto Parser::parse_postfix_expr() -> std::shared_ptr<Expr> {
         consume();
         finish(p);
         return std::make_shared<UnaryExpr>(p, (is_plus) ? Op::POSTFIX_ADD : Op::POSTFIX_MINUS, p_expr);
+    }
+    else if (peek(TokenType::OPEN_SQUARE)) {
+        match(TokenType::OPEN_SQUARE);
+        auto const index_expr = parse_expr();
+        match(TokenType::CLOSE_SQUARE);
+        finish(p);
+        return std::make_shared<ArrayIndexExpr>(p, p_expr, index_expr);
     }
     else {
         return p_expr;

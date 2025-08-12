@@ -1,0 +1,6 @@
+// Array initialised with 0 elements
+
+fn main() void {
+	let x: i64[10] = [];
+	let y = [];
+}

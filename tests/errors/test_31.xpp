@@ -1,0 +1,5 @@
+// Excess elements provided in array init expression
+
+fn main() void {
+	let x: i64[1] = [1, 2];
+}

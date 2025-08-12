@@ -1,0 +1,42 @@
+// Basic global and local array types, pointer indexing
+
+extern printf(i8*, ...) i32;
+
+let mut x: i64[3] = [1, 2, 3];
+
+fn main() void {
+	let mut i = 0;
+	while i < 3 {
+		printf("%d\n", x[i]);
+        x[i] = x[i] + 21;
+		++i;
+	}
+    
+    i = 2;
+	while i >= 0 {
+		printf("%d\n", x[i]);
+		--i;
+	}
+
+    let y: bool[10] = [true, false, true];
+    i = 0;
+    while i < 10 {
+        if y[i] {
+            printf("true!\n");
+        } else {
+            printf("false!\n");
+        }
+        ++i;
+    }
+
+    let s = "hello!";
+    i = 0;
+    while s[i] != '\0' {
+        printf("%c", s[i]); 
+        ++i;
+    }
+
+	let v = ("hello")[3];
+	printf("%c\n", v);
+    
+}

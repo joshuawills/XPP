@@ -70,6 +70,7 @@ class Verifier
     auto visit_call_expr(std::shared_ptr<CallExpr> call_expr) -> void override;
     auto visit_cast_expr(std::shared_ptr<CastExpr> cast_expr) -> void override;
     auto visit_array_init_expr(std::shared_ptr<ArrayInitExpr> array_init_expr) -> void override;
+    auto visit_array_index_expr(std::shared_ptr<ArrayIndexExpr> array_index_expr) -> void override;
 
     auto visit_empty_stmt(std::shared_ptr<EmptyStmt> empty_stmt) -> void override;
     auto visit_compound_stmt(std::shared_ptr<CompoundStmt> compound_stmt) -> void override;
@@ -132,7 +133,11 @@ class Verifier
                                                   "30: duplicate global var declaration: %",
                                                   "31: excess elements provided in array init expression: %",
                                                   "32: array initialised with 0 elements",
-                                                  "33: incompatible type for array initialiser expression: %"};
+                                                  "33: incompatible type for array initialiser expression: %",
+                                                  "34: array index expression may only be performed on array or "
+                                                  "pointer types: %",
+                                                  "35: type of array index must be either a signed or unsigned "
+                                                  "integer: %"};
 
     auto check_duplicate_function_declaration() -> void;
     auto check_duplicate_extern_declaration() -> void;

@@ -73,6 +73,10 @@ class Type {
         return t_ == TypeSpec::I64 or t_ == TypeSpec::I32 or t_ == TypeSpec::I8;
     }
 
+    auto is_i64() const noexcept -> bool {
+        return t_ == TypeSpec::I64;
+    }
+
     auto is_unsigned_int() const noexcept -> bool {
         return t_ == TypeSpec::U64 or t_ == TypeSpec::U32 or t_ == TypeSpec::U8;
     }

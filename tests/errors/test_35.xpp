@@ -1,0 +1,8 @@
+// type of array index must be either a signed or unsigned integer
+
+fn main() void {
+	let x = [1, 2, 3];
+	let y = x[1.0 as i64];
+	let z = x[false];
+	let a = x[x];
+}

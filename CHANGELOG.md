@@ -32,10 +32,10 @@
 ## 11 Aug 2025
 
 - ADDITION: ArrayInitExpr and ArrayType
+- ADDITION: Array and pointer indexing capabilities
 
 ## TODO
 
-- Array access exprs
 - Add in for loops 
 - Moduling system
 - Composite data types

@@ -1,0 +1,7 @@
+// Array index expression may only be performed on array or pointer types
+
+fn main() void {
+	let x = 21[19];
+	let y = true;
+	let z = y[0];
+}
