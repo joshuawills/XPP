@@ -1,5 +1,7 @@
 // Incompatible type for this unary operator
 
+enum Boolean {TRUE, FALSE}
+
 fn main() void {
     let x = 21;
     let y = !x;
@@ -8,4 +10,7 @@ fn main() void {
 
 	let b = false;
 	++b;
+
+    let mut c = Boolean::TRUE;
+    ++c;
 }

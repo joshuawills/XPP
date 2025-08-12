@@ -1,0 +1,5 @@
+// Enum declared with duplicate fields
+
+enum Foo { A, A, B }
+
+fn main() void {}

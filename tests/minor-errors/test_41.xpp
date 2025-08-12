@@ -1,0 +1,5 @@
+// Unused enum
+
+enum Foo { BAR, BAZ }
+
+fn main() void {}

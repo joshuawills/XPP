@@ -1,8 +1,14 @@
 // Incompatible type for this binary operator
 
+enum Boolean {TRUE, FALSE}
+
 fn main() void {
 
 	let x = 21 && false;
 	let y = (21 as i32) + 19;
+    let z = true && Boolean::TRUE;
+    let a: Boolean = Boolean::TRUE;
+    let f = a == Boolean::FALSE;
+
 
 }

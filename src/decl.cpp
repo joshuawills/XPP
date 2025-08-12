@@ -228,3 +228,43 @@ auto GlobalVarDecl::print(std::ostream& os) const -> void {
     os << ";\n";
     return;
 }
+
+auto EnumDecl::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
+    (void)emitter;
+    return nullptr;
+}
+
+auto EnumDecl::print(std::ostream& os) const -> void {
+    os << "enum " << get_ident() << "{";
+    for (auto const& field : fields_) {
+        os << field << ", ";
+    }
+    os << "}\n";
+    return;
+}
+
+auto EnumDecl::get_num(std::string field) const -> std::optional<int> {
+    for (auto i = 0u; i < fields_.size(); ++i) {
+        if (fields_[i] == field) {
+            return std::optional{static_cast<int>(i)};
+        }
+    }
+    return std::nullopt;
+}
+
+auto EnumDecl::find_duplicates() const -> std::vector<std::string> {
+    auto count_map = std::unordered_map<std::string, int>{};
+    auto duplicates = std::vector<std::string>{};
+
+    for (const auto& str : fields_) {
+        count_map[str]++;
+    }
+
+    for (const auto& [key, count] : count_map) {
+        if (count > 1) {
+            duplicates.push_back(key);
+        }
+    }
+
+    return duplicates;
+}

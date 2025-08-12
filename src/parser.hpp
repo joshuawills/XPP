@@ -43,6 +43,7 @@ class Parser {
     auto parse_para_list() -> std::vector<std::shared_ptr<ParaDecl>>;
     auto parse_type_list() -> std::vector<std::shared_ptr<Type>>;
     auto parse_arg_list() -> std::vector<std::shared_ptr<Expr>>;
+    auto parse_enum_list() -> std::vector<std::string>;
 
     auto parse_compound_stmt() -> std::shared_ptr<CompoundStmt>;
     auto parse_local_var_stmt() -> std::shared_ptr<LocalVarStmt>;

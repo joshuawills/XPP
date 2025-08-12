@@ -34,7 +34,7 @@ auto get_type_from_lexeme(std::string const& str) -> std::optional<TokenType> {
         {"else", TokenType::ELSE},     {"else if", TokenType::ELSE_IF}, {"bool", TokenType::TYPE},
         {"void", TokenType::TYPE},     {"mut", TokenType::MUT},         {"let", TokenType::LET},
         {"return", TokenType::RETURN}, {"extern", TokenType::EXTERN},   {"while", TokenType::WHILE},
-        {"true", TokenType::TRUE},     {"false", TokenType::FALSE}};
+        {"true", TokenType::TRUE},     {"false", TokenType::FALSE},     {"enum", TokenType::ENUM}};
 
     return lookup_map.find(str) != lookup_map.end() ? std::make_optional(lookup_map.at(str)) : std::nullopt;
 }
@@ -92,6 +92,8 @@ auto operator<<(std::ostream& os, TokenType const& t) -> std::ostream& {
     case TokenType::DIVIDE_ASSIGN: os << "DIVIDE_ASSIGN"; break;
     case TokenType::OPEN_SQUARE: os << "OPEN_SQUARE"; break;
     case TokenType::CLOSE_SQUARE: os << "OPEN_SQUARE"; break;
+    case TokenType::ENUM: os << "ENUM"; break;
+    case TokenType::DOUBLE_COLON: os << "DOUBLE_COLON"; break;
     default: os << "UNKNOWN";
     }
     return os;

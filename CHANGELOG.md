@@ -32,7 +32,11 @@
 ## 11 Aug 2025
 
 - ADDITION: ArrayInitExpr and ArrayType
+
+## 12 Aug 2025
+
 - ADDITION: Array and pointer indexing capabilities
+- ADDITION: Enum types, murky types and demurking
 
 ## TODO
 

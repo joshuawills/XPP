@@ -1,0 +1,9 @@
+// Unknown type declared
+
+fn foo(mut a: Unknown) void {}
+
+fn bar() Haha {}
+
+fn main() void {
+	let x: Preposterous;
+}

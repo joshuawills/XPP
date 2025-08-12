@@ -62,6 +62,8 @@ auto Verifier::visit_para_decl(std::shared_ptr<ParaDecl> para_decl) -> void {
 }
 
 auto Verifier::visit_local_var_decl(std::shared_ptr<LocalVarDecl> local_var_decl) -> void {
+    unmurk_decl(local_var_decl);
+
     local_var_decl->set_statement_num(global_statement_counter_);
     local_var_decl->set_depth_num(loop_depth_);
     declare_variable(local_var_decl->get_ident() + local_var_decl->get_append(), local_var_decl);
@@ -152,6 +154,28 @@ auto Verifier::visit_global_var_decl(std::shared_ptr<GlobalVarDecl> global_var_d
     return;
 }
 
+auto Verifier::visit_enum_decl(std::shared_ptr<EnumDecl> enum_decl) -> void {
+    if (enum_decl->get_fields().size() == 0) {
+        handler_->report_error(current_filename_, all_errors_[37], enum_decl->get_ident(), enum_decl->pos());
+    }
+    auto duplicates = enum_decl->find_duplicates();
+    if (duplicates.size() > 0) {
+        auto err = "fields on enum '" + enum_decl->get_ident() + "' are duplicated: ";
+        for (auto i = 0u; i < duplicates.size(); ++i) {
+            err += duplicates[i];
+            if (duplicates.size() > 1) {
+                if (i == duplicates.size() - 2) {
+                    err += " and ";
+                }
+                else if (i < duplicates.size() - 2) {
+                    err += ", ";
+                }
+            }
+        }
+        handler_->report_error(current_filename_, all_errors_[40], err, enum_decl->pos());
+    }
+}
+
 auto Verifier::visit_extern(std::shared_ptr<Extern> extern_) -> void {
     auto i = 0u;
     auto const size = extern_->get_types().size();
@@ -218,7 +242,12 @@ auto Verifier::visit_function(std::shared_ptr<Function> function) -> void {
     symbol_table_.close_scope();
 
     if (!has_return_ and !function->get_type()->is_void()) {
-        handler_->report_error(current_filename_, all_errors_[10], "in function " + function->get_ident(), function->pos());
+        if (!function->get_type()->is_error()) {
+            handler_->report_error(current_filename_,
+                                   all_errors_[10],
+                                   "in function " + function->get_ident(),
+                                   function->pos());
+        }
     }
 
     global_statement_counter_ = 0;
@@ -337,7 +366,8 @@ auto Verifier::visit_binary_expr(std::shared_ptr<BinaryExpr> binary_expr) -> voi
         auto const valid_one = l_t->is_numeric() and r_t->is_numeric() and *l_t == *r_t;
         auto const valid_two = l_t->is_bool() and r_t->is_bool();
         auto const valid_three = l_t->is_pointer() and r_t->is_pointer();
-        if (!valid_one and !valid_two and !valid_three) {
+        auto const valid_four = l_t->is_enum() and r_t->is_enum();
+        if (!valid_one and !valid_two and !valid_three and !valid_four) {
             auto stream = std::stringstream{};
             stream << *l_t << " and " << *r_t;
             handler_->report_error(current_filename_, all_errors_[5], stream.str(), binary_expr->pos());
@@ -752,6 +782,30 @@ auto Verifier::visit_array_index_expr(std::shared_ptr<ArrayIndexExpr> array_inde
     return;
 }
 
+auto Verifier::visit_enum_access_expr(std::shared_ptr<EnumAccessExpr> enum_access_expr) -> void {
+    auto enum_name = enum_access_expr->get_enum_name();
+    auto field_name = enum_access_expr->get_field();
+    auto ref = current_module_->get_enum(enum_name);
+    if (!ref) {
+        handler_->report_error(current_filename_, all_errors_[38], enum_name, enum_access_expr->pos());
+        enum_access_expr->set_type(handler_->ERROR_TYPE);
+        return;
+    }
+    auto num = (*ref)->get_num(field_name);
+    if (!num) {
+        handler_->report_error(current_filename_,
+                               all_errors_[39],
+                               "field '" + field_name + "' on enum " + enum_name,
+                               enum_access_expr->pos());
+        enum_access_expr->set_type(handler_->ERROR_TYPE);
+        return;
+    }
+
+    (*ref)->set_used();
+    enum_access_expr->set_type(std::make_shared<EnumType>(*ref));
+    enum_access_expr->set_field_num(*num);
+}
+
 auto Verifier::visit_empty_stmt(std::shared_ptr<EmptyStmt> empty_stmt) -> void {
     (void)empty_stmt;
     return;
@@ -878,9 +932,15 @@ auto Verifier::check(std::string const& filename, bool is_main) -> void {
 
     current_module_ = module;
 
+    check_duplicate_enums();
+    for (auto& enum_ : current_module_->get_enums()) {
+        enum_->visit(shared_from_this());
+    }
+
     check_duplicate_globals();
     load_all_global_variables();
     for (auto& global_var : current_module_->get_global_vars()) {
+        unmurk_decl(global_var);
         global_var->visit(shared_from_this());
     }
 
@@ -891,6 +951,10 @@ auto Verifier::check(std::string const& filename, bool is_main) -> void {
 
     check_duplicate_function_declaration();
     for (auto& func : current_module_->get_functions()) {
+        unmurk_decl(func);
+        for (auto& para : func->get_paras()) {
+            unmurk_decl(para);
+        }
         func->visit(shared_from_this());
     }
 
@@ -919,6 +983,12 @@ auto Verifier::check_unused_declarations() -> void {
                 handler_->report_minor_error(current_filename_, all_errors_[23], stream.str(), extern_->pos());
             }
         }
+        for (auto const& enum_ : module->get_enums()) {
+            if (!enum_->is_used()) {
+                auto stream = "'" + enum_->get_ident() + "'";
+                handler_->report_minor_error(current_filename_, all_errors_[41], stream, enum_->pos());
+            }
+        }
     }
 }
 
@@ -927,6 +997,19 @@ auto Verifier::load_all_global_variables() -> void {
         global_var->set_statement_num(global_statement_counter_);
         global_var->set_depth_num(loop_depth_);
         declare_variable(global_var->get_ident() + global_var->get_append(), global_var);
+    }
+}
+
+auto Verifier::check_duplicate_enums() -> void {
+    std::vector<std::string> seen_enums;
+    for (const auto& enum_ : current_module_->get_enums()) {
+        auto it = std::find(seen_enums.begin(), seen_enums.end(), enum_->get_ident());
+        if (it != seen_enums.end()) {
+            handler_->report_error(current_filename_, all_errors_[36], enum_->get_ident(), enum_->pos());
+        }
+        else {
+            seen_enums.push_back(enum_->get_ident());
+        }
     }
 }
 
@@ -988,4 +1071,38 @@ auto Verifier::declare_variable(std::string ident, std::shared_ptr<Decl> decl) -
     }
 
     symbol_table_.insert(ident, decl);
+}
+
+auto Verifier::unmurk_decl(std::shared_ptr<Decl> decl) -> void {
+    unmurk_pos = decl->pos();
+    auto new_t = unmurk(decl->get_type());
+    decl->set_type(new_t);
+}
+
+auto Verifier::unmurk(std::shared_ptr<Type> murky_t) -> std::shared_ptr<Type> {
+    if (murky_t->is_murky()) {
+        return unmurk_direct(std::dynamic_pointer_cast<MurkyType>(murky_t));
+    }
+    else if (murky_t->is_array()) {
+        auto l = std::dynamic_pointer_cast<ArrayType>(murky_t);
+        return std::make_shared<ArrayType>(unmurk(l->get_sub_type()), *l->get_length());
+    }
+    else if (murky_t->is_pointer()) {
+        auto l = std::dynamic_pointer_cast<PointerType>(murky_t);
+        return std::make_shared<PointerType>(unmurk(l->get_sub_type()));
+    }
+    return murky_t;
+}
+
+auto Verifier::unmurk_direct(std::shared_ptr<MurkyType> murky_t) -> std::shared_ptr<Type> {
+    auto lex = murky_t->get_name();
+
+    for (auto& enum_ : current_module_->get_enums()) {
+        if (enum_->get_ident() == lex) {
+            return std::make_shared<EnumType>(enum_);
+        }
+    }
+
+    handler_->report_error(current_filename_, all_errors_[42], lex, unmurk_pos);
+    return std::make_shared<Type>(TypeSpec::ERROR);
 }

@@ -1,4 +1,5 @@
 #include "./type.hpp"
+#include "./decl.hpp"
 
 #include <iostream>
 #include <map>
@@ -36,7 +37,7 @@ auto soft_typespec_equals(TypeSpec const& a, TypeSpec const& b) -> bool {
     return a == b;
 }
 
-auto type_spec_from_lexeme(std::string const& lexeme) -> std::optional<TypeSpec> {
+auto type_spec_from_lexeme(std::string const& lexeme) -> TypeSpec {
     auto const lexeme_to_spec_map = std::map<std::string, TypeSpec>{{"void", TypeSpec::VOID},
                                                                     {"i64", TypeSpec::I64},
                                                                     {"i32", TypeSpec::I32},
@@ -52,7 +53,7 @@ auto type_spec_from_lexeme(std::string const& lexeme) -> std::optional<TypeSpec>
     if (it != lexeme_to_spec_map.end()) {
         return it->second;
     }
-    return std::nullopt;
+    return TypeSpec::MURKY;
 }
 
 auto operator<<(std::ostream& os, TypeSpec const& ts) -> std::ostream& {
@@ -74,4 +75,52 @@ auto operator<<(std::ostream& os, TypeSpec const& ts) -> std::ostream& {
     default: os << "invalid typespec"; break;
     }
     return os;
+}
+
+EnumType::EnumType()
+: Type(TypeSpec::ENUM) {}
+
+EnumType::EnumType(std::shared_ptr<EnumDecl> ref)
+: Type(TypeSpec::ENUM)
+, ref_(ref) {}
+
+auto EnumType::set_ref(std::shared_ptr<EnumDecl> ref) -> void {
+    ref_ = ref;
+}
+
+auto EnumType::get_ref() const -> std::shared_ptr<EnumDecl> {
+    return ref_;
+}
+
+auto EnumType::print(std::ostream& os) const -> void {
+    os << t_;
+    ref_->print(os);
+}
+
+auto EnumType::equals(const Type& other) const -> bool {
+    if (t_ != other.get_type_spec())
+        return false;
+
+    auto* other_ptr = dynamic_cast<const EnumType*>(&other);
+    if (!other_ptr)
+        return false;
+
+    return ref_->get_ident() == other_ptr->get_ref()->get_ident()
+           and ref_->get_fields() == other_ptr->get_ref()->get_fields();
+}
+
+auto EnumType::equal_soft(const Type& other) const -> bool {
+    return equals(other);
+}
+
+auto MurkyType::print(std::ostream& os) const -> void {
+    os << "murkytype " << name_;
+}
+auto MurkyType::equals(const Type& other) const -> bool {
+    (void)other;
+    return false;
+}
+auto MurkyType::equal_soft(const Type& other) const -> bool {
+    (void)other;
+    return false;
 }

@@ -104,6 +104,7 @@ auto Emitter::llvm_type(std::shared_ptr<Type> t) -> llvm::Type* {
 
     switch (t->get_type_spec()) {
     case TypeSpec::BOOL: return llvm::Type::getInt1Ty(*context);
+    case TypeSpec::ENUM:
     case TypeSpec::I64:
     case TypeSpec::U64: return llvm::Type::getInt64Ty(*context);
     case TypeSpec::I32:

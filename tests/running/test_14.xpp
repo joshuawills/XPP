@@ -1,0 +1,28 @@
+// Messing around with enums
+
+extern printf(i8*, ...) void;
+
+enum DaysOfTheWeek {
+	MONDAY,
+	TUESDAY,
+	WEDNESDAY,
+	THURSDAY,
+	FRIDAY,
+	SATURDAY,
+	SUNDAY
+}
+
+fn is_weekend(v: DaysOfTheWeek) bool {
+	return v == DaysOfTheWeek::SATURDAY || v == DaysOfTheWeek::SUNDAY;
+}
+
+fn main() void {
+	let mut day: DaysOfTheWeek = DaysOfTheWeek::MONDAY;
+	if is_weekend(day) {
+		printf("IT'S THE WEEKEND!\n");
+	}
+	day = DaysOfTheWeek::SUNDAY;
+	if is_weekend(day) {
+		printf("IT'S THE WEEKEND 2!\n");
+	}
+}

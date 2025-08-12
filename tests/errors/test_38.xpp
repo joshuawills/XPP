@@ -1,0 +1,5 @@
+// No such enum
+
+fn main() void {
+	let x = What::bar;
+}

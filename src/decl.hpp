@@ -234,4 +234,38 @@ class Extern
     bool has_variatic_ = false;
 };
 
+class EnumDecl
+: public Decl
+, public std::enable_shared_from_this<EnumDecl> {
+ public:
+    EnumDecl(Position const pos, std::string const name, std::vector<std::string> const fields)
+    : Decl(pos, name, std::make_shared<Type>())
+    , fields_(fields) {}
+
+    static std::shared_ptr<EnumDecl>
+    make(Position const pos, std::string const name, std::vector<std::string> const fields) {
+        auto decl = std::make_shared<EnumDecl>(pos, name, fields);
+        decl->set_type(std::make_shared<EnumType>(decl));
+        return decl;
+    }
+
+    auto visit(std::shared_ptr<Visitor> visitor) -> void override {
+        visitor->visit_enum_decl(shared_from_this());
+    }
+    auto codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* override;
+    auto print(std::ostream& os) const -> void override;
+
+    auto operator==(const Extern& other) const -> bool;
+
+    auto get_num(std::string field) const -> std::optional<int>;
+    auto find_duplicates() const -> std::vector<std::string>;
+
+    auto get_fields() const -> std::vector<std::string> const& {
+        return fields_;
+    }
+
+ private:
+    std::vector<std::string> const fields_;
+};
+
 #endif // DECL_HPP

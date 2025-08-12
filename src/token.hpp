@@ -65,6 +65,8 @@ enum class TokenType {
     DIVIDE_ASSIGN,
     OPEN_SQUARE,
     CLOSE_SQUARE,
+    ENUM,
+    DOUBLE_COLON
 };
 
 class Token {

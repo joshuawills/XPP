@@ -23,6 +23,10 @@ class Module {
         global_vars_.push_back(global_var);
     }
 
+    auto add_enums(std::shared_ptr<EnumDecl> enum_) -> void {
+        enums_.push_back(enum_);
+    }
+
     auto get_filepath() const -> std::string const& {
         return filepath_;
     }
@@ -39,6 +43,10 @@ class Module {
         return global_vars_;
     }
 
+    auto get_enums() const -> std::vector<std::shared_ptr<EnumDecl>> {
+        return enums_;
+    }
+
     auto function_with_name_exists(std::string const& name) const -> bool {
         auto const user_func = std::any_of(functions_.begin(), functions_.end(), [&name](auto const& func) {
             return func->get_ident() == name;
@@ -51,12 +59,14 @@ class Module {
     }
 
     auto get_decl(std::shared_ptr<CallExpr> call_expr) const -> std::optional<std::shared_ptr<Decl>>;
+    auto get_enum(std::string enum_name) const -> std::optional<std::shared_ptr<EnumDecl>>;
 
  private:
     std::string filepath_;
     std::vector<std::shared_ptr<Function>> functions_ = {};
     std::vector<std::shared_ptr<Extern>> externs_ = {};
     std::vector<std::shared_ptr<GlobalVarDecl>> global_vars_ = {};
+    std::vector<std::shared_ptr<EnumDecl>> enums_ = {};
 };
 
 auto operator<<(std::ostream& os, Module const& mod) -> std::ostream&;

@@ -499,4 +499,41 @@ class ArrayIndexExpr
     std::shared_ptr<Expr> array_expr_, index_expr_;
 };
 
+class EnumAccessExpr
+: public Expr
+, public std::enable_shared_from_this<EnumAccessExpr> {
+ public:
+    EnumAccessExpr(Position const pos, std::string const& enum_name, std::string const& field)
+    : Expr(pos, std::make_shared<Type>())
+    , enum_name_(enum_name)
+    , field_(field) {}
+
+    auto visit(std::shared_ptr<Visitor> visitor) -> void override {
+        visitor->visit_enum_access_expr(shared_from_this());
+    }
+    auto codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* override;
+    auto print(std::ostream& os) const -> void override;
+
+    auto get_enum_name() const -> std::string {
+        return enum_name_;
+    }
+
+    auto get_field() const -> std::string {
+        return field_;
+    }
+
+    auto set_field_num(int field_num) -> void {
+        field_num_ = field_num;
+    }
+
+    auto get_field_num() -> int {
+        return field_num_;
+    }
+
+ private:
+    std::string const enum_name_;
+    std::string const field_;
+    int field_num_;
+};
+
 #endif // EXPR_HPP

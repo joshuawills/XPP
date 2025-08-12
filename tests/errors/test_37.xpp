@@ -1,0 +1,5 @@
+// Enum declared with no fields
+
+enum Empty {}
+
+fn main() void {}

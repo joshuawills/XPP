@@ -1,5 +1,7 @@
 // Incompatible type for this assignment
 
+enum Boolean { TRUE, FALSE }
+
 let x: i8 = false;
 
 fn main() void {
@@ -11,4 +13,7 @@ fn main() void {
 
     let mut p = &z;
     p *= 3;
+
+    let a: i64 = Boolean::TRUE;
+    let b: Boolean = Boolean::FALSE;
 }

@@ -54,6 +54,7 @@ class Verifier
     auto visit_para_decl(std::shared_ptr<ParaDecl> para_decl) -> void override;
     auto visit_local_var_decl(std::shared_ptr<LocalVarDecl> local_var_decl) -> void override;
     auto visit_global_var_decl(std::shared_ptr<GlobalVarDecl> global_var_decl) -> void override;
+    auto visit_enum_decl(std::shared_ptr<EnumDecl> enum_decl) -> void override;
     auto visit_function(std::shared_ptr<Function> function) -> void override;
     auto visit_extern(std::shared_ptr<Extern> extern_) -> void override;
     auto visit_empty_expr(std::shared_ptr<EmptyExpr> empty_expr) -> void override;
@@ -71,6 +72,7 @@ class Verifier
     auto visit_cast_expr(std::shared_ptr<CastExpr> cast_expr) -> void override;
     auto visit_array_init_expr(std::shared_ptr<ArrayInitExpr> array_init_expr) -> void override;
     auto visit_array_index_expr(std::shared_ptr<ArrayIndexExpr> array_index_expr) -> void override;
+    auto visit_enum_access_expr(std::shared_ptr<EnumAccessExpr> enum_access_expr) -> void override;
 
     auto visit_empty_stmt(std::shared_ptr<EmptyStmt> empty_stmt) -> void override;
     auto visit_compound_stmt(std::shared_ptr<CompoundStmt> compound_stmt) -> void override;
@@ -84,6 +86,7 @@ class Verifier
     auto check(std::string const& filename, bool is_main) -> void;
 
     std::optional<std::shared_ptr<Type>> current_numerical_type = std::nullopt;
+    Position unmurk_pos;
 
  private:
     std::shared_ptr<Handler> handler_;
@@ -137,15 +140,27 @@ class Verifier
                                                   "34: array index expression may only be performed on array or "
                                                   "pointer types: %",
                                                   "35: type of array index must be either a signed or unsigned "
-                                                  "integer: %"};
+                                                  "integer: %",
+                                                  "36: duplicate enum declarations: %",
+                                                  "37: enum declared with no fields",
+                                                  "38: no such enum exists: %",
+                                                  "39: no such field present on enum: %",
+                                                  "40: enum declared with duplicate fields: %",
+                                                  "41: unused enum: %",
+                                                  "42: unknown type declared: %"};
 
     auto check_duplicate_function_declaration() -> void;
     auto check_duplicate_extern_declaration() -> void;
+    auto check_duplicate_enums() -> void;
     auto check_duplicate_globals() -> void;
     auto check_unused_declarations() -> void;
     auto load_all_global_variables() -> void;
 
     auto declare_variable(std::string ident, std::shared_ptr<Decl> decl) -> void;
+
+    auto unmurk_decl(std::shared_ptr<Decl> decl) -> void;
+    auto unmurk(std::shared_ptr<Type> murky_t) -> std::shared_ptr<Type>;
+    auto unmurk_direct(std::shared_ptr<MurkyType> murky_t) -> std::shared_ptr<Type>;
 };
 
 #endif // VERIFIER_HPP

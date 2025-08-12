@@ -5,7 +5,25 @@
 
 #include "./ast.hpp"
 
-enum TypeSpec { VOID, I64, I32, BOOL, UNKNOWN, ERROR, POINTER, I8, VARIATIC, U64, U32, U8, F32, F64, ARRAY };
+enum TypeSpec {
+    VOID,
+    I64,
+    I32,
+    BOOL,
+    UNKNOWN,
+    ERROR,
+    POINTER,
+    I8,
+    VARIATIC,
+    U64,
+    U32,
+    U8,
+    F32,
+    F64,
+    ARRAY,
+    ENUM,
+    MURKY
+};
 
 auto operator<<(std::ostream& os, TypeSpec const& ts) -> std::ostream&;
 
@@ -95,6 +113,14 @@ class Type {
 
     auto is_array() const noexcept -> bool {
         return t_ == TypeSpec::ARRAY;
+    }
+
+    auto is_enum() const noexcept -> bool {
+        return t_ == TypeSpec::ENUM;
+    }
+
+    auto is_murky() const noexcept -> bool {
+        return t_ == TypeSpec::MURKY;
     }
 
  protected:
@@ -192,8 +218,42 @@ class ArrayType : public Type {
     std::optional<size_t> length_ = std::nullopt;
 };
 
+class EnumType : public Type {
+ public:
+    EnumType();
+    EnumType(std::shared_ptr<EnumDecl> ref);
+
+    auto set_ref(std::shared_ptr<EnumDecl> ref) -> void;
+    auto get_ref() const -> std::shared_ptr<EnumDecl>;
+
+    auto print(std::ostream& os) const -> void override;
+    auto equals(const Type& other) const -> bool override;
+    auto equal_soft(const Type& other) const -> bool override;
+
+ private:
+    std::shared_ptr<EnumDecl> ref_ = nullptr;
+};
+
+class MurkyType : public Type {
+ public:
+    MurkyType(std::string const name)
+    : Type(TypeSpec::MURKY)
+    , name_(name) {}
+
+    auto get_name() const -> std::string {
+        return name_;
+    }
+
+    auto print(std::ostream& os) const -> void override;
+    auto equals(const Type& other) const -> bool override;
+    auto equal_soft(const Type& other) const -> bool override;
+
+ private:
+    std::string const name_;
+};
+
 auto operator<<(std::ostream& os, Type const& t) -> std::ostream&;
 
-auto type_spec_from_lexeme(std::string const& lexeme) -> std::optional<TypeSpec>;
+auto type_spec_from_lexeme(std::string const& lexeme) -> TypeSpec;
 
 #endif // TYPE_HPP

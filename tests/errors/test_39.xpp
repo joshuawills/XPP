@@ -1,0 +1,7 @@
+// No field present on enum
+
+enum Boolean { TRUE, FALSE }
+
+fn main() void {
+	let x = Boolean::MAYBE;
+}

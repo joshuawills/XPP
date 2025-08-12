@@ -88,6 +88,13 @@ auto Parser::parse() -> std::shared_ptr<Module> {
             auto extern_ = std::make_shared<Extern>(p, ident, return_type, types);
             module->add_extern(extern_);
         }
+        else if (try_consume(TokenType::ENUM)) {
+            auto ident = parse_ident();
+            auto enum_list = parse_enum_list();
+            finish(p);
+            auto enum_ = std::make_shared<EnumDecl>(p, ident, enum_list);
+            module->add_enums(enum_);
+        }
         else if (try_consume(TokenType::LET)) {
             auto const is_mut = try_consume(TokenType::MUT);
             auto const ident = parse_ident();
@@ -167,15 +174,17 @@ auto Parser::parse_type() -> std::shared_ptr<Type> {
 
     auto const& curr_lexeme = (*curr_token_)->lexeme();
     auto const& type_spec = type_spec_from_lexeme(curr_lexeme);
-    if (!type_spec.has_value()) {
-        syntactic_error("TYPE expected, but found \"%\"", curr_lexeme);
-        return std::make_shared<Type>(TypeSpec::UNKNOWN);
-    }
 
     consume();
 
-    // Handle pointer types
-    std::shared_ptr<Type> return_type = std::make_shared<Type>(*type_spec);
+    // Handle pointer/array types
+    std::shared_ptr<Type> return_type;
+    if (type_spec == TypeSpec::MURKY) {
+        return_type = std::make_shared<MurkyType>(curr_lexeme);
+    }
+    else {
+        return_type = std::make_shared<Type>(type_spec);
+    }
     std::shared_ptr<Type> sub_type = nullptr;
     if (try_consume(TokenType::OPEN_SQUARE)) {
         sub_type = return_type;
@@ -252,6 +261,22 @@ auto Parser::parse_arg_list() -> std::vector<std::shared_ptr<Expr>> {
     }
     match(TokenType::CLOSE_BRACKET);
     return args;
+}
+
+auto Parser::parse_enum_list() -> std::vector<std::string> {
+    auto res = std::vector<std::string>{};
+    match(TokenType::OPEN_CURLY);
+    while (curr_token_.has_value() and !(*curr_token_)->type_matches(TokenType::CLOSE_CURLY)) {
+        auto s = (*curr_token_)->lexeme();
+        match(TokenType::IDENT);
+        res.push_back(s);
+        if (peek(TokenType::CLOSE_CURLY)) {
+            break;
+        }
+        match(TokenType::COMMA);
+    }
+    match(TokenType::CLOSE_CURLY);
+    return res;
 }
 
 auto Parser::parse_compound_stmt() -> std::shared_ptr<CompoundStmt> {
@@ -555,6 +580,13 @@ auto Parser::parse_postfix_expr() -> std::shared_ptr<Expr> {
         match(TokenType::CLOSE_SQUARE);
         finish(p);
         return std::make_shared<ArrayIndexExpr>(p, p_expr, index_expr);
+    }
+    else if (peek(TokenType::DOUBLE_COLON) and v) {
+        auto enum_name = v->get_name();
+        match(TokenType::DOUBLE_COLON);
+        auto field_name = parse_ident();
+        finish(p);
+        return std::make_shared<EnumAccessExpr>(p, enum_name, field_name);
     }
     else {
         return p_expr;

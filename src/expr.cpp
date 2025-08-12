@@ -335,7 +335,6 @@ auto UnaryExpr::print(std::ostream& os) const -> void {
 }
 
 auto IntExpr::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
-    (void)emitter;
     return llvm::ConstantInt::get(*(emitter->context), llvm::APInt(width_, value_, true));
 }
 
@@ -344,7 +343,6 @@ auto IntExpr::print(std::ostream& os) const -> void {
 }
 
 auto UIntExpr::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
-    (void)emitter;
     return llvm::ConstantInt::get(*(emitter->context), llvm::APInt(width_, value_, false));
 }
 
@@ -687,4 +685,12 @@ auto ArrayIndexExpr::print(std::ostream& os) const -> void {
     os << "[";
     index_expr_->print(os);
     os << "]";
+}
+
+auto EnumAccessExpr::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
+    return llvm::ConstantInt::get((*emitter->context), llvm::APInt(64, field_num_, true));
+}
+
+auto EnumAccessExpr::print(std::ostream& os) const -> void {
+    os << enum_name_ << "::" << field_;
 }

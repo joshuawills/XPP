@@ -1,0 +1,7 @@
+// Duplicate type declarations
+
+enum Foo { A, B }
+enum Foo { C, D }
+enum Bar { E, F }
+
+fn main() void {}

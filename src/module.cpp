@@ -68,3 +68,10 @@ auto Module::get_decl(std::shared_ptr<CallExpr> call_expr) const -> std::optiona
 
     return (it2 != externs_.end()) ? std::optional{*it2} : std::nullopt;
 }
+
+auto Module::get_enum(std::string enum_name) const -> std::optional<std::shared_ptr<EnumDecl>> {
+    auto it = std::find_if(enums_.begin(), enums_.end(), [&enum_name](auto const& enum_) {
+        return enum_->get_ident() == enum_name;
+    });
+    return (it != enums_.end()) ? std::optional{*it} : std::nullopt;
+}
