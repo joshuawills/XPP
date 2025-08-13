@@ -1,0 +1,10 @@
+// Duplicate field declarations in class
+
+class Foo {
+	x: i64;
+	x: i64;
+	y: i8*;
+	y: bool;
+}
+
+fn main() void {}

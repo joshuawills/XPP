@@ -22,7 +22,8 @@ enum TypeSpec {
     F64,
     ARRAY,
     ENUM,
-    MURKY
+    MURKY,
+    CLASS
 };
 
 auto operator<<(std::ostream& os, TypeSpec const& ts) -> std::ostream&;
@@ -121,6 +122,10 @@ class Type {
 
     auto is_murky() const noexcept -> bool {
         return t_ == TypeSpec::MURKY;
+    }
+
+    auto is_class() const noexcept -> bool {
+        return t_ == TypeSpec::CLASS;
     }
 
  protected:
@@ -236,6 +241,24 @@ class EnumType : public Type {
 
  private:
     std::shared_ptr<EnumDecl> ref_ = nullptr;
+};
+
+class ClassType : public Type {
+ public:
+    ClassType();
+    ClassType(std::shared_ptr<ClassDecl> ref)
+    : Type(TypeSpec::CLASS)
+    , ref_(ref) {}
+
+    auto get_ref() const -> std::shared_ptr<ClassDecl>;
+    auto set_ref(std::shared_ptr<ClassDecl> ref) -> void;
+
+    auto print(std::ostream& os) const -> void override;
+    auto equals(const Type& other) const -> bool override;
+    auto equal_soft(const Type& other) const -> bool override;
+
+ private:
+    std::shared_ptr<ClassDecl> ref_ = nullptr;
 };
 
 class MurkyType : public Type {

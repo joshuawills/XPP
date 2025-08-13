@@ -27,6 +27,10 @@ class Module {
         enums_.push_back(enum_);
     }
 
+    auto add_class(std::shared_ptr<ClassDecl> class_) -> void {
+        classes_.push_back(class_);
+    }
+
     auto get_filepath() const -> std::string const& {
         return filepath_;
     }
@@ -45,6 +49,10 @@ class Module {
 
     auto get_enums() const -> std::vector<std::shared_ptr<EnumDecl>> {
         return enums_;
+    }
+
+    auto get_classes() const -> std::vector<std::shared_ptr<ClassDecl>> {
+        return classes_;
     }
 
     auto function_with_name_exists(std::string const& name) const -> bool {
@@ -67,6 +75,7 @@ class Module {
     std::vector<std::shared_ptr<Extern>> externs_ = {};
     std::vector<std::shared_ptr<GlobalVarDecl>> global_vars_ = {};
     std::vector<std::shared_ptr<EnumDecl>> enums_ = {};
+    std::vector<std::shared_ptr<ClassDecl>> classes_ = {};
 };
 
 auto operator<<(std::ostream& os, Module const& mod) -> std::ostream&;

@@ -273,3 +273,44 @@ auto EnumDecl::find_duplicates() const -> std::vector<std::string> {
 
     return duplicates;
 }
+
+auto ClassFieldDecl::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
+    (void)emitter;
+    return nullptr;
+}
+
+auto ClassFieldDecl::print(std::ostream& os) const -> void {
+    os << "\t ";
+    if (is_pub()) {
+        os << "pub ";
+    }
+    if (is_mut()) {
+        os << "mut ";
+    }
+    os << ident_ << " : " << *t_ << "\n";
+    return;
+}
+
+auto ClassFieldDecl::operator==(ClassFieldDecl const& other) const -> bool {
+    return get_ident() == other.get_ident();
+}
+
+auto ClassDecl::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
+    (void)emitter;
+    std::cout << "TODO ClassDecl::codegen\n";
+    return nullptr;
+}
+
+auto ClassDecl::print(std::ostream& os) const -> void {
+    os << "class " << get_ident() << "{\n";
+    os << "fields:\n";
+    for (auto const& field : fields_) {
+        field->print(os);
+    }
+    os << "\n}\n";
+    return;
+}
+
+auto ClassDecl::operator==(ClassDecl const& other) const -> bool {
+    return get_ident() == other.get_ident();
+}

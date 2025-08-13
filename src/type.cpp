@@ -113,6 +113,33 @@ auto EnumType::equal_soft(const Type& other) const -> bool {
     return equals(other);
 }
 
+auto ClassType::print(std::ostream& os) const -> void {
+    os << "classtype_" << ref_->get_ident();
+}
+
+auto ClassType::equals(const Type& other) const -> bool {
+    if (t_ != other.get_type_spec())
+        return false;
+
+    auto* other_ptr = dynamic_cast<const ClassType*>(&other);
+    if (!other_ptr)
+        return false;
+
+    return other_ptr->get_ref() == get_ref();
+}
+
+auto ClassType::equal_soft(const Type& other) const -> bool {
+    return equals(other);
+}
+
+auto ClassType::get_ref() const -> std::shared_ptr<ClassDecl> {
+    return ref_;
+}
+
+auto ClassType::set_ref(std::shared_ptr<ClassDecl> ref) -> void {
+    ref_ = ref;
+}
+
 auto MurkyType::print(std::ostream& os) const -> void {
     os << "murkytype " << name_;
 }

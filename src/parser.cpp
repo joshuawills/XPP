@@ -70,6 +70,7 @@ auto Parser::parse() -> std::shared_ptr<Module> {
     while (curr_token_.has_value()) {
         auto p = Position{};
         start(p);
+        auto const is_pub = try_consume(TokenType::PUB);
         if (try_consume(TokenType::FN)) {
             auto ident = parse_ident();
             auto paras = parse_para_list();
@@ -77,6 +78,8 @@ auto Parser::parse() -> std::shared_ptr<Module> {
             auto stmt = parse_compound_stmt();
             finish(p);
             auto func = std::make_shared<Function>(p, ident, paras, type, stmt);
+            if (is_pub)
+                func->set_pub();
             stmt->set_parent(func);
             module->add_function(func);
         }
@@ -87,13 +90,17 @@ auto Parser::parse() -> std::shared_ptr<Module> {
             match(TokenType::SEMICOLON);
             finish(p);
             auto extern_ = std::make_shared<Extern>(p, ident, return_type, types);
+            if (is_pub)
+                extern_->set_pub();
             module->add_extern(extern_);
         }
         else if (try_consume(TokenType::ENUM)) {
             auto ident = parse_ident();
             auto enum_list = parse_enum_list();
             finish(p);
-            auto enum_ = std::make_shared<EnumDecl>(p, ident, enum_list);
+            auto enum_ = EnumDecl::make(p, ident, enum_list);
+            if (is_pub)
+                enum_->set_pub();
             module->add_enums(enum_);
         }
         else if (try_consume(TokenType::LET)) {
@@ -113,8 +120,16 @@ auto Parser::parse() -> std::shared_ptr<Module> {
             if (is_mut) {
                 global_var->set_mut();
             }
+            if (is_pub)
+                global_var->set_pub();
             module->add_global_var(global_var);
             match(TokenType::SEMICOLON);
+        }
+        else if (try_consume(TokenType::CLASS)) {
+            auto class_ = parse_class(p);
+            if (is_pub)
+                class_->set_pub();
+            module->add_class(class_);
         }
         else {
             auto stream = std::stringstream{};
@@ -126,6 +141,46 @@ auto Parser::parse() -> std::shared_ptr<Module> {
     }
 
     return module;
+}
+
+auto Parser::parse_class(Position p) -> std::shared_ptr<ClassDecl> {
+    auto const class_name = parse_ident();
+    auto fields_vec = std::vector<std::shared_ptr<ClassFieldDecl>>{};
+    match(TokenType::OPEN_CURLY);
+    while (!peek(TokenType::CLOSE_CURLY)) {
+        auto p2 = Position{};
+        start(p2);
+        auto const is_pub = try_consume(TokenType::PUB);
+        auto const is_mut = try_consume(TokenType::MUT);
+        if (peek(TokenType::IDENT)) {
+            auto lex = (*curr_token_)->lexeme();
+            match(TokenType::IDENT);
+            if (try_consume(TokenType::COLON)) {
+                auto type = parse_type();
+                match(TokenType::SEMICOLON);
+                finish(p2);
+                auto field_decl = std::make_shared<ClassFieldDecl>(p2, lex, type);
+                if (is_pub) {
+                    field_decl->set_pub();
+                }
+                if (is_mut) {
+                    field_decl->set_mut();
+                }
+                fields_vec.push_back(field_decl);
+            }
+            else {
+                std::cout << "Parser::parse_class UNREACHABLE!\n";
+            }
+        }
+        else {
+            std::cout << "Parser::parse_class UNREACHABLE!\n";
+        }
+    }
+    match(TokenType::CLOSE_CURLY);
+
+    finish(p);
+    auto class_ = std::make_shared<ClassDecl>(p, class_name, fields_vec);
+    return class_;
 }
 
 auto Parser::parse_operator() -> Op {

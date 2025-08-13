@@ -225,6 +225,41 @@ auto Verifier::visit_enum_decl(std::shared_ptr<EnumDecl> enum_decl) -> void {
     }
 }
 
+auto Verifier::visit_class_field_decl(std::shared_ptr<ClassFieldDecl> class_field_decl) -> void {
+    auto const n = class_field_decl->get_ident();
+    auto const t = class_field_decl->get_type();
+    if (t->is_void()) {
+        handler_->report_error(current_filename_, all_errors_[50], n, class_field_decl->pos());
+    }
+    else if (t->is_array()) {
+        auto a_t = std::dynamic_pointer_cast<ArrayType>(t);
+        if (a_t->get_sub_type()->is_void()) {
+            handler_->report_error(current_filename_, all_errors_[51], n, class_field_decl->pos());
+        }
+    }
+}
+
+auto Verifier::visit_class_decl(std::shared_ptr<ClassDecl> class_decl) -> void {
+    auto const class_name = class_decl->get_ident();
+
+    // Ensure there's no duplicate fields
+    std::vector<std::string> seen_fields;
+    for (auto const& field : class_decl->get_fields()) {
+        field->visit(shared_from_this());
+        auto n = field->get_ident();
+        auto it = std::find(seen_fields.begin(), seen_fields.end(), n);
+        if (it != seen_fields.end()) {
+            auto err = "field '" + n + "' in class '" + class_name + "'";
+            handler_->report_error(current_filename_, all_errors_[49], err, field->pos());
+        }
+        else {
+            seen_fields.push_back(n);
+        }
+    }
+
+    return;
+}
+
 auto Verifier::visit_extern(std::shared_ptr<Extern> extern_) -> void {
     auto i = 0u;
     auto const size = extern_->get_types().size();
@@ -1067,9 +1102,14 @@ auto Verifier::check(std::string const& filename, bool is_main) -> void {
 
     current_module_ = module;
 
-    check_duplicate_enums();
+    check_duplicate_custom_type();
     for (auto& enum_ : current_module_->get_enums()) {
         enum_->visit(shared_from_this());
+    }
+    for (auto& class_ : current_module_->get_classes()) {
+        for (auto& field : class_->get_fields()) {
+            unmurk_decl(field);
+        }
     }
 
     check_duplicate_globals();
@@ -1101,6 +1141,10 @@ auto Verifier::check(std::string const& filename, bool is_main) -> void {
             }
         }
         func->visit(shared_from_this());
+    }
+
+    for (auto& class_ : current_module_->get_classes()) {
+        class_->visit(shared_from_this());
     }
 
     if (!handler_->quiet_mode()) {
@@ -1145,15 +1189,46 @@ auto Verifier::load_all_global_variables() -> void {
     }
 }
 
-auto Verifier::check_duplicate_enums() -> void {
-    std::vector<std::string> seen_enums;
-    for (const auto& enum_ : current_module_->get_enums()) {
-        auto it = std::find(seen_enums.begin(), seen_enums.end(), enum_->get_ident());
-        if (it != seen_enums.end()) {
-            handler_->report_error(current_filename_, all_errors_[36], enum_->get_ident(), enum_->pos());
+auto Verifier::check_duplicate_custom_type() -> void {
+    std::unordered_map<std::string, Position> enums_seen;
+    std::unordered_map<std::string, Position> classes_seen;
+
+    for (auto const& enum_ : current_module_->get_enums()) {
+        auto const& name = enum_->get_ident();
+        auto const& pos = enum_->pos();
+
+        if (auto it = enums_seen.find(name); it != enums_seen.end()) {
+            handler_->report_error(
+                current_filename_,
+                all_errors_[36],
+                "enum '" + name + "' previously defined as an enum at line " + std::to_string(it->second.line_start_),
+                pos);
         }
         else {
-            seen_enums.push_back(enum_->get_ident());
+            enums_seen[name] = pos;
+        }
+    }
+
+    for (auto const& class_ : current_module_->get_classes()) {
+        auto const& name = class_->get_ident();
+        auto const& pos = class_->pos();
+
+        if (auto it_enum = enums_seen.find(name); it_enum != enums_seen.end()) {
+            handler_->report_error(current_filename_,
+                                   all_errors_[36],
+                                   "class '" + name + "' previously defined as an enum at line "
+                                       + std::to_string(it_enum->second.line_start_),
+                                   pos);
+        }
+        else if (auto it_class = classes_seen.find(name); it_class != classes_seen.end()) {
+            handler_->report_error(current_filename_,
+                                   all_errors_[36],
+                                   "class '" + name + "' previously defined as a class at line "
+                                       + std::to_string(it_class->second.line_start_),
+                                   pos);
+        }
+        else {
+            classes_seen[name] = pos;
         }
     }
 }
@@ -1250,6 +1325,12 @@ auto Verifier::unmurk_direct(std::shared_ptr<MurkyType> murky_t) -> std::shared_
     for (auto& enum_ : current_module_->get_enums()) {
         if (enum_->get_ident() == lex) {
             return std::make_shared<EnumType>(enum_);
+        }
+    }
+
+    for (auto& class_ : current_module_->get_classes()) {
+        if (class_->get_ident() == lex) {
+            return std::make_shared<ClassType>(class_);
         }
     }
 

@@ -45,6 +45,7 @@
 - FIXES: regarding array initialisation
 - ADDITIONS: decaying arrays to pointers in function calls
 - FIXES: handle void[] and returning stack-allocated arrays
+- ADDITION: starting development of classes/composite types
 
 ## TODO
 

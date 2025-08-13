@@ -7,6 +7,8 @@ class ParaDecl;
 class LocalVarDecl;
 class GlobalVarDecl;
 class EnumDecl;
+class ClassFieldDecl;
+class ClassDecl;
 class Function;
 class EmptyExpr;
 class AssignmentExpr;
@@ -40,6 +42,8 @@ class Visitor {
     virtual auto visit_local_var_decl(std::shared_ptr<LocalVarDecl> local_var_decl) -> void = 0;
     virtual auto visit_global_var_decl(std::shared_ptr<GlobalVarDecl> global_var_decl) -> void = 0;
     virtual auto visit_enum_decl(std::shared_ptr<EnumDecl> enum_decl) -> void = 0;
+    virtual auto visit_class_decl(std::shared_ptr<ClassDecl> class_decl) -> void = 0;
+    virtual auto visit_class_field_decl(std::shared_ptr<ClassFieldDecl> class_field_decl) -> void = 0;
     virtual auto visit_function(std::shared_ptr<Function> function) -> void = 0;
     virtual auto visit_extern(std::shared_ptr<Extern> extern_) -> void = 0;
     virtual auto visit_empty_expr(std::shared_ptr<EmptyExpr> empty_expr) -> void = 0;

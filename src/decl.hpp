@@ -45,11 +45,11 @@ class Decl : public AST {
         is_mut_ = true;
     }
 
-    auto is_exported() const -> bool {
-        return is_exported_;
+    auto is_pub() const -> bool {
+        return is_pub_;
     }
-    auto set_exported() -> void {
-        is_exported_ = true;
+    auto set_pub() -> void {
+        is_pub_ = true;
     }
 
     auto get_ident() const -> std::string const& {
@@ -72,7 +72,7 @@ class Decl : public AST {
     }
 
  protected:
-    bool is_used_ = false, is_reassigned_ = false, is_mut_ = false, is_exported_ = false;
+    bool is_used_ = false, is_reassigned_ = false, is_mut_ = false, is_pub_ = false;
     std::string ident_;
     std::shared_ptr<Type> t_;
     size_t statement_num_ = 0, depth_num_ = 0;
@@ -259,8 +259,6 @@ class EnumDecl
     auto codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* override;
     auto print(std::ostream& os) const -> void override;
 
-    auto operator==(const Extern& other) const -> bool;
-
     auto get_num(std::string field) const -> std::optional<int>;
     auto find_duplicates() const -> std::vector<std::string>;
 
@@ -270,6 +268,57 @@ class EnumDecl
 
  private:
     std::vector<std::string> const fields_;
+};
+
+class ClassFieldDecl
+: public Decl
+, public std::enable_shared_from_this<ClassFieldDecl> {
+ public:
+    ClassFieldDecl(Position const pos, std::string const name, std::shared_ptr<Type> type)
+    : Decl(pos, name, type) {}
+
+    auto visit(std::shared_ptr<Visitor> visitor) -> void override {
+        visitor->visit_class_field_decl(shared_from_this());
+    }
+    auto codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* override;
+    auto print(std::ostream& os) const -> void override;
+
+    auto operator==(const ClassFieldDecl& other) const -> bool;
+
+ private:
+};
+
+class ClassDecl
+: public Decl
+, public std::enable_shared_from_this<ClassDecl> {
+ public:
+    ClassDecl(Position const pos, std::string const name)
+    : Decl(pos, name, std::make_shared<Type>()) {}
+
+    ClassDecl(Position const pos, std::string const name, std::vector<std::shared_ptr<ClassFieldDecl>>& fields)
+    : Decl(pos, name, std::make_shared<Type>())
+    , fields_(fields) {}
+
+    static std::shared_ptr<ClassDecl> make(Position const pos, std::string const name) {
+        auto decl = std::make_shared<ClassDecl>(pos, name);
+        decl->set_type(std::make_shared<ClassType>(decl));
+        return decl;
+    }
+
+    auto visit(std::shared_ptr<Visitor> visitor) -> void override {
+        visitor->visit_class_decl(shared_from_this());
+    }
+    auto codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* override;
+    auto print(std::ostream& os) const -> void override;
+
+    auto operator==(const ClassDecl& other) const -> bool;
+
+    auto get_fields() const -> std::vector<std::shared_ptr<ClassFieldDecl>> {
+        return fields_;
+    }
+
+ private:
+    std::vector<std::shared_ptr<ClassFieldDecl>> fields_;
 };
 
 #endif // DECL_HPP

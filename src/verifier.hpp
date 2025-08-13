@@ -55,6 +55,8 @@ class Verifier
     auto visit_local_var_decl(std::shared_ptr<LocalVarDecl> local_var_decl) -> void override;
     auto visit_global_var_decl(std::shared_ptr<GlobalVarDecl> global_var_decl) -> void override;
     auto visit_enum_decl(std::shared_ptr<EnumDecl> enum_decl) -> void override;
+    auto visit_class_decl(std::shared_ptr<ClassDecl> class_decl) -> void override;
+    auto visit_class_field_decl(std::shared_ptr<ClassFieldDecl> class_field_decl) -> void override;
     auto visit_function(std::shared_ptr<Function> function) -> void override;
     auto visit_extern(std::shared_ptr<Extern> extern_) -> void override;
     auto visit_empty_expr(std::shared_ptr<EmptyExpr> empty_expr) -> void override;
@@ -141,7 +143,7 @@ class Verifier
                                                   "pointer types: %",
                                                   "35: type of array index must be either a signed or unsigned "
                                                   "integer: %",
-                                                  "36: duplicate enum declarations: %",
+                                                  "36: duplicate type declarations: %",
                                                   "37: enum declared with no fields",
                                                   "38: no such enum exists: %",
                                                   "39: no such field present on enum: %",
@@ -153,11 +155,14 @@ class Verifier
                                                   "45: attempted reassignment of array: %",
                                                   "46: unknown array size at compile time: %",
                                                   "47: identifier declared void[]: %",
-                                                  "48: function cannot return stack-allocated array: %"};
+                                                  "48: function cannot return stack-allocated array: %",
+                                                  "49: duplicate field declarations in class: %",
+                                                  "50: class field declared void: %",
+                                                  "51: class field declared void[]: %"};
 
     auto check_duplicate_function_declaration() -> void;
     auto check_duplicate_extern_declaration() -> void;
-    auto check_duplicate_enums() -> void;
+    auto check_duplicate_custom_type() -> void;
     auto check_duplicate_globals() -> void;
     auto check_unused_declarations() -> void;
     auto load_all_global_variables() -> void;

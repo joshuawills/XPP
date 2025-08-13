@@ -34,7 +34,8 @@ auto get_type_from_lexeme(std::string const& str) -> std::optional<TokenType> {
         {"else", TokenType::ELSE},     {"else if", TokenType::ELSE_IF}, {"bool", TokenType::TYPE},
         {"void", TokenType::TYPE},     {"mut", TokenType::MUT},         {"let", TokenType::LET},
         {"return", TokenType::RETURN}, {"extern", TokenType::EXTERN},   {"while", TokenType::WHILE},
-        {"true", TokenType::TRUE},     {"false", TokenType::FALSE},     {"enum", TokenType::ENUM}};
+        {"true", TokenType::TRUE},     {"false", TokenType::FALSE},     {"enum", TokenType::ENUM},
+        {"pub", TokenType::PUB},       {"class", TokenType::CLASS}};
 
     return lookup_map.find(str) != lookup_map.end() ? std::make_optional(lookup_map.at(str)) : std::nullopt;
 }

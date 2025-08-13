@@ -37,6 +37,8 @@ class Parser {
     auto finish(Position& pos) -> void;
     auto peek(TokenType t, size_t pos = 0) -> bool;
 
+    auto parse_class(Position p) -> std::shared_ptr<ClassDecl>;
+
     auto parse_operator() -> Op;
     auto parse_ident() -> std::string;
     auto parse_type() -> std::shared_ptr<Type>;

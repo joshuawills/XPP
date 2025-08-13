@@ -66,7 +66,9 @@ enum class TokenType {
     OPEN_SQUARE,
     CLOSE_SQUARE,
     ENUM,
-    DOUBLE_COLON
+    DOUBLE_COLON,
+    CLASS,
+    PUB
 };
 
 class Token {

@@ -4,4 +4,10 @@ enum Foo { A, B }
 enum Foo { C, D }
 enum Bar { E, F }
 
+class Foo {}
+
+class A {}
+class A {}
+
+
 fn main() void {}

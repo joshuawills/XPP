@@ -1,0 +1,7 @@
+// Class field declared void
+
+class Foo {
+	x: void;
+}
+
+fn main() void {}
