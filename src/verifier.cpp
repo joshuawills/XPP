@@ -71,6 +71,12 @@ auto Verifier::visit_local_var_decl(std::shared_ptr<LocalVarDecl> local_var_decl
     if (local_var_decl->get_type()->is_void()) {
         handler_->report_error(current_filename_, all_errors_[4], local_var_decl->get_ident(), local_var_decl->pos());
     }
+    else if (local_var_decl->get_type()->is_array()) {
+        auto a_t = std::dynamic_pointer_cast<ArrayType>(local_var_decl->get_type());
+        if (a_t->get_sub_type()->is_void()) {
+            handler_->report_error(current_filename_, all_errors_[47], local_var_decl->get_ident(), local_var_decl->pos());
+        }
+    }
 
     if (local_var_decl->get_type()->is_numeric()) {
         current_numerical_type = local_var_decl->get_type();
@@ -142,6 +148,13 @@ auto Verifier::visit_global_var_decl(std::shared_ptr<GlobalVarDecl> global_var_d
     if (global_var_decl->get_type()->is_void()) {
         handler_->report_error(current_filename_, all_errors_[4], name, global_var_decl->pos());
     }
+    else if (global_var_decl->get_type()->is_array()) {
+        auto const a_t = std::dynamic_pointer_cast<ArrayType>(global_var_decl->get_type());
+        if (a_t->get_sub_type()->is_void()) {
+            handler_->report_error(current_filename_, all_errors_[47], name, global_var_decl->pos());
+        }
+    }
+
     if (global_var_decl->get_type()->is_numeric()) {
         current_numerical_type = global_var_decl->get_type();
     }
@@ -229,6 +242,20 @@ auto Verifier::visit_extern(std::shared_ptr<Extern> extern_) -> void {
 
 auto Verifier::visit_function(std::shared_ptr<Function> function) -> void {
     global_statement_counter_ = 0;
+
+    if (function->get_type()->is_array()) {
+        auto a_t = std::dynamic_pointer_cast<ArrayType>(function->get_type());
+        if (a_t->get_sub_type()->is_void()) {
+            handler_->report_error(current_filename_,
+                                   all_errors_[47],
+                                   "return type from function " + function->get_ident(),
+                                   function->pos());
+        }
+        handler_->report_error(current_filename_, all_errors_[48], function->get_ident(), function->pos());
+        function->set_type(handler_->ERROR_TYPE);
+        return;
+    }
+
     // Verifying main function
     if (function->get_ident() == "main") {
         in_main_ = has_main_ = true;
@@ -1064,7 +1091,13 @@ auto Verifier::check(std::string const& filename, bool is_main) -> void {
             unmurk_decl(para);
             if (para->get_type()->is_array()) {
                 auto a_t = std::dynamic_pointer_cast<ArrayType>(para->get_type());
-                para->set_type(std::make_shared<PointerType>(a_t->get_sub_type()));
+                if (a_t->get_sub_type()->is_void()) {
+                    handler_->report_error(current_filename_, all_errors_[47], para->get_ident(), para->pos());
+                    para->set_type(handler_->ERROR_TYPE);
+                }
+                else {
+                    para->set_type(std::make_shared<PointerType>(a_t->get_sub_type()));
+                }
             }
         }
         func->visit(shared_from_this());

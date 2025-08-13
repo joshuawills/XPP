@@ -1,0 +1,8 @@
+// Function cannot return stack-allocated array
+
+fn get_int_arr() i64[3] {
+	let x = [1, 2, 3];
+	return x;
+}
+
+fn main() void {}

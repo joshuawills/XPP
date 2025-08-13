@@ -151,7 +151,9 @@ class Verifier
                                                   "43: statement(s) not reached",
                                                   "44: variable declared mutable but never reassigned: %",
                                                   "45: attempted reassignment of array: %",
-                                                  "46: unknown array size at compile time: %"};
+                                                  "46: unknown array size at compile time: %",
+                                                  "47: identifier declared void[]: %",
+                                                  "48: function cannot return stack-allocated array: %"};
 
     auto check_duplicate_function_declaration() -> void;
     auto check_duplicate_extern_declaration() -> void;

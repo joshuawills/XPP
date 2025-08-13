@@ -1,0 +1,11 @@
+// Identifiers declared void[]
+
+extern printf(i8*, ...) i32;
+
+let y: void[21];
+
+fn foo(x: void[]) i64[] {}
+
+fn main() void {
+    let y: void[3];
+}
