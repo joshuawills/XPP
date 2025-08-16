@@ -2,6 +2,9 @@
 #define EMITTER_HPP
 
 class Module;
+class ClassDecl;
+class MethodDecl;
+class Function;
 class AllModules;
 class Type;
 class Handler;
@@ -37,12 +40,18 @@ class Emitter : public std::enable_shared_from_this<Emitter> {
     size_t global_counter = 0;
     llvm::BasicBlock* true_bottom = {};
 
+    std::shared_ptr<ClassDecl> curr_class_;
+
     std::unique_ptr<llvm::LLVMContext> context;
     std::unique_ptr<llvm::Module> llvm_module;
     std::unique_ptr<llvm::IRBuilder<>> llvm_builder;
     std::map<std::string, llvm::Value*> named_values;
 
     auto llvm_type(std::shared_ptr<Type> t) -> llvm::Type*;
+    auto llvm_type(std::shared_ptr<ClassDecl> t) -> llvm::Type*;
+
+    auto forward_declare_func(std::shared_ptr<Function> function) -> void;
+    auto forward_declare_method(std::shared_ptr<MethodDecl> method) -> void;
 
     auto set_array_alloca(llvm::AllocaInst* a) -> void {
         array_alloca_ = a;

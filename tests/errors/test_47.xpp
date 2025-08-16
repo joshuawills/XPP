@@ -1,5 +1,9 @@
 // Identifiers declared void[]
 
+class Haha {
+	pub fn foo(x: void[]) void {}
+}
+
 extern printf(i8*, ...) i32;
 
 let y: void[21];

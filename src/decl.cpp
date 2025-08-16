@@ -23,19 +23,11 @@ auto Function::operator==(const Function& other) const -> bool {
 auto Function::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
     auto return_type = emitter->llvm_type(get_type());
 
-    // Handling params
-    auto param_types = std::vector<llvm::Type*>{};
-    for (auto& para : paras_) {
-        param_types.push_back(emitter->llvm_type(para->get_type()));
-    }
-
-    // Instantiating function
     auto name = get_ident();
     if (name != "main") {
         name += get_type_output();
     }
-    auto func_type = llvm::FunctionType::get(return_type, param_types, false);
-    auto func = llvm::Function::Create(func_type, llvm::Function::ExternalLinkage, name, *emitter->llvm_module);
+    auto func = emitter->llvm_module->getFunction(name);
 
     // Setting names of function params
     auto idx = 0u;
@@ -68,6 +60,78 @@ auto Function::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
 
 auto Function::print(std::ostream& os) const -> void {
     os << "Function " << pos() << " " << ident_ << " : " << *t_ << "\n";
+
+    for (auto const& para : paras_) {
+        os << "\t\t";
+        para->print(os);
+    }
+    stmts_->print(os);
+    os << "\n";
+}
+
+auto MethodDecl::operator==(const MethodDecl& other) const -> bool {
+    if (this == &other) {
+        return true;
+    }
+    if (ident_ != other.ident_) {
+        return false;
+    }
+    if (paras_.size() != other.paras_.size()) {
+        return false;
+    }
+    for (size_t i = 0; i < paras_.size(); ++i) {
+        if (*paras_[i] != *other.paras_[i]) {
+            return false;
+        }
+    }
+    return true;
+}
+
+auto MethodDecl::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
+    auto return_type = emitter->llvm_type(get_type());
+
+    auto name = "method." + get_ident();
+    if (name != "main") {
+        name += get_type_output();
+    }
+    auto method = emitter->llvm_module->getFunction(name);
+
+    // Setting names of method params
+    auto idx = 0u;
+    for (auto& arg : method->args()) {
+        if (idx == 0) {
+            arg.setName("this");
+        }
+        else {
+            arg.setName(paras_[idx]->get_ident() + paras_[idx]->get_append());
+            idx++;
+        }
+    }
+
+    auto entry_name = std::to_string(emitter->global_counter++);
+    auto entry_block = llvm::BasicBlock::Create(*emitter->context, entry_name, method);
+    emitter->llvm_builder->SetInsertPoint(entry_block);
+
+    for (auto& arg : method->args()) {
+        auto alloca = emitter->llvm_builder->CreateAlloca(arg.getType(), nullptr, arg.getName());
+        emitter->llvm_builder->CreateStore(&arg, alloca);
+        emitter->named_values[arg.getName().str()] = alloca;
+    }
+
+    stmts_->codegen(emitter);
+
+    if (return_type->isVoidTy()) {
+        emitter->llvm_builder->CreateRetVoid();
+    }
+    else if (!entry_block->getTerminator()) {
+        emitter->llvm_builder->CreateRet(llvm::Constant::getNullValue(return_type));
+    }
+
+    return method;
+}
+
+auto MethodDecl::print(std::ostream& os) const -> void {
+    os << "Method " << pos() << " " << ident_ << " : " << *t_ << "\n";
 
     for (auto const& para : paras_) {
         os << "\t\t";
@@ -296,8 +360,13 @@ auto ClassFieldDecl::operator==(ClassFieldDecl const& other) const -> bool {
 }
 
 auto ClassDecl::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
-    (void)emitter;
-    std::cout << "TODO ClassDecl::codegen\n";
+    emitter->curr_class_ = shared_from_this();
+
+    for (auto& method : methods_) {
+        method->codegen(emitter);
+    }
+
+    emitter->curr_class_ = nullptr;
     return nullptr;
 }
 
@@ -307,10 +376,26 @@ auto ClassDecl::print(std::ostream& os) const -> void {
     for (auto const& field : fields_) {
         field->print(os);
     }
+    os << "methods:\n";
+    for (auto const& method : methods_) {
+        method->print(os);
+    }
     os << "\n}\n";
     return;
 }
 
 auto ClassDecl::operator==(ClassDecl const& other) const -> bool {
     return get_ident() == other.get_ident();
+}
+
+auto ClassDecl::get_class_type_name() -> std::string {
+    if (type_name_.size() != 0) {
+        return type_name_;
+    }
+    auto n = std::stringstream{};
+    for (auto& field : fields_) {
+        n << *field->get_type();
+    }
+    type_name_ = n.str();
+    return type_name_;
 }

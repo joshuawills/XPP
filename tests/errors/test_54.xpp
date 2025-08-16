@@ -1,0 +1,11 @@
+// Duplicate method declaration
+
+class Box {
+	pub fn get_one(x: i64) void {}
+	mut fn get_one(x: i64) i64 { return 1; }
+
+	pub fn get_two(x: i64, what: bool) void {}
+	mut fn get_two(x: i64) i64 { return 1; }
+}
+
+fn main() void  {}

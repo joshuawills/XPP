@@ -1,0 +1,7 @@
+// Unused methods on classes
+
+class Foo {
+	pub fn get_one() i64 { return 1; }
+}
+
+fn main() void{}

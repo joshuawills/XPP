@@ -1,5 +1,9 @@
 // Unknown type declared
 
+class What {
+	pub fn get_one(x: Sigma, y: What) Haha {} 
+}
+
 fn foo(mut a: Unknown) void {}
 
 fn bar() Haha {}

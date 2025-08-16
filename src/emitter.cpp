@@ -27,11 +27,26 @@ auto Emitter::emit() -> void {
         }
     }
 
+    // Forward declare them all first
+    for (auto& function : main_module_->get_functions()) {
+        forward_declare_func(function);
+    }
+    for (auto& class_ : main_module_->get_classes()) {
+        curr_class_ = class_;
+        for (auto& method : class_->get_methods()) {
+            // Inadvertantly the types as well
+            forward_declare_method(method);
+        }
+    }
+
     for (auto& function : main_module_->get_functions()) {
         if (!function->codegen(shared_from_this())) {
             std::cerr << "LLVM failed to generate function\n";
             exit(EXIT_FAILURE);
         }
+    }
+    for (auto& class_ : main_module_->get_classes()) {
+        class_->codegen(shared_from_this());
     }
 
     if (handler_->llvm_mode()) {
@@ -117,4 +132,60 @@ auto Emitter::llvm_type(std::shared_ptr<Type> t) -> llvm::Type* {
     default: std::cout << "UNREACHABLE Emitter::llvm_type: " << t << "\n";
     }
     return nullptr;
+}
+
+auto Emitter::llvm_type(std::shared_ptr<ClassDecl> t) -> llvm::Type* {
+    auto n = t->get_class_type_name();
+    auto lookup = llvm::StructType::getTypeByName(*context, n);
+    if (lookup) {
+        return lookup;
+    }
+    else {
+        auto s = llvm::StructType::create(*context, n);
+        auto types = std::vector<llvm::Type*>{};
+        for (auto& p : t->get_fields()) {
+            types.push_back(llvm_type(p->get_type()));
+        }
+        s->setBody(types);
+        return s;
+    }
+}
+
+auto Emitter::forward_declare_func(std::shared_ptr<Function> function) -> void {
+    auto return_type = llvm_type(function->get_type());
+
+    // Handling params
+    auto param_types = std::vector<llvm::Type*>{};
+    for (auto& para : function->get_paras()) {
+        param_types.push_back(llvm_type(para->get_type()));
+    }
+
+    // Instantiating function
+    auto name = function->get_ident();
+    if (name != "main") {
+        name += function->get_type_output();
+    }
+    auto func_type = llvm::FunctionType::get(return_type, param_types, false);
+    llvm::Function::Create(func_type, llvm::Function::ExternalLinkage, name, *llvm_module);
+}
+
+auto Emitter::forward_declare_method(std::shared_ptr<MethodDecl> method) -> void {
+    auto return_type = llvm_type(method->get_type());
+    auto param_types = std::vector<llvm::Type*>{};
+
+    // Push in the pointer to itself
+    param_types.push_back(llvm::PointerType::getUnqual(llvm_type(curr_class_)));
+
+    // Handling params
+    for (auto& para : method->get_paras()) {
+        param_types.push_back(llvm_type(para->get_type()));
+    }
+
+    // Instantiating function
+    auto name = "method." + method->get_ident();
+    if (name != "main") {
+        name += method->get_type_output();
+    }
+    auto const method_type = llvm::FunctionType::get(return_type, param_types, false);
+    llvm::Function::Create(method_type, llvm::Function::ExternalLinkage, name, *llvm_module);
 }

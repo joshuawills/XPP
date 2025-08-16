@@ -240,6 +240,7 @@ auto Verifier::visit_class_field_decl(std::shared_ptr<ClassFieldDecl> class_fiel
 }
 
 auto Verifier::visit_class_decl(std::shared_ptr<ClassDecl> class_decl) -> void {
+    curr_class = class_decl;
     auto const class_name = class_decl->get_ident();
 
     // Ensure there's no duplicate fields
@@ -257,6 +258,13 @@ auto Verifier::visit_class_decl(std::shared_ptr<ClassDecl> class_decl) -> void {
         }
     }
 
+    // Visit all the methods
+    check_duplicate_method_declaration(class_decl);
+    for (auto& method : class_decl->get_methods()) {
+        method->visit(shared_from_this());
+    }
+
+    curr_class = nullptr;
     return;
 }
 
@@ -275,11 +283,61 @@ auto Verifier::visit_extern(std::shared_ptr<Extern> extern_) -> void {
     }
 }
 
+auto Verifier::visit_method_decl(std::shared_ptr<MethodDecl> method_decl) -> void {
+    global_statement_counter_ = 0;
+    has_return_ = false;
+    auto const m_type = method_decl->get_type();
+    auto const m_name = method_decl->get_ident();
+    auto const m_pos = method_decl->pos();
+
+    if (m_type->is_array()) {
+        auto a_t = std::dynamic_pointer_cast<ArrayType>(m_type);
+        if (a_t->get_sub_type()->is_void()) {
+            handler_->report_error(current_filename_, all_errors_[47], "return type from method " + m_name, m_pos);
+        }
+        handler_->report_error(current_filename_, all_errors_[48], m_name, m_pos);
+        method_decl->set_type(handler_->ERROR_TYPE);
+        return;
+    }
+
+    current_function_or_method_ = method_decl;
+    symbol_table_.open_scope();
+    for (auto const& para : method_decl->get_paras()) {
+        para->visit(shared_from_this());
+    }
+    method_decl->get_compound_stmt()->visit(shared_from_this());
+
+    if (!handler_->quiet_mode()) {
+        // Check if any variables opened in that scope remained unused
+        // or if they were declared mutable but never reassigned
+        for (auto const& var : symbol_table_.retrieve_latest_scope()) {
+            if (!var.attr->is_used()) {
+                auto err = "local variable '" + var.attr->get_ident() + "'";
+                handler_->report_minor_error(current_filename_, all_errors_[21], err, var.attr->pos());
+            }
+            if (var.attr->is_mut() and !var.attr->is_reassigned()) {
+                auto err = "variable '" + var.attr->get_ident() + "'";
+                handler_->report_minor_error(current_filename_, all_errors_[44], err, var.attr->pos());
+            }
+        }
+    }
+    symbol_table_.close_scope();
+
+    if (!has_return_ and !m_type->is_void() and !m_type->is_error()) {
+        handler_->report_error(current_filename_, all_errors_[10], "in method " + m_name, m_pos);
+    }
+
+    global_statement_counter_ = 0;
+    return;
+}
+
 auto Verifier::visit_function(std::shared_ptr<Function> function) -> void {
     global_statement_counter_ = 0;
+    has_return_ = false;
+    auto func_t = function->get_type();
 
-    if (function->get_type()->is_array()) {
-        auto a_t = std::dynamic_pointer_cast<ArrayType>(function->get_type());
+    if (func_t->is_array()) {
+        auto a_t = std::dynamic_pointer_cast<ArrayType>(func_t);
         if (a_t->get_sub_type()->is_void()) {
             handler_->report_error(current_filename_,
                                    all_errors_[47],
@@ -294,7 +352,7 @@ auto Verifier::visit_function(std::shared_ptr<Function> function) -> void {
     // Verifying main function
     if (function->get_ident() == "main") {
         in_main_ = has_main_ = true;
-        if (!function->get_type()->is_void()) {
+        if (!func_t->is_void()) {
             auto stream = std::stringstream{};
             stream << "should return void, not " << function->get_type();
             handler_->report_error(current_filename_, all_errors_[2], stream.str(), function->pos());
@@ -319,7 +377,7 @@ auto Verifier::visit_function(std::shared_ptr<Function> function) -> void {
         }
     }
 
-    current_function_ = function;
+    current_function_or_method_ = function;
     symbol_table_.open_scope();
     for (auto const& para : function->get_paras()) {
         para->visit(shared_from_this());
@@ -343,13 +401,8 @@ auto Verifier::visit_function(std::shared_ptr<Function> function) -> void {
 
     symbol_table_.close_scope();
 
-    if (!has_return_ and !function->get_type()->is_void()) {
-        if (!function->get_type()->is_error()) {
-            handler_->report_error(current_filename_,
-                                   all_errors_[10],
-                                   "in function " + function->get_ident(),
-                                   function->pos());
-        }
+    if (!has_return_ and !func_t->is_void() and !func_t->is_error()) {
+        handler_->report_error(current_filename_, all_errors_[10], "in function " + function->get_ident(), function->pos());
     }
 
     global_statement_counter_ = 0;
@@ -729,14 +782,36 @@ auto Verifier::visit_char_expr(std::shared_ptr<CharExpr> char_expr) -> void {
 }
 
 auto Verifier::visit_var_expr(std::shared_ptr<VarExpr> var_expr) -> void {
-    auto entry = symbol_table_.retrieve(var_expr->get_name());
+    auto n = var_expr->get_name();
+    std::shared_ptr<Decl> d;
+    auto entry = symbol_table_.retrieve(n);
     if (!entry.has_value()) {
-        handler_->report_error(current_filename_, all_errors_[8], var_expr->get_name(), var_expr->pos());
-        var_expr->set_type(handler_->ERROR_TYPE);
-        return;
+        auto const method_d = std::dynamic_pointer_cast<MethodDecl>(current_function_or_method_);
+        if (!method_d) {
+            handler_->report_error(current_filename_, all_errors_[8], n, var_expr->pos());
+            var_expr->set_type(handler_->ERROR_TYPE);
+            return;
+        }
+        auto found = false;
+        for (auto& para : method_d->get_paras()) {
+            if (para->get_ident() == n) {
+                d = para;
+                found = true;
+                break;
+            }
+        }
+
+        if (!found) {
+            handler_->report_error(current_filename_, all_errors_[8], n, var_expr->pos());
+            var_expr->set_type(handler_->ERROR_TYPE);
+            return;
+        }
     }
-    var_expr->set_ref(entry->attr);
-    var_expr->set_type(entry->attr->get_type());
+    else {
+        d = entry->attr;
+    }
+    var_expr->set_ref(d);
+    var_expr->set_type(d->get_type());
     var_expr->get_ref()->set_used();
     return;
 }
@@ -1010,17 +1085,17 @@ auto Verifier::visit_return_stmt(std::shared_ptr<ReturnStmt> return_stmt) -> voi
     has_return_ = true;
     auto expr = return_stmt->get_expr();
 
-    if (current_function_->get_type()->is_numeric()) {
-        current_numerical_type = current_function_->get_type();
+    if (current_function_or_method_->get_type()->is_numeric()) {
+        current_numerical_type = current_function_or_method_->get_type();
     }
     expr->visit(shared_from_this());
     current_numerical_type = std::nullopt;
 
     auto const expr_type = expr->get_type();
-    if (*expr_type != *current_function_->get_type()) {
+    if (*expr_type != *current_function_or_method_->get_type()) {
         auto stream = std::stringstream{};
-        stream << "in function " << current_function_->get_ident() << ". expected type "
-               << *current_function_->get_type() << ", received " << *expr_type;
+        stream << "in function " << current_function_or_method_->get_ident() << ". expected type "
+               << *current_function_or_method_->get_type() << ", received " << *expr_type;
         handler_->report_error(current_filename_, all_errors_[11], stream.str(), return_stmt->pos());
     }
 
@@ -1110,6 +1185,22 @@ auto Verifier::check(std::string const& filename, bool is_main) -> void {
         for (auto& field : class_->get_fields()) {
             unmurk_decl(field);
         }
+        for (auto& method : class_->get_methods()) {
+            unmurk_decl(method);
+            for (auto& para : method->get_paras()) {
+                unmurk_decl(para);
+                if (para->get_type()->is_array()) {
+                    auto a_t = std::dynamic_pointer_cast<ArrayType>(para->get_type());
+                    if (a_t->get_sub_type()->is_void()) {
+                        handler_->report_error(current_filename_, all_errors_[47], para->get_ident(), para->pos());
+                        para->set_type(handler_->ERROR_TYPE);
+                    }
+                    else {
+                        para->set_type(std::make_shared<PointerType>(a_t->get_sub_type()));
+                    }
+                }
+            }
+        }
     }
 
     check_duplicate_globals();
@@ -1176,6 +1267,25 @@ auto Verifier::check_unused_declarations() -> void {
             if (!enum_->is_used()) {
                 auto stream = "'" + enum_->get_ident() + "'";
                 handler_->report_minor_error(current_filename_, all_errors_[41], stream, enum_->pos());
+            }
+        }
+        for (auto const& class_ : module->get_classes()) {
+            if (!class_->is_used()) {
+                auto stream = "'" + class_->get_ident() + "'";
+                handler_->report_minor_error(current_filename_, all_errors_[52], stream, class_->pos());
+            }
+            for (auto const& method : class_->get_methods()) {
+                if (!method->is_used()) {
+                    auto stream = std::string{};
+                    if (method->is_pub()) {
+                        stream += "public ";
+                    }
+                    else {
+                        stream += "private ";
+                    }
+                    stream += "method '" + method->get_ident() + "' in class '" + class_->get_ident() + "'";
+                    handler_->report_minor_error(current_filename_, all_errors_[53], stream, method->pos());
+                }
             }
         }
     }
@@ -1255,6 +1365,20 @@ auto Verifier::check_duplicate_function_declaration() -> void {
         }
         else {
             seen_functions.push_back(*func);
+        }
+    }
+}
+
+auto Verifier::check_duplicate_method_declaration(std::shared_ptr<ClassDecl>& class_decl) -> void {
+    std::vector<MethodDecl> seen_methods;
+    for (auto const& method : class_decl->get_methods()) {
+        auto it = std::find(seen_methods.begin(), seen_methods.end(), *method);
+        if (it != seen_methods.end()) {
+            auto error = "method '" + method->get_ident() + "' on class '" + curr_class->get_ident() + "'";
+            handler_->report_error(current_filename_, all_errors_[54], error, method->pos());
+        }
+        else {
+            seen_methods.push_back(*method);
         }
     }
 }

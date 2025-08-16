@@ -58,6 +58,7 @@ class Verifier
     auto visit_class_decl(std::shared_ptr<ClassDecl> class_decl) -> void override;
     auto visit_class_field_decl(std::shared_ptr<ClassFieldDecl> class_field_decl) -> void override;
     auto visit_function(std::shared_ptr<Function> function) -> void override;
+    auto visit_method_decl(std::shared_ptr<MethodDecl> method_decl) -> void override;
     auto visit_extern(std::shared_ptr<Extern> extern_) -> void override;
     auto visit_empty_expr(std::shared_ptr<EmptyExpr> empty_expr) -> void override;
     auto visit_assignment_expr(std::shared_ptr<AssignmentExpr> assignment_expr) -> void override;
@@ -89,6 +90,7 @@ class Verifier
 
     std::optional<std::shared_ptr<Type>> current_numerical_type = std::nullopt;
     Position unmurk_pos;
+    std::shared_ptr<ClassDecl> curr_class = nullptr;
 
  private:
     std::shared_ptr<Handler> handler_;
@@ -102,7 +104,7 @@ class Verifier
 
     std::string current_filename_;
     std::shared_ptr<Module> current_module_ = nullptr;
-    std::shared_ptr<Function> current_function_ = nullptr;
+    std::shared_ptr<Decl> current_function_or_method_ = nullptr;
 
     std::vector<std::string> const all_errors_ = {"0: main function is missing",
                                                   "1: duplicate function declaration: %",
@@ -158,9 +160,13 @@ class Verifier
                                                   "48: function cannot return stack-allocated array: %",
                                                   "49: duplicate field declarations in class: %",
                                                   "50: class field declared void: %",
-                                                  "51: class field declared void[]: %"};
+                                                  "51: class field declared void[]: %",
+                                                  "52: unused class: %",
+                                                  "53: unused method: %",
+                                                  "54: duplicate method declaration: %"};
 
     auto check_duplicate_function_declaration() -> void;
+    auto check_duplicate_method_declaration(std::shared_ptr<ClassDecl>& class_decl) -> void;
     auto check_duplicate_extern_declaration() -> void;
     auto check_duplicate_custom_type() -> void;
     auto check_duplicate_globals() -> void;

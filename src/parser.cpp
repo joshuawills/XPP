@@ -146,6 +146,8 @@ auto Parser::parse() -> std::shared_ptr<Module> {
 auto Parser::parse_class(Position p) -> std::shared_ptr<ClassDecl> {
     auto const class_name = parse_ident();
     auto fields_vec = std::vector<std::shared_ptr<ClassFieldDecl>>{};
+    auto methods_vec = std::vector<std::shared_ptr<MethodDecl>>{};
+
     match(TokenType::OPEN_CURLY);
     while (!peek(TokenType::CLOSE_CURLY)) {
         auto p2 = Position{};
@@ -172,6 +174,21 @@ auto Parser::parse_class(Position p) -> std::shared_ptr<ClassDecl> {
                 std::cout << "Parser::parse_class UNREACHABLE!\n";
             }
         }
+        else if (try_consume(TokenType::FN)) {
+            auto const ident = parse_ident();
+            auto paras = parse_para_list();
+            auto type = parse_type();
+            auto stmts = parse_compound_stmt();
+            finish(p2);
+            auto method_decl = std::make_shared<MethodDecl>(p2, ident, paras, type, stmts);
+            if (is_pub) {
+                method_decl->set_pub();
+            }
+            if (is_mut) {
+                method_decl->set_mut();
+            }
+            methods_vec.push_back(method_decl);
+        }
         else {
             std::cout << "Parser::parse_class UNREACHABLE!\n";
         }
@@ -179,7 +196,7 @@ auto Parser::parse_class(Position p) -> std::shared_ptr<ClassDecl> {
     match(TokenType::CLOSE_CURLY);
 
     finish(p);
-    auto class_ = std::make_shared<ClassDecl>(p, class_name, fields_vec);
+    auto class_ = ClassDecl::make(p, class_name, fields_vec, methods_vec);
     return class_;
 }
 

@@ -1,0 +1,15 @@
+// No need for forward declarations
+
+extern printf(i8*, ...) i32;
+
+fn foo() void {
+	bar();
+}
+
+fn bar() void {
+	printf("A!\n");
+}
+
+fn main() void {
+	foo();
+}

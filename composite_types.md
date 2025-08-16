@@ -3,6 +3,21 @@
 ```Rust
 using str;
 
+class IntBox {
+    mut val: i64;
+
+    pub IntBox() {
+        this.val = 0;
+    }
+
+    pub IntBox(v: i64) {
+        this.val = v;
+    }
+
+    pub fn get_val() i64 { return val; }
+    // pub mut fn set_val(v: i64) void { this.val = v; }
+}
+
 class Person {
     name: str;
     mut age: u8;

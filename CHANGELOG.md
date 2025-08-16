@@ -47,6 +47,10 @@
 - FIXES: handle void[] and returning stack-allocated arrays
 - ADDITION: starting development of classes/composite types
 
+## 16 Aug 2025
+
+- ADDITION: continuing development of classes/composite types
+
 ## TODO
 
 - Add in for loops 

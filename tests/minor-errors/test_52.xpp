@@ -1,0 +1,5 @@
+// Unused class
+
+class Foo {}
+
+fn main() void {}
