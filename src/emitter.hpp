@@ -7,6 +7,7 @@ class MethodDecl;
 class Function;
 class AllModules;
 class Type;
+class ConstructorDecl;
 class Handler;
 
 #include <map>
@@ -52,6 +53,7 @@ class Emitter : public std::enable_shared_from_this<Emitter> {
 
     auto forward_declare_func(std::shared_ptr<Function> function) -> void;
     auto forward_declare_method(std::shared_ptr<MethodDecl> method) -> void;
+    auto forward_declare_constructor(std::shared_ptr<ConstructorDecl> constructor) -> void;
 
     auto set_array_alloca(llvm::AllocaInst* a) -> void {
         array_alloca_ = a;

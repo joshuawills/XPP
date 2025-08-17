@@ -51,6 +51,10 @@
 
 - ADDITION: continuing development of classes/composite types
 
+## 17 Aug 2025
+
+- FEAT: working further on class constructors
+
 ## TODO
 
 - Add in for loops 

@@ -252,6 +252,53 @@ class MethodDecl
     std::string type_output = "";
 };
 
+class ConstructorDecl
+: public Decl
+, public std::enable_shared_from_this<ConstructorDecl> {
+ public:
+    ConstructorDecl(Position const pos,
+                    std::string const ident,
+                    std::vector<std::shared_ptr<ParaDecl>> paras,
+                    std::shared_ptr<CompoundStmt> stmts)
+    : Decl(pos, ident, std::make_shared<Type>())
+    , paras_(paras)
+    , stmts_(stmts) {}
+
+    auto get_paras() const -> std::vector<std::shared_ptr<ParaDecl>> const& {
+        return paras_;
+    }
+    auto get_compound_stmt() const -> std::shared_ptr<CompoundStmt> const& {
+        return stmts_;
+    }
+
+    auto visit(std::shared_ptr<Visitor> visitor) -> void override {
+        visitor->visit_constructor_decl(shared_from_this());
+    }
+    auto codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* override;
+    auto print(std::ostream& os) const -> void override;
+
+    auto operator==(const ConstructorDecl& other) const -> bool;
+
+    auto get_type_output() -> std::string {
+        if (type_output.size() != 0) {
+            return type_output;
+        }
+
+        auto buffer = std::stringstream{};
+        for (auto& para : paras_) {
+            buffer << para->get_type();
+        }
+        buffer << '.';
+        type_output = buffer.str();
+        return type_output;
+    }
+
+ private:
+    std::vector<std::shared_ptr<ParaDecl>> const paras_;
+    std::shared_ptr<CompoundStmt> const stmts_;
+    std::string type_output = "";
+};
+
 class Extern
 : public Decl
 , public std::enable_shared_from_this<Extern> {
@@ -342,8 +389,9 @@ class ClassDecl
     static std::shared_ptr<ClassDecl> make(Position const pos,
                                            std::string const name,
                                            std::vector<std::shared_ptr<ClassFieldDecl>> fields,
-                                           std::vector<std::shared_ptr<MethodDecl>> methods) {
-        auto decl = std::shared_ptr<ClassDecl>(new ClassDecl(pos, name, fields, methods));
+                                           std::vector<std::shared_ptr<MethodDecl>> methods,
+                                           std::vector<std::shared_ptr<ConstructorDecl>> constructors) {
+        auto decl = std::shared_ptr<ClassDecl>(new ClassDecl(pos, name, fields, methods, constructors));
         decl->set_type(std::make_shared<ClassType>(decl));
         return decl;
     }
@@ -358,12 +406,18 @@ class ClassDecl
 
     auto get_class_type_name() -> std::string;
 
+    auto get_index_for_field(std::string field_name) const -> int;
+
     auto get_fields() const -> std::vector<std::shared_ptr<ClassFieldDecl>> {
         return fields_;
     }
 
     auto get_methods() const -> std::vector<std::shared_ptr<MethodDecl>> {
         return methods_;
+    }
+
+    auto get_constructors() const -> std::vector<std::shared_ptr<ConstructorDecl>> {
+        return constructors_;
     }
 
  private:
@@ -373,14 +427,17 @@ class ClassDecl
     ClassDecl(Position const pos,
               std::string const name,
               std::vector<std::shared_ptr<ClassFieldDecl>> fields,
-              std::vector<std::shared_ptr<MethodDecl>> methods)
+              std::vector<std::shared_ptr<MethodDecl>> methods,
+              std::vector<std::shared_ptr<ConstructorDecl>> constructors)
     : Decl(pos, name, std::make_shared<Type>())
     , fields_(fields)
-    , methods_(methods) {}
+    , methods_(methods)
+    , constructors_(constructors) {}
 
     std::string type_name_ = {};
     std::vector<std::shared_ptr<ClassFieldDecl>> fields_;
     std::vector<std::shared_ptr<MethodDecl>> methods_;
+    std::vector<std::shared_ptr<ConstructorDecl>> constructors_;
 };
 
 #endif // DECL_HPP

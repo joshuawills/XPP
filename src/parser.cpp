@@ -147,6 +147,7 @@ auto Parser::parse_class(Position p) -> std::shared_ptr<ClassDecl> {
     auto const class_name = parse_ident();
     auto fields_vec = std::vector<std::shared_ptr<ClassFieldDecl>>{};
     auto methods_vec = std::vector<std::shared_ptr<MethodDecl>>{};
+    auto constructors_vec = std::vector<std::shared_ptr<ConstructorDecl>>{};
 
     match(TokenType::OPEN_CURLY);
     while (!peek(TokenType::CLOSE_CURLY)) {
@@ -154,7 +155,7 @@ auto Parser::parse_class(Position p) -> std::shared_ptr<ClassDecl> {
         start(p2);
         auto const is_pub = try_consume(TokenType::PUB);
         auto const is_mut = try_consume(TokenType::MUT);
-        if (peek(TokenType::IDENT)) {
+        if (peek(TokenType::IDENT) and (*curr_token_)->lexeme() != class_name) {
             auto lex = (*curr_token_)->lexeme();
             match(TokenType::IDENT);
             if (try_consume(TokenType::COLON)) {
@@ -173,6 +174,17 @@ auto Parser::parse_class(Position p) -> std::shared_ptr<ClassDecl> {
             else {
                 std::cout << "Parser::parse_class UNREACHABLE!\n";
             }
+        }
+        else if (peek(TokenType::IDENT) and (*curr_token_)->lexeme() == class_name) { // constructor
+            consume();
+            auto paras = parse_para_list();
+            auto stmts = parse_compound_stmt();
+            finish(p2);
+            auto constructor_decl = std::make_shared<ConstructorDecl>(p2, class_name, paras, stmts);
+            if (is_pub) {
+                constructor_decl->set_pub();
+            }
+            constructors_vec.push_back(constructor_decl);
         }
         else if (try_consume(TokenType::FN)) {
             auto const ident = parse_ident();
@@ -196,7 +208,7 @@ auto Parser::parse_class(Position p) -> std::shared_ptr<ClassDecl> {
     match(TokenType::CLOSE_CURLY);
 
     finish(p);
-    auto class_ = ClassDecl::make(p, class_name, fields_vec, methods_vec);
+    auto class_ = ClassDecl::make(p, class_name, fields_vec, methods_vec, constructors_vec);
     return class_;
 }
 

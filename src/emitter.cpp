@@ -37,6 +37,9 @@ auto Emitter::emit() -> void {
             // Inadvertantly the types as well
             forward_declare_method(method);
         }
+        for (auto& constructor : class_->get_constructors()) {
+            forward_declare_constructor(constructor);
+        }
     }
 
     for (auto& function : main_module_->get_functions()) {
@@ -135,7 +138,7 @@ auto Emitter::llvm_type(std::shared_ptr<Type> t) -> llvm::Type* {
 }
 
 auto Emitter::llvm_type(std::shared_ptr<ClassDecl> t) -> llvm::Type* {
-    auto n = t->get_class_type_name();
+    auto n = "class." + t->get_class_type_name();
     auto lookup = llvm::StructType::getTypeByName(*context, n);
     if (lookup) {
         return lookup;
@@ -167,6 +170,24 @@ auto Emitter::forward_declare_func(std::shared_ptr<Function> function) -> void {
     }
     auto func_type = llvm::FunctionType::get(return_type, param_types, false);
     llvm::Function::Create(func_type, llvm::Function::ExternalLinkage, name, *llvm_module);
+}
+
+auto Emitter::forward_declare_constructor(std::shared_ptr<ConstructorDecl> constructor) -> void {
+    auto return_type = llvm::Type::getVoidTy(*context);
+    auto param_types = std::vector<llvm::Type*>{};
+
+    // Push in the pointer to itself
+    param_types.push_back(llvm::PointerType::getUnqual(llvm_type(curr_class_)));
+
+    // Handling params
+    for (auto& para : constructor->get_paras()) {
+        param_types.push_back(llvm_type(para->get_type()));
+    }
+
+    // Instantiating function
+    auto name = "constructor." + curr_class_->get_ident();
+    auto const constructor_type = llvm::FunctionType::get(return_type, param_types, false);
+    llvm::Function::Create(constructor_type, llvm::Function::ExternalLinkage, name, *llvm_module);
 }
 
 auto Emitter::forward_declare_method(std::shared_ptr<MethodDecl> method) -> void {

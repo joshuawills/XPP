@@ -1,0 +1,14 @@
+// Duplicate class constructor
+
+class IntBox {
+	x: i64;
+	pub IntBox(x_: i64) {
+		x = x_;
+	}
+
+	pub IntBox(mut y_: i64) {
+		x = y_;
+	}
+}
+
+fn main() void {}

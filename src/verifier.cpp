@@ -258,6 +258,12 @@ auto Verifier::visit_class_decl(std::shared_ptr<ClassDecl> class_decl) -> void {
         }
     }
 
+    // Visit all the constructors
+    check_duplicate_constructor_declaration(class_decl);
+    for (auto& constructor : class_decl->get_constructors()) {
+        constructor->visit(shared_from_this());
+    }
+
     // Visit all the methods
     check_duplicate_method_declaration(class_decl);
     for (auto& method : class_decl->get_methods()) {
@@ -281,6 +287,40 @@ auto Verifier::visit_extern(std::shared_ptr<Extern> extern_) -> void {
         }
         ++i;
     }
+}
+
+auto Verifier::visit_constructor_decl(std::shared_ptr<ConstructorDecl> constructor_decl) -> void {
+    global_statement_counter_ = 0;
+    in_constructor_ = true;
+    has_return_ = false;
+
+    current_function_or_method_ = constructor_decl;
+    symbol_table_.open_scope();
+    for (auto const& para : constructor_decl->get_paras()) {
+        para->visit(shared_from_this());
+    }
+    constructor_decl->get_compound_stmt()->visit(shared_from_this());
+
+    if (!handler_->quiet_mode()) {
+        // Check if any variables opened in that scope remained unused
+        // or if they were declared mutable but never reassigned
+        for (auto const& var : symbol_table_.retrieve_latest_scope()) {
+            if (!var.attr->is_used()) {
+                auto err = "local variable '" + var.attr->get_ident() + "'";
+                handler_->report_minor_error(current_filename_, all_errors_[21], err, var.attr->pos());
+            }
+            if (var.attr->is_mut() and !var.attr->is_reassigned()) {
+                auto err = "variable '" + var.attr->get_ident() + "'";
+                handler_->report_minor_error(current_filename_, all_errors_[44], err, var.attr->pos());
+            }
+        }
+    }
+
+    symbol_table_.close_scope();
+    global_statement_counter_ = 0;
+    has_return_ = false;
+    in_constructor_ = false;
+    return;
 }
 
 auto Verifier::visit_method_decl(std::shared_ptr<MethodDecl> method_decl) -> void {
@@ -431,9 +471,12 @@ auto Verifier::visit_assignment_expr(std::shared_ptr<AssignmentExpr> assignment_
 
     if (res) {
         if (auto ref = res->get_ref()) {
-            ref->set_reassigned();
-            if (!ref->is_mut()) {
-                handler_->report_error(current_filename_, all_errors_[20], res->get_name(), assignment_expr->pos());
+            auto valid_constructor_mut = (in_constructor_ and std::dynamic_pointer_cast<ClassFieldDecl>(ref));
+            if (!valid_constructor_mut) {
+                ref->set_reassigned();
+                if (!ref->is_mut()) {
+                    handler_->report_error(current_filename_, all_errors_[20], res->get_name(), assignment_expr->pos());
+                }
             }
             if (l->get_type()->is_array()) {
                 handler_->report_error(current_filename_, all_errors_[45], res->get_name(), assignment_expr->pos());
@@ -444,9 +487,12 @@ auto Verifier::visit_assignment_expr(std::shared_ptr<AssignmentExpr> assignment_
     }
     else if (deref_res) {
         if (auto ref = std::dynamic_pointer_cast<VarExpr>(deref_res->get_expr())->get_ref()) {
-            ref->set_reassigned();
-            if (!ref->is_mut()) {
-                handler_->report_error(current_filename_, all_errors_[20], ref->get_ident(), assignment_expr->pos());
+            auto valid_constructor_mut = (in_constructor_ and std::dynamic_pointer_cast<ClassFieldDecl>(ref));
+            if (!valid_constructor_mut) {
+                ref->set_reassigned();
+                if (!ref->is_mut()) {
+                    handler_->report_error(current_filename_, all_errors_[20], ref->get_ident(), assignment_expr->pos());
+                }
             }
             if (l->get_type()->is_array()) {
                 handler_->report_error(current_filename_, all_errors_[45], ref->get_ident(), assignment_expr->pos());
@@ -457,9 +503,12 @@ auto Verifier::visit_assignment_expr(std::shared_ptr<AssignmentExpr> assignment_
     }
     else if (array_index_res) {
         if (auto ref = std::dynamic_pointer_cast<VarExpr>(array_index_res->get_array_expr())->get_ref()) {
-            ref->set_reassigned();
-            if (!ref->is_mut()) {
-                handler_->report_error(current_filename_, all_errors_[20], ref->get_ident(), assignment_expr->pos());
+            auto valid_constructor_mut = (in_constructor_ and std::dynamic_pointer_cast<ClassFieldDecl>(ref));
+            if (!valid_constructor_mut) {
+                ref->set_reassigned();
+                if (!ref->is_mut()) {
+                    handler_->report_error(current_filename_, all_errors_[20], ref->get_ident(), assignment_expr->pos());
+                }
             }
             if (l->get_type()->is_array()) {
                 handler_->report_error(current_filename_, all_errors_[45], ref->get_ident(), assignment_expr->pos());
@@ -632,7 +681,9 @@ auto Verifier::visit_unary_expr(std::shared_ptr<UnaryExpr> unary_expr) -> void {
         auto is_mut = false;
         auto is_lvalue = false;
         auto var_name = std::string{};
+        auto valid_constructor_case = false;
         if (auto l = std::dynamic_pointer_cast<VarExpr>(e)) {
+            valid_constructor_case = in_constructor_ and std::dynamic_pointer_cast<ClassFieldDecl>(l->get_ref());
             is_mut |= l->get_ref()->is_mut();
             is_lvalue = true;
             var_name = l->get_name();
@@ -640,6 +691,7 @@ auto Verifier::visit_unary_expr(std::shared_ptr<UnaryExpr> unary_expr) -> void {
         if (auto l = std::dynamic_pointer_cast<UnaryExpr>(e)) {
             if (l->get_operator() == Op::DEREF) {
                 auto v = std::dynamic_pointer_cast<VarExpr>(l->get_expr());
+                valid_constructor_case = in_constructor_ and std::dynamic_pointer_cast<ClassFieldDecl>(v->get_ref());
                 is_mut |= v->get_ref()->is_mut();
                 is_lvalue = true;
                 var_name = v->get_name();
@@ -649,7 +701,7 @@ auto Verifier::visit_unary_expr(std::shared_ptr<UnaryExpr> unary_expr) -> void {
             handler_->report_error(current_filename_, all_errors_[28], "", unary_expr->pos());
             unary_expr->set_type(handler_->ERROR_TYPE);
         }
-        else if (!is_mut) {
+        else if (!is_mut and !valid_constructor_case) {
             handler_->report_error(current_filename_, all_errors_[20], var_name, unary_expr->pos());
             unary_expr->set_type(handler_->ERROR_TYPE);
         }
@@ -787,13 +839,14 @@ auto Verifier::visit_var_expr(std::shared_ptr<VarExpr> var_expr) -> void {
     auto entry = symbol_table_.retrieve(n);
     if (!entry.has_value()) {
         auto const method_d = std::dynamic_pointer_cast<MethodDecl>(current_function_or_method_);
-        if (!method_d) {
+        auto const constructor_d = std::dynamic_pointer_cast<ConstructorDecl>(current_function_or_method_);
+        if (!method_d and !constructor_d) {
             handler_->report_error(current_filename_, all_errors_[8], n, var_expr->pos());
             var_expr->set_type(handler_->ERROR_TYPE);
             return;
         }
         auto found = false;
-        for (auto& para : method_d->get_paras()) {
+        for (auto& para : curr_class->get_fields()) {
             if (para->get_ident() == n) {
                 d = para;
                 found = true;
@@ -1084,6 +1137,16 @@ auto Verifier::visit_local_var_stmt(std::shared_ptr<LocalVarStmt> local_var_stmt
 auto Verifier::visit_return_stmt(std::shared_ptr<ReturnStmt> return_stmt) -> void {
     has_return_ = true;
     auto expr = return_stmt->get_expr();
+    auto is_constructor = std::dynamic_pointer_cast<ConstructorDecl>(current_function_or_method_);
+
+    if (is_constructor) {
+        auto is_empty_expr = std::dynamic_pointer_cast<EmptyExpr>(expr);
+        if (!is_empty_expr) {
+            auto error = "in class '" + curr_class->get_ident() + "'";
+            handler_->report_error(current_filename_, all_errors_[57], error, expr->pos());
+        }
+        return;
+    }
 
     if (current_function_or_method_->get_type()->is_numeric()) {
         current_numerical_type = current_function_or_method_->get_type();
@@ -1201,6 +1264,22 @@ auto Verifier::check(std::string const& filename, bool is_main) -> void {
                 }
             }
         }
+        for (auto& constructor : class_->get_constructors()) {
+            constructor->set_type(std::make_shared<ClassType>(class_));
+            for (auto& para : constructor->get_paras()) {
+                unmurk_decl(para);
+                if (para->get_type()->is_array()) {
+                    auto a_t = std::dynamic_pointer_cast<ArrayType>(para->get_type());
+                    if (a_t->get_sub_type()->is_void()) {
+                        handler_->report_error(current_filename_, all_errors_[47], para->get_ident(), para->pos());
+                        para->set_type(handler_->ERROR_TYPE);
+                    }
+                    else {
+                        para->set_type(std::make_shared<PointerType>(a_t->get_sub_type()));
+                    }
+                }
+            }
+        }
     }
 
     check_duplicate_globals();
@@ -1273,6 +1352,13 @@ auto Verifier::check_unused_declarations() -> void {
             if (!class_->is_used()) {
                 auto stream = "'" + class_->get_ident() + "'";
                 handler_->report_minor_error(current_filename_, all_errors_[52], stream, class_->pos());
+            }
+            for (auto const& constructor : class_->get_constructors()) {
+                if (!constructor->is_used()) {
+                    auto stream = "in class '" + class_->get_ident() + "' at line "
+                                  + std::to_string(constructor->pos().line_start_);
+                    handler_->report_minor_error(current_filename_, all_errors_[55], stream, constructor->pos());
+                }
             }
             for (auto const& method : class_->get_methods()) {
                 if (!method->is_used()) {
@@ -1379,6 +1465,21 @@ auto Verifier::check_duplicate_method_declaration(std::shared_ptr<ClassDecl>& cl
         }
         else {
             seen_methods.push_back(*method);
+        }
+    }
+}
+
+auto Verifier::check_duplicate_constructor_declaration(std::shared_ptr<ClassDecl>& class_decl) -> void {
+    std::vector<ConstructorDecl> seen_constructors;
+    for (auto const& constructor : class_decl->get_constructors()) {
+        auto it = std::find(seen_constructors.begin(), seen_constructors.end(), *constructor);
+        if (it != seen_constructors.end()) {
+            auto const error = "on class '" + curr_class->get_ident() + "' previously declared at line "
+                               + std::to_string(it->pos().line_start_);
+            handler_->report_error(current_filename_, all_errors_[56], error, constructor->pos());
+        }
+        else {
+            seen_constructors.push_back(*constructor);
         }
     }
 }

@@ -104,8 +104,8 @@ auto MethodDecl::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
         }
         else {
             arg.setName(paras_[idx]->get_ident() + paras_[idx]->get_append());
-            idx++;
         }
+        idx++;
     }
 
     auto entry_name = std::to_string(emitter->global_counter++);
@@ -139,6 +139,60 @@ auto MethodDecl::print(std::ostream& os) const -> void {
     }
     stmts_->print(os);
     os << "\n";
+}
+
+auto ConstructorDecl::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
+    auto name = "constructor." + ident_;
+    auto constructor = emitter->llvm_module->getFunction(name);
+
+    auto idx = 0u;
+    for (auto& arg : constructor->args()) {
+        if (idx == 0) {
+            arg.setName("this");
+        }
+        else {
+            arg.setName(paras_[idx - 1]->get_ident() + paras_[idx - 1]->get_append());
+        }
+        ++idx;
+    }
+
+    auto entry_name = std::to_string(emitter->global_counter++);
+    auto entry_block = llvm::BasicBlock::Create(*emitter->context, entry_name, constructor);
+    emitter->llvm_builder->SetInsertPoint(entry_block);
+
+    for (auto& arg : constructor->args()) {
+        auto alloca = emitter->llvm_builder->CreateAlloca(arg.getType(), nullptr, arg.getName());
+        emitter->llvm_builder->CreateStore(&arg, alloca);
+        emitter->named_values[arg.getName().str()] = alloca;
+    }
+
+    stmts_->codegen(emitter);
+
+    emitter->llvm_builder->CreateRetVoid();
+    return constructor;
+}
+
+auto ConstructorDecl::print(std::ostream& os) const -> void {
+    os << "Constructor " << pos() << " " << ident_ << " : " << *t_ << "\n";
+
+    for (auto const& para : paras_) {
+        os << "\t\t";
+        para->print(os);
+    }
+    stmts_->print(os);
+    os << "\n";
+}
+
+auto ConstructorDecl::operator==(ConstructorDecl const& other) const -> bool {
+    if (paras_.size() != other.paras_.size()) {
+        return false;
+    }
+    for (auto i = 0u; i < paras_.size(); ++i) {
+        if (*paras_[i] != *other.paras_[i]) {
+            return false;
+        }
+    }
+    return true;
 }
 
 auto Extern::operator==(Extern const& other) const -> bool {
@@ -359,9 +413,24 @@ auto ClassFieldDecl::operator==(ClassFieldDecl const& other) const -> bool {
     return get_ident() == other.get_ident();
 }
 
+auto ClassDecl::get_index_for_field(std::string field_name) const -> int {
+    auto idx = 0;
+    for (auto const& field : fields_) {
+        if (field->get_ident() == field_name) {
+            return idx;
+        }
+        ++idx;
+    }
+    std::cout << "UNREACHABLE ClassDecl::get_index_for_field. field not found: " << field_name << std::endl;
+    return -1;
+}
+
 auto ClassDecl::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
     emitter->curr_class_ = shared_from_this();
 
+    for (auto& constructor : constructors_) {
+        constructor->codegen(emitter);
+    }
     for (auto& method : methods_) {
         method->codegen(emitter);
     }
@@ -375,6 +444,10 @@ auto ClassDecl::print(std::ostream& os) const -> void {
     os << "fields:\n";
     for (auto const& field : fields_) {
         field->print(os);
+    }
+    os << "constructors:\n";
+    for (auto const& constructor : constructors_) {
+        constructor->print(os);
     }
     os << "methods:\n";
     for (auto const& method : methods_) {

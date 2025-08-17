@@ -59,6 +59,7 @@ class Verifier
     auto visit_class_field_decl(std::shared_ptr<ClassFieldDecl> class_field_decl) -> void override;
     auto visit_function(std::shared_ptr<Function> function) -> void override;
     auto visit_method_decl(std::shared_ptr<MethodDecl> method_decl) -> void override;
+    auto visit_constructor_decl(std::shared_ptr<ConstructorDecl> constructor_decl) -> void override;
     auto visit_extern(std::shared_ptr<Extern> extern_) -> void override;
     auto visit_empty_expr(std::shared_ptr<EmptyExpr> empty_expr) -> void override;
     auto visit_assignment_expr(std::shared_ptr<AssignmentExpr> assignment_expr) -> void override;
@@ -91,6 +92,7 @@ class Verifier
     std::optional<std::shared_ptr<Type>> current_numerical_type = std::nullopt;
     Position unmurk_pos;
     std::shared_ptr<ClassDecl> curr_class = nullptr;
+    bool in_constructor_ = false;
 
  private:
     std::shared_ptr<Handler> handler_;
@@ -163,10 +165,14 @@ class Verifier
                                                   "51: class field declared void[]: %",
                                                   "52: unused class: %",
                                                   "53: unused method: %",
-                                                  "54: duplicate method declaration: %"};
+                                                  "54: duplicate method declaration: %",
+                                                  "55: unused class constructor: %",
+                                                  "56: duplicate class constructor: %",
+                                                  "57: cannot return value from constructor: %"};
 
     auto check_duplicate_function_declaration() -> void;
     auto check_duplicate_method_declaration(std::shared_ptr<ClassDecl>& class_decl) -> void;
+    auto check_duplicate_constructor_declaration(std::shared_ptr<ClassDecl>& class_decl) -> void;
     auto check_duplicate_extern_declaration() -> void;
     auto check_duplicate_custom_type() -> void;
     auto check_duplicate_globals() -> void;

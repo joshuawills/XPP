@@ -11,6 +11,7 @@ class ClassFieldDecl;
 class ClassDecl;
 class Function;
 class MethodDecl;
+class ConstructorDecl;
 class EmptyExpr;
 class AssignmentExpr;
 class BinaryExpr;
@@ -47,6 +48,7 @@ class Visitor {
     virtual auto visit_class_field_decl(std::shared_ptr<ClassFieldDecl> class_field_decl) -> void = 0;
     virtual auto visit_function(std::shared_ptr<Function> function) -> void = 0;
     virtual auto visit_method_decl(std::shared_ptr<MethodDecl> method_decl) -> void = 0;
+    virtual auto visit_constructor_decl(std::shared_ptr<ConstructorDecl> constructor_decl) -> void = 0;
     virtual auto visit_extern(std::shared_ptr<Extern> extern_) -> void = 0;
     virtual auto visit_empty_expr(std::shared_ptr<EmptyExpr> empty_expr) -> void = 0;
     virtual auto visit_assignment_expr(std::shared_ptr<AssignmentExpr> assignment_expr) -> void = 0;

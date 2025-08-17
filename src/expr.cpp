@@ -3,6 +3,8 @@
 #include "decl.hpp"
 #include "emitter.hpp"
 
+#include <cassert>
+
 auto operator<<(std::ostream& os, Op const& o) -> std::ostream& {
     switch (o) {
     case ASSIGN: os << "="; break;
@@ -55,7 +57,19 @@ auto AssignmentExpr::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
 
     llvm::Value* ptr = nullptr;
     if (auto const& lhs = std::dynamic_pointer_cast<VarExpr>(left_)) {
-        ptr = emitter->named_values[lhs->get_name() + lhs->get_ref()->get_append()];
+        auto is_field_access = std::dynamic_pointer_cast<ClassFieldDecl>(lhs->get_ref());
+        if (is_field_access) {
+            auto const t = emitter->named_values["this"];
+            auto const class_type = emitter->llvm_type(emitter->curr_class_);
+            auto this_ptr = emitter->llvm_builder->CreateLoad(llvm::PointerType::getUnqual(class_type), t);
+            ptr = emitter->llvm_builder->CreateStructGEP(
+                class_type,
+                this_ptr,
+                emitter->curr_class_->get_index_for_field(is_field_access->get_ident()));
+        }
+        else {
+            ptr = emitter->named_values[lhs->get_name() + lhs->get_ref()->get_append()];
+        }
     }
     else if (auto const& lhs = std::dynamic_pointer_cast<UnaryExpr>(left_)) {
         ptr = lhs->get_expr()->codegen(emitter);
@@ -421,6 +435,18 @@ auto CharExpr::print(std::ostream& os) const -> void {
 }
 
 auto VarExpr::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
+    auto is_field_access = std::dynamic_pointer_cast<ClassFieldDecl>(get_ref());
+    if (is_field_access) {
+        assert(emitter->curr_class_ != nullptr);
+        auto const field_index = emitter->curr_class_->get_index_for_field(is_field_access->get_ident());
+        auto const this_ptr = emitter->named_values["this"];
+        auto const class_type = emitter->llvm_type(emitter->curr_class_);
+
+        auto const this_pointer = emitter->llvm_builder->CreateLoad(llvm::PointerType::getUnqual(class_type), this_ptr);
+        auto const val = emitter->llvm_builder->CreateStructGEP(class_type, this_pointer, field_index);
+        return emitter->llvm_builder->CreateLoad(emitter->llvm_type(get_type()), val);
+    }
+
     auto const ptr = emitter->named_values[name_ + get_ref()->get_append()];
     if (get_type()->is_array()) {
         return ptr;
