@@ -1,0 +1,5 @@
+// Invalid continue usage
+
+fn main() void {
+	continue;
+}

@@ -222,7 +222,7 @@ class PointerType : public Type {
     }
 
     auto equal_soft(const Type& other) const -> bool override {
-        auto *array_ptr = dynamic_cast<const ArrayType*>(&other);
+        auto* array_ptr = dynamic_cast<const ArrayType*>(&other);
         if (array_ptr) {
             return *sub_type_ == *array_ptr->get_sub_type();
         }

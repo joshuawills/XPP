@@ -1,0 +1,5 @@
+// Invalid break usage
+
+fn main() void {
+	break;
+}

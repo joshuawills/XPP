@@ -72,7 +72,9 @@ enum class TokenType {
     DOT,
     SIZE_OF,
     LOOP,
-    IN
+    IN,
+    CONTINUE,
+    BREAK
 };
 
 class Token {

@@ -14,6 +14,10 @@ auto EmptyStmt::print(std::ostream& os) const -> void {
 auto CompoundStmt::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
     for (auto& stmt : stmts_) {
         stmt->codegen(emitter);
+        if (emitter->llvm_builder->GetInsertBlock()->getTerminator()) {
+            emitter->global_counter++;
+            break;
+        }
     }
     return nullptr;
 }
@@ -82,7 +86,15 @@ auto WhileStmt::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
     emitter->llvm_builder->CreateCondBr(val, stmt_block, end_block);
 
     emitter->llvm_builder->SetInsertPoint(stmt_block);
+
+    emitter->continue_blocks.push(top_block);
+    emitter->break_blocks.push(end_block);
+
     compound_stmt_->codegen(emitter);
+
+    emitter->continue_blocks.pop();
+    emitter->break_blocks.pop();
+
     emitter->llvm_builder->CreateBr(top_block);
     emitter->llvm_builder->SetInsertPoint(end_block);
 
@@ -116,7 +128,7 @@ auto IfStmt::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
 
     stmt_one_->codegen(emitter);
     auto temp = std::dynamic_pointer_cast<CompoundStmt>(stmt_one_);
-    if (!temp or (temp and !temp->has_return())) {
+    if ((!temp or (temp and !temp->has_return()))  and !emitter->llvm_builder->GetInsertBlock()->getTerminator()) {
         emitter->llvm_builder->CreateBr(bottom_block);
     }
 
@@ -124,7 +136,7 @@ auto IfStmt::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
     stmt_two_->codegen(emitter);
     stmt_three_->codegen(emitter);
     temp = std::dynamic_pointer_cast<CompoundStmt>(stmt_one_);
-    if (!temp or (temp and !temp->has_return())) {
+    if ((!temp or (temp and !temp->has_return()))  and !emitter->llvm_builder->GetInsertBlock()->getTerminator()) {
         emitter->llvm_builder->CreateBr(bottom_block);
     }
 
@@ -159,7 +171,7 @@ auto ElseIfStmt::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
     stmt_one_->codegen(emitter);
 
     auto temp = std::dynamic_pointer_cast<CompoundStmt>(stmt_one_);
-    if (!temp or (temp and !temp->has_return())) {
+    if ((!temp or (temp and !temp->has_return()))  and !emitter->llvm_builder->GetInsertBlock()->getTerminator()) {
         emitter->llvm_builder->CreateBr(emitter->true_bottom);
     }
 
@@ -224,7 +236,15 @@ auto LoopStmt::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
     }
 
     emitter->llvm_builder->SetInsertPoint(middle_label);
+
+    emitter->continue_blocks.push(iterate_label);
+    emitter->break_blocks.push(bottom_label);
+
     body_stmt_->codegen(emitter);
+
+    emitter->continue_blocks.pop();
+    emitter->break_blocks.pop();
+
     emitter->llvm_builder->CreateBr(iterate_label);
 
     emitter->llvm_builder->SetInsertPoint(iterate_label);
@@ -252,4 +272,24 @@ auto LoopStmt::print(std::ostream& os) const -> void {
     os << "{\n";
     body_stmt_->print(os);
     os << "}\n";
+}
+
+auto BreakStmt::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
+    assert(emitter->break_blocks.size() > 0 && "BreakStmt codegen called without a break block");
+    emitter->llvm_builder->CreateBr(emitter->break_blocks.top());
+    return nullptr;
+}
+
+auto BreakStmt::print(std::ostream& os) const -> void {
+    os << "break;\n";
+}
+
+auto ContinueStmt::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
+    assert(emitter->continue_blocks.size() > 0 && "ContinueStmt codegen called without a continue block");
+    emitter->llvm_builder->CreateBr(emitter->continue_blocks.top());
+    return nullptr;
+}
+
+auto ContinueStmt::print(std::ostream& os) const -> void {
+    os << "continue;\n";
 }

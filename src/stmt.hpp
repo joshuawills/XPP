@@ -306,4 +306,32 @@ class LoopStmt
     std::shared_ptr<LocalVarDecl> var_decl_;
 };
 
+class BreakStmt
+: public Stmt
+, public std::enable_shared_from_this<BreakStmt> {
+ public:
+    BreakStmt(Position const pos)
+    : Stmt(pos) {}
+
+    auto visit(std::shared_ptr<Visitor> visitor) -> void override {
+        visitor->visit_break_stmt(shared_from_this());
+    }
+    auto codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* override;
+    auto print(std::ostream& os) const -> void override;
+};
+
+class ContinueStmt
+: public Stmt
+, public std::enable_shared_from_this<ContinueStmt> {
+ public:
+    ContinueStmt(Position const pos)
+    : Stmt(pos) {}
+
+    auto visit(std::shared_ptr<Visitor> visitor) -> void override {
+        visitor->visit_continue_stmt(shared_from_this());
+    }
+    auto codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* override;
+    auto print(std::ostream& os) const -> void override;
+};
+
 #endif // STMT_HPP

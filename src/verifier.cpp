@@ -1440,7 +1440,9 @@ auto Verifier::visit_while_stmt(std::shared_ptr<WhileStmt> while_stmt) -> void {
         handler_->report_error(current_filename_, all_errors_[19], stream.str(), cond->pos());
     }
 
+    loop_depth_++;
     while_stmt->get_stmts()->visit(shared_from_this());
+    loop_depth_--;
     return;
 }
 
@@ -1527,9 +1529,25 @@ auto Verifier::visit_loop_stmt(std::shared_ptr<LoopStmt> loop_stmt) -> void {
             return;
         }
     }
+    loop_depth_++;
     loop_stmt->get_body_stmt()->visit(shared_from_this());
+    loop_depth_--;
 
     symbol_table_.close_scope();
+    return;
+}
+
+auto Verifier::visit_break_stmt(std::shared_ptr<BreakStmt> break_stmt) -> void {
+    if (loop_depth_ <= 0) {
+        handler_->report_error(current_filename_, all_errors_[72], "", break_stmt->pos());
+    }
+    return;
+}
+
+auto Verifier::visit_continue_stmt(std::shared_ptr<ContinueStmt> continue_stmt) -> void {
+    if (loop_depth_ <= 0) {
+        handler_->report_error(current_filename_, all_errors_[73], "", continue_stmt->pos());
+    }
     return;
 }
 

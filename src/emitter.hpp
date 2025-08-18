@@ -12,6 +12,7 @@ class Handler;
 
 #include <map>
 #include <memory>
+#include <stack>
 
 #include "llvm/ADT/APFloat.h"
 #include "llvm/ADT/STLExtras.h"
@@ -48,6 +49,9 @@ class Emitter : public std::enable_shared_from_this<Emitter> {
     std::unique_ptr<llvm::Module> llvm_module;
     std::unique_ptr<llvm::IRBuilder<>> llvm_builder;
     std::map<std::string, llvm::Value*> named_values;
+
+    std::stack<llvm::BasicBlock*> break_blocks;
+    std::stack<llvm::BasicBlock*> continue_blocks;
 
     auto llvm_type(std::shared_ptr<Type> t) -> llvm::Type*;
     auto llvm_type(std::shared_ptr<ClassDecl> t) -> llvm::Type*;

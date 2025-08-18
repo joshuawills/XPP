@@ -404,6 +404,18 @@ auto Parser::parse_compound_stmt() -> std::shared_ptr<CompoundStmt> {
         else if (try_consume(TokenType::LOOP)) {
             stmts.push_back(parse_loop_stmt(p));
         }
+        else if (try_consume(TokenType::BREAK)) {
+            auto p2 = Position{};
+            start(p2);
+            finish(p2);
+            stmts.push_back(std::make_shared<BreakStmt>(p2));
+        }
+        else if (try_consume(TokenType::CONTINUE)) {
+            auto p2 = Position{};
+            start(p2);
+            finish(p2);
+            stmts.push_back(std::make_shared<ContinueStmt>(p2));
+        }
         else {
             stmts.push_back(parse_expr_stmt(p));
         }

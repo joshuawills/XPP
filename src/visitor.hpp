@@ -41,6 +41,8 @@ class WhileStmt;
 class IfStmt;
 class ElseIfStmt;
 class LoopStmt;
+class BreakStmt;
+class ContinueStmt;
 class Extern;
 
 class Visitor {
@@ -85,6 +87,8 @@ class Visitor {
     virtual auto visit_if_stmt(std::shared_ptr<IfStmt> if_stmt) -> void = 0;
     virtual auto visit_else_if_stmt(std::shared_ptr<ElseIfStmt> else_if_stmt) -> void = 0;
     virtual auto visit_loop_stmt(std::shared_ptr<LoopStmt> loop_stmt) -> void = 0;
+    virtual auto visit_break_stmt(std::shared_ptr<BreakStmt> break_stmt) -> void = 0;
+    virtual auto visit_continue_stmt(std::shared_ptr<ContinueStmt> continue_stmt) -> void = 0;
 };
 
 #endif // VISITOR_HPP

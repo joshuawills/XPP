@@ -62,11 +62,11 @@
 - FEAT: accessing public class methods
 - FEAT: size_of support
 - FEAT: loop stmt support
+- FEAT: support for break and continue statements
 
 ## TODO
 
 - Add in for loops 
 - Moduling system
-- Composite data types
 - References?
 - Documentation!

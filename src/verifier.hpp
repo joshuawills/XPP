@@ -91,6 +91,8 @@ class Verifier
     auto visit_if_stmt(std::shared_ptr<IfStmt> if_stmt) -> void override;
     auto visit_else_if_stmt(std::shared_ptr<ElseIfStmt> else_if_stmt) -> void override;
     auto visit_loop_stmt(std::shared_ptr<LoopStmt> loop_stmt) -> void override;
+    auto visit_break_stmt(std::shared_ptr<BreakStmt> break_stmt) -> void override;
+    auto visit_continue_stmt(std::shared_ptr<ContinueStmt> continue_stmt) -> void override;
 
     auto check(std::string const& filename, bool is_main) -> void;
 
@@ -109,7 +111,8 @@ class Verifier
 
     bool has_main_ = false, has_return_ = false, in_main_ = false;
 
-    size_t global_statement_counter_ = 0, loop_depth_ = 0;
+    size_t global_statement_counter_ = 0;
+    int loop_depth_ = 0;
 
     std::string current_filename_;
     std::shared_ptr<Module> current_module_ = nullptr;
@@ -191,7 +194,9 @@ class Verifier
                                                   "identifier: %",
                                                   "69: cannot mutate a class field in a const declared method: %",
                                                   "70: loop lower bound must be of type i64: %",
-                                                  "71: loop upper bound must be of type i64: %"};
+                                                  "71: loop upper bound must be of type i64: %",
+                                                  "72: 'break' must be in a loop construct",
+                                                  "73: 'continue' must be in a loop construct"};
 
     auto check_duplicate_function_declaration() -> void;
     auto check_duplicate_method_declaration(std::shared_ptr<ClassDecl>& class_decl) -> void;

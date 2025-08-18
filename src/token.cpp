@@ -26,37 +26,18 @@ auto operator<<(std::ostream& os, Token const& t) -> std::ostream& {
 }
 
 auto get_type_from_lexeme(std::string const& str) -> std::optional<TokenType> {
-    auto const lookup_map = std::map<std::string, TokenType>{{"fn", TokenType::FN},
-                                                             {"using", TokenType::USING},
-                                                             {"as", TokenType::AS},
-                                                             {"i64", TokenType::TYPE},
-                                                             {"i32", TokenType::TYPE},
-                                                             {"i8", TokenType::TYPE},
-                                                             {"u64", TokenType::TYPE},
-                                                             {"u32", TokenType::TYPE},
-                                                             {"u8", TokenType::TYPE},
-                                                             {"f64", TokenType::TYPE},
-                                                             {"f32", TokenType::TYPE},
-                                                             {"if", TokenType::IF},
-                                                             {"else", TokenType::ELSE},
-                                                             {"else if", TokenType::ELSE_IF},
-                                                             {"bool", TokenType::TYPE},
-                                                             {"void", TokenType::TYPE},
-                                                             {"mut", TokenType::MUT},
-                                                             {"let", TokenType::LET},
-                                                             {"return", TokenType::RETURN},
-                                                             {"extern", TokenType::EXTERN},
-                                                             {"while", TokenType::WHILE},
-                                                             {"true", TokenType::TRUE},
-                                                             {"false", TokenType::FALSE},
-                                                             {"enum", TokenType::ENUM},
-                                                             {"pub", TokenType::PUB},
-                                                             {"class", TokenType::CLASS},
-                                                             {"size_of", TokenType::SIZE_OF},
-                                                             {"and", TokenType::LOGICAL_AND},
-                                                             {"or", TokenType::LOGICAL_OR},
-                                                             {"loop", TokenType::LOOP},
-                                                             {"in", TokenType::IN}};
+    auto const lookup_map = std::map<std::string, TokenType>{
+        {"fn", TokenType::FN},           {"using", TokenType::USING},     {"as", TokenType::AS},
+        {"i64", TokenType::TYPE},        {"i32", TokenType::TYPE},        {"i8", TokenType::TYPE},
+        {"u64", TokenType::TYPE},        {"u32", TokenType::TYPE},        {"u8", TokenType::TYPE},
+        {"f64", TokenType::TYPE},        {"f32", TokenType::TYPE},        {"if", TokenType::IF},
+        {"else", TokenType::ELSE},       {"else if", TokenType::ELSE_IF}, {"bool", TokenType::TYPE},
+        {"void", TokenType::TYPE},       {"mut", TokenType::MUT},         {"let", TokenType::LET},
+        {"return", TokenType::RETURN},   {"extern", TokenType::EXTERN},   {"while", TokenType::WHILE},
+        {"true", TokenType::TRUE},       {"false", TokenType::FALSE},     {"enum", TokenType::ENUM},
+        {"pub", TokenType::PUB},         {"class", TokenType::CLASS},     {"size_of", TokenType::SIZE_OF},
+        {"and", TokenType::LOGICAL_AND}, {"or", TokenType::LOGICAL_OR},   {"loop", TokenType::LOOP},
+        {"in", TokenType::IN},           {"break", TokenType::BREAK},     {"continue", TokenType::CONTINUE}};
 
     return lookup_map.find(str) != lookup_map.end() ? std::make_optional(lookup_map.at(str)) : std::nullopt;
 }
@@ -119,7 +100,9 @@ auto operator<<(std::ostream& os, TokenType const& t) -> std::ostream& {
     case TokenType::DOT: os << "DOT"; break;
     case TokenType::LOOP: os << "LOOP"; break;
     case TokenType::SIZE_OF: os << "SIZE_OF"; break;
-    case TokenType::IN: os << ""; break;
+    case TokenType::IN: os << "IN"; break;
+    case TokenType::CONTINUE: os << "CONTINUE"; break;
+    case TokenType::BREAK: os << "BREAK"; break;
     default: os << "UNKNOWN";
     }
     return os;
