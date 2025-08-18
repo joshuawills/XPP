@@ -684,8 +684,16 @@ auto Parser::parse_postfix_expr() -> std::shared_ptr<Expr> {
     }
     else if (try_consume(TokenType::DOT)) {
         auto field_name = parse_ident();
-        finish(p);
-        return std::make_shared<FieldAccessExpr>(p, p_expr, field_name);
+        if (!peek(TokenType::OPEN_BRACKET)) {
+            finish(p);
+            return std::make_shared<FieldAccessExpr>(p, p_expr, field_name);
+        }
+        else {
+            match(TokenType::OPEN_BRACKET);
+            auto args = parse_arg_list();
+            finish(p);
+            return std::make_shared<MethodAccessExpr>(p, p_expr, field_name, args);
+        }
     }
     else {
         return p_expr;

@@ -90,11 +90,9 @@ auto MethodDecl::operator==(const MethodDecl& other) const -> bool {
 auto MethodDecl::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
     auto return_type = emitter->llvm_type(get_type());
 
-    auto name = "method." + get_ident();
-    if (name != "main") {
-        name += get_type_output();
-    }
+    auto name = "method." + get_ident() + get_type_output();
     auto method = emitter->llvm_module->getFunction(name);
+    assert(method != nullptr);
 
     // Setting names of method params
     auto idx = 0u;
@@ -103,7 +101,7 @@ auto MethodDecl::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
             arg.setName("this");
         }
         else {
-            arg.setName(paras_[idx]->get_ident() + paras_[idx]->get_append());
+            arg.setName(paras_[idx - 1]->get_ident() + paras_[idx - 1]->get_append());
         }
         idx++;
     }
@@ -434,6 +432,15 @@ auto ClassDecl::get_index_for_field(std::string field_name) const -> int {
     return -1;
 }
 
+auto ClassDecl::method_exists(std::string const& method_name) const -> bool {
+    for (auto const& method : methods_) {
+        if (method->get_ident() == method_name) {
+            return true;
+        }
+    }
+    return false;
+}
+
 auto ClassDecl::field_exists(std::string const& field_name) const -> bool {
     for (auto const& field : fields_) {
         if (field->get_ident() == field_name) {
@@ -470,6 +477,33 @@ auto ClassDecl::get_field(std::string const& name) const -> std::shared_ptr<Clas
     }
     std::cout << "UNREACHABLE ClassDecl::get_field. field not found: " << name << std::endl;
     return nullptr;
+}
+
+auto ClassDecl::get_method(std::shared_ptr<MethodAccessExpr> method) const -> std::optional<std::shared_ptr<MethodDecl>> {
+    auto it = std::find_if(methods_.begin(), methods_.end(), [&](auto const& m) {
+        if (m->get_ident() != method->get_method_name()) {
+            return false;
+        }
+
+        auto call_args = method->get_args();
+        auto method_params = m->get_paras();
+
+        if (call_args.size() != method_params.size()) {
+            return false;
+        }
+
+        for (size_t i = 0; i < call_args.size(); ++i) {
+            if (!method_params[i]->get_type()->equal_soft(*call_args[i]->get_type())) {
+                return false;
+            }
+        }
+
+        return true;
+    });
+    if (it != methods_.end()) {
+        return *it;
+    }
+    return std::nullopt;
 }
 
 auto ClassDecl::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {

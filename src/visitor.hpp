@@ -30,6 +30,7 @@ class ArrayInitExpr;
 class ArrayIndexExpr;
 class EnumAccessExpr;
 class FieldAccessExpr;
+class MethodAccessExpr;
 class EmptyStmt;
 class CompoundStmt;
 class LocalVarStmt;
@@ -70,6 +71,7 @@ class Visitor {
     virtual auto visit_array_index_expr(std::shared_ptr<ArrayIndexExpr> array_index_expr) -> void = 0;
     virtual auto visit_enum_access_expr(std::shared_ptr<EnumAccessExpr> enum_access_expr) -> void = 0;
     virtual auto visit_field_access_expr(std::shared_ptr<FieldAccessExpr> field_access_expr) -> void = 0;
+    virtual auto visit_method_access_expr(std::shared_ptr<MethodAccessExpr> method_access_expr) -> void = 0;
 
     virtual auto visit_empty_stmt(std::shared_ptr<EmptyStmt> empty_stmt) -> void = 0;
     virtual auto visit_compound_stmt(std::shared_ptr<CompoundStmt> compound_stmt) -> void = 0;

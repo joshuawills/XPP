@@ -1,0 +1,34 @@
+// Private method cannot be accessed outside of class
+
+extern printf(i8*, ...) i32;
+
+class IntBox {
+    mut x: i64;
+
+    pub IntBox(x_: i64) {
+        printf("Calling standard constructor :)\n");
+        x = x_;
+    }
+
+    pub fn get_x() i64 {
+        return x;
+    }
+
+	pub mut fn set_x(x_: i64) void {
+		x = x_;	
+	}
+
+}
+
+fn main() void {
+    let mut x = IntBox(19);
+    printf("%d\n", x.get_x());
+	x.set_x(21);
+    printf("%d\n", x.get_x());
+
+    let y = IntBox(19);
+    printf("%d\n", y.get_x());
+	y.set_x(21);
+    printf("%d\n", y.get_x());
+}
+

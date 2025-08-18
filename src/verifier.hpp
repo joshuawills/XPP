@@ -79,6 +79,7 @@ class Verifier
     auto visit_array_index_expr(std::shared_ptr<ArrayIndexExpr> array_index_expr) -> void override;
     auto visit_enum_access_expr(std::shared_ptr<EnumAccessExpr> enum_access_expr) -> void override;
     auto visit_field_access_expr(std::shared_ptr<FieldAccessExpr> field_access_expr) -> void override;
+    auto visit_method_access_expr(std::shared_ptr<MethodAccessExpr> method_access_expr) -> void override;
 
     auto visit_empty_stmt(std::shared_ptr<EmptyStmt> empty_stmt) -> void override;
     auto visit_compound_stmt(std::shared_ptr<CompoundStmt> compound_stmt) -> void override;
@@ -96,6 +97,7 @@ class Verifier
     std::shared_ptr<ClassDecl> curr_class = nullptr;
     std::shared_ptr<Expr> updated_expr_ = nullptr;
     bool in_constructor_ = false;
+    bool visiting_lhs_of_assignment_ = false;
 
  private:
     std::shared_ptr<Handler> handler_;
@@ -178,7 +180,14 @@ class Verifier
                                                   "61: no such field exists on class type: %",
                                                   "62: field for class type must by public to access outside of class: "
                                                   "%",
-                                                  "63: cannot mutate field from a const declared class identifier: %"};
+                                                  "63: cannot mutate field from a const declared class identifier: %",
+                                                  "64: may only perform method call on a class type: %",
+                                                  "65: no method exists with that name: %",
+                                                  "66: incorrect parameters for method: %",
+                                                  "67: private method cannot be accessed outside of class: %",
+                                                  "68: cannot access mutable method from a const declare class "
+                                                  "identifier: %",
+                                                  "69: cannot mutate a class field in a const declared method: %"};
 
     auto check_duplicate_function_declaration() -> void;
     auto check_duplicate_method_declaration(std::shared_ptr<ClassDecl>& class_decl) -> void;

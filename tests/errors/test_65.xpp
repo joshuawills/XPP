@@ -1,0 +1,22 @@
+// No method exists with that name
+
+extern printf(i8*, ...) i32;
+
+class IntBox {
+    mut x: i64;
+
+    pub IntBox(x_: i64) {
+        printf("Calling standard constructor :)\n");
+        x = x_;
+    }
+
+    pub fn get_x() i64 {
+        return x;
+    }
+
+}
+
+fn main() void {
+	let x = IntBox(21);
+	x.haha();
+}

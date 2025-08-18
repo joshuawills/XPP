@@ -1,0 +1,23 @@
+// Cannot mutate a class field in a const declared method
+
+extern printf(i8*, ...) i32;
+
+class IntBox {
+    mut x: i64;
+
+    pub IntBox(x_: i64) {
+        printf("Calling standard constructor :)\n");
+        x = x_;
+    }
+
+    pub fn get_x() i64 {
+        return x;
+    }
+
+    pub fn set_x(x_: i64) void {
+        x = x_;
+    }
+
+}
+
+fn main() void {}

@@ -479,7 +479,9 @@ auto Verifier::visit_assignment_expr(std::shared_ptr<AssignmentExpr> assignment_
         return;
     }
 
+    visiting_lhs_of_assignment_ = true;
     l->visit(shared_from_this());
+    visiting_lhs_of_assignment_ = false;
 
     if (res) {
         if (auto ref = res->get_ref()) {
@@ -887,6 +889,10 @@ auto Verifier::visit_var_expr(std::shared_ptr<VarExpr> var_expr) -> void {
         auto found = false;
         for (auto& para : curr_class->get_fields()) {
             if (para->get_ident() == n) {
+                if (visiting_lhs_of_assignment_ and method_d and !method_d->is_mut()) {
+                    auto error = "field '" + n + "' can't be mutated in constant method '" + method_d->get_ident() + "'";
+                    handler_->report_error(current_filename_, all_errors_[69], error, var_expr->pos());
+                }
                 d = para;
                 found = true;
                 break;
@@ -946,7 +952,9 @@ auto Verifier::visit_call_expr(std::shared_ptr<CallExpr> call_expr) -> void {
             if (paras[c]->get_type()->is_numeric()) {
                 current_numerical_type = paras[c]->get_type();
             }
-            arg->visit(shared_from_this());
+            if (!std::dynamic_pointer_cast<MethodAccessExpr>(arg)) {
+                arg->visit(shared_from_this());
+            }
             current_numerical_type = std::nullopt;
             ++c;
         }
@@ -958,7 +966,9 @@ auto Verifier::visit_call_expr(std::shared_ptr<CallExpr> call_expr) -> void {
             if (c < types.size() and types[c]->is_numeric()) {
                 current_numerical_type = types[c];
             }
-            arg->visit(shared_from_this());
+            if (!std::dynamic_pointer_cast<MethodAccessExpr>(arg)) {
+                arg->visit(shared_from_this());
+            }
             current_numerical_type = std::nullopt;
             ++c;
         }
@@ -1224,6 +1234,84 @@ auto Verifier::visit_field_access_expr(std::shared_ptr<FieldAccessExpr> field_ac
     field_access_expr->set_ref(ref);
     field_access_expr->set_field_num(class_ref->get_index_for_field(f_name));
     field_access_expr->set_type(class_ref->get_field_type(f_name));
+    return;
+}
+
+auto Verifier::visit_method_access_expr(std::shared_ptr<MethodAccessExpr> method_access_expr) -> void {
+    auto const n = method_access_expr->get_method_name();
+    method_access_expr->get_class_instance()->visit(shared_from_this());
+    if (updated_expr_) {
+        method_access_expr->set_class_instance(updated_expr_);
+        updated_expr_ = nullptr;
+    }
+
+    if (!method_access_expr->get_class_instance()->get_type()->is_class()) {
+        auto error = std::stringstream{};
+        error << "received type " << *method_access_expr->get_class_instance()->get_type();
+        handler_->report_error(current_filename_, all_errors_[64], error.str(), method_access_expr->pos());
+        method_access_expr->set_type(handler_->ERROR_TYPE);
+        return;
+    }
+
+    auto class_type = std::dynamic_pointer_cast<ClassType>(method_access_expr->get_class_instance()->get_type());
+    auto class_ref = class_type->get_ref();
+
+    if (!class_ref->method_exists(n)) {
+        auto error = "method '" + n + "' does not exist on class '" + class_ref->get_ident() + "'";
+        handler_->report_error(current_filename_, all_errors_[65], error, method_access_expr->pos());
+        method_access_expr->set_type(handler_->ERROR_TYPE);
+        return;
+    }
+
+    auto method_ref = class_ref->get_method(method_access_expr);
+    if (!method_ref) {
+        auto error = "method '" + n + "' on class '" + class_ref->get_ident() + "' does not match provided parameters";
+        handler_->report_error(current_filename_, all_errors_[66], error, method_access_expr->pos());
+        method_access_expr->set_type(handler_->ERROR_TYPE);
+        return;
+    }
+
+    if (!(*method_ref)->is_pub()) {
+        auto error = "method '" + n + "' is not accessible on class '" + class_ref->get_ident() + "'";
+        handler_->report_error(current_filename_, all_errors_[67], error, method_access_expr->pos());
+        method_access_expr->set_type(handler_->ERROR_TYPE);
+        return;
+    }
+
+    auto paras = (*method_ref)->get_paras();
+    auto c = 0u;
+    auto new_args = std::vector<std::shared_ptr<Expr>>{};
+    for (auto& arg : method_access_expr->get_args()) {
+        if (paras[c]->get_type()->is_numeric()) {
+            current_numerical_type = paras[c]->get_type();
+        }
+        arg->visit(shared_from_this());
+        if (updated_expr_) {
+            new_args.push_back(arg);
+            updated_expr_ = nullptr;
+        }
+        else {
+            new_args.push_back(arg);
+        }
+        current_numerical_type = std::nullopt;
+        c++;
+    }
+    method_access_expr->set_args(new_args);
+    (*method_ref)->set_used();
+    method_access_expr->set_ref(*method_ref);
+    method_access_expr->set_type((*method_ref)->get_type());
+
+    if ((*method_ref)->is_mut()) {
+        if (auto v = std::dynamic_pointer_cast<VarExpr>(method_access_expr->get_class_instance())) {
+            if (!v->get_ref()->is_mut()) {
+                auto error = "mutable method '" + (*method_ref)->get_ident() + "' called on a non-mutable variable '"
+                             + v->get_name() + "'";
+                handler_->report_error(current_filename_, all_errors_[68], error, method_access_expr->pos());
+            }
+            v->get_ref()->set_reassigned();
+        }
+    }
+
     return;
 }
 

@@ -808,3 +808,30 @@ auto FieldAccessExpr::print(std::ostream& os) const -> void {
     class_instance_->print(os);
     os << "." << field_name_;
 }
+
+auto MethodAccessExpr::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
+    // First field in the method call
+    auto class_val = class_instance_->codegen(emitter);
+
+    auto name = "method." + method_name_ + ref_->get_type_output();
+    auto function = emitter->llvm_module->getFunction(name);
+
+    auto arg_vals = std::vector<llvm::Value*>{};
+    arg_vals.push_back(class_val);
+    for (auto& arg : args_) {
+        arg_vals.push_back(arg->codegen(emitter));
+    }
+    return emitter->llvm_builder->CreateCall(function, arg_vals);
+}
+
+auto MethodAccessExpr::print(std::ostream& os) const -> void {
+    class_instance_->print(os);
+    os << "." << method_name_ << "(";
+    for (size_t i = 0; i < args_.size(); ++i) {
+        args_[i]->print(os);
+        if (i < args_.size() - 1) {
+            os << ", ";
+        }
+    }
+    os << ")";
+}

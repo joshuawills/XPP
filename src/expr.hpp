@@ -654,4 +654,58 @@ class FieldAccessExpr
     int field_num_ = -1;
 };
 
+class MethodAccessExpr
+: public Expr
+, public std::enable_shared_from_this<MethodAccessExpr> {
+ public:
+    MethodAccessExpr(Position const pos,
+                     std::shared_ptr<Expr> class_instance,
+                     std::string const& method_name,
+                     std::vector<std::shared_ptr<Expr>> args)
+    : Expr(pos, std::make_shared<Type>())
+    , class_instance_(class_instance)
+    , method_name_(method_name)
+    , args_(args) {}
+
+    auto visit(std::shared_ptr<Visitor> visitor) -> void override {
+        visitor->visit_method_access_expr(shared_from_this());
+    }
+    auto codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* override;
+    auto print(std::ostream& os) const -> void override;
+
+    auto get_class_instance() const -> std::shared_ptr<Expr> {
+        return class_instance_;
+    }
+
+    auto set_class_instance(std::shared_ptr<Expr> e) -> void {
+        class_instance_ = e;
+    }
+
+    auto get_method_name() const -> std::string {
+        return method_name_;
+    }
+
+    auto get_args() const -> std::vector<std::shared_ptr<Expr>> {
+        return args_;
+    }
+
+    auto set_args(std::vector<std::shared_ptr<Expr>> args) -> void {
+        args_ = std::move(args);
+    }
+
+    auto set_ref(std::shared_ptr<MethodDecl> ref) -> void {
+        ref_ = ref;
+    }
+
+    auto get_ref() const -> std::shared_ptr<MethodDecl> {
+        return ref_;
+    }
+
+ private:
+    std::shared_ptr<Expr> class_instance_;
+    std::string const method_name_;
+    std::vector<std::shared_ptr<Expr>> args_;
+    std::shared_ptr<MethodDecl> ref_ = nullptr;
+};
+
 #endif // EXPR_HPP

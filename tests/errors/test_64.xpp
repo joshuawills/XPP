@@ -1,0 +1,7 @@
+// May only perform method clal on a class type 
+
+fn main() void {
+	(21).print();
+	let x = "hello";
+	x.haha(21, x);
+}

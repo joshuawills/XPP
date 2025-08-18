@@ -413,8 +413,10 @@ class ClassDecl
     auto get_index_for_field(std::string field_name) const -> int;
     auto get_field_type(std::string field_name) const -> std::shared_ptr<Type>;
     auto field_exists(std::string const& name) const -> bool;
+    auto method_exists(std::string const& name) const -> bool;
     auto field_is_private(std::string const& name) const -> bool;
     auto get_field(std::string const& name) const -> std::shared_ptr<ClassFieldDecl>;
+    auto get_method(std::shared_ptr<MethodAccessExpr> method) const -> std::optional<std::shared_ptr<MethodDecl>>;
 
     auto get_fields() const -> std::vector<std::shared_ptr<ClassFieldDecl>> {
         return fields_;
