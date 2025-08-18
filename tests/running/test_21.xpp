@@ -1,0 +1,7 @@
+// Testing size of
+
+extern printf(i8*, ...) i32;
+
+fn main() void {
+	printf("%d\n", 2 * 3 * 19);
+}

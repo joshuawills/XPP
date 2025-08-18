@@ -498,12 +498,14 @@ auto Parser::parse_expr_stmt(Position p) -> std::shared_ptr<ExprStmt> {
 }
 
 auto Parser::parse_expr() -> std::shared_ptr<Expr> {
-    if (peek(TokenType::SIZE_OF)) {
-        return parse_size_of_expr();
-    }
     auto p = Position{};
     start(p);
-    auto expr = parse_assignment_expr();
+    std::shared_ptr<Expr> expr;
+    if (peek(TokenType::SIZE_OF)) {
+        expr = parse_size_of_expr();
+    } else {
+        expr = parse_assignment_expr();
+    }
     if (try_consume(TokenType::AS)) {
         auto const type = parse_type();
         finish(p);
@@ -644,13 +646,14 @@ auto Parser::parse_size_of_expr() -> std::shared_ptr<Expr> {
     auto p = Position{};
     start(p);
     match(TokenType::SIZE_OF);
-    
+
     if (try_consume(TokenType::OPEN_BRACKET)) {
         auto type = parse_type();
         finish(p);
         match(TokenType::CLOSE_BRACKET);
         return std::make_shared<SizeOfExpr>(p, type);
-    } else {
+    }
+    else {
         auto expr = parse_unary_expr();
         finish(p);
         return std::make_shared<SizeOfExpr>(p, expr);
@@ -778,7 +781,7 @@ auto Parser::parse_primary_expr() -> std::shared_ptr<Expr> {
     }
 
     auto stream = std::stringstream{};
-    stream << *curr_token_;
+    stream << *(*curr_token_);
     syntactic_error("UNRECOGNIZED PRIMARY EXPRESSION: %", stream.str());
     return std::make_shared<EmptyExpr>(p);
 }

@@ -208,19 +208,14 @@ class PointerType : public Type {
         if (!other_ptr)
             return false;
 
+        if (sub_type_->is_void() or other_ptr->sub_type_->is_void()) {
+            return true;
+        }
         return *sub_type_ == *other_ptr->sub_type_;
     }
 
     auto equal_soft(const Type& other) const -> bool override {
-        auto* other_ptr = dynamic_cast<const PointerType*>(&other);
-        if (!other_ptr) {
-            auto* other_ptr = dynamic_cast<const ArrayType*>(&other);
-            if (other_ptr) {
-                return sub_type_->equal_soft(*other_ptr->get_sub_type());
-            }
-            return false;
-        }
-        return soft_typespec_equals(t_, other.get_type_spec()) and sub_type_->equal_soft(*other_ptr->get_sub_type());
+        return equals(other);
     }
 
  private:

@@ -713,12 +713,12 @@ class SizeOfExpr
 , public std::enable_shared_from_this<SizeOfExpr> {
  public:
     SizeOfExpr(Position const pos, std::shared_ptr<Type> type_to_size)
-    : Expr(pos, std::make_shared<Type>(TypeSpec::U64))
+    : Expr(pos, std::make_shared<Type>(TypeSpec::I64))
     , type_to_size_(type_to_size)
     , is_type_(true) {}
 
     SizeOfExpr(Position const pos, std::shared_ptr<Expr> expr_to_size)
-    : Expr(pos, std::make_shared<Type>(TypeSpec::U64))
+    : Expr(pos, std::make_shared<Type>(TypeSpec::I64))
     , expr_to_size_(expr_to_size)
     , is_type_(false) {}
 

@@ -1263,6 +1263,10 @@ auto Verifier::visit_method_access_expr(std::shared_ptr<MethodAccessExpr> method
         return;
     }
 
+    for (auto& arg: method_access_expr->get_args()) {
+        arg->visit(shared_from_this());
+    }
+
     auto method_ref = class_ref->get_method(method_access_expr);
     if (!method_ref) {
         auto error = "method '" + n + "' on class '" + class_ref->get_ident() + "' does not match provided parameters";

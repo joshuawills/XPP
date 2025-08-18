@@ -494,6 +494,7 @@ auto ClassDecl::get_method(std::shared_ptr<MethodAccessExpr> method) const -> st
 
         for (size_t i = 0; i < call_args.size(); ++i) {
             if (!method_params[i]->get_type()->equal_soft(*call_args[i]->get_type())) {
+                std::cout << "Method parameter type mismatch: " << *method_params[i]->get_type() << " vs " << *call_args[i]->get_type() << std::endl;
                 return false;
             }
         }

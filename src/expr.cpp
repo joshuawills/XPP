@@ -288,10 +288,25 @@ auto UnaryExpr::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
 
     llvm::Value* ptr = nullptr;
     if (auto l = std::dynamic_pointer_cast<VarExpr>(expr_)) {
-        ptr = emitter->named_values[l->get_name() + l->get_ref()->get_append()];
+        auto is_field_access = std::dynamic_pointer_cast<ClassFieldDecl>(l->get_ref());
+        if (is_field_access) {
+            auto const t = emitter->named_values["this"];
+            auto const class_type = emitter->llvm_type(emitter->curr_class_);
+            auto this_ptr = emitter->llvm_builder->CreateLoad(llvm::PointerType::getUnqual(class_type), t);
+            ptr = emitter->llvm_builder->CreateStructGEP(
+                class_type,
+                this_ptr,
+                emitter->curr_class_->get_index_for_field(is_field_access->get_ident()));
+        }
+        else {
+            ptr = emitter->named_values[l->get_name() + l->get_ref()->get_append()];
+        }
     }
     else if (auto l = std::dynamic_pointer_cast<UnaryExpr>(expr_)) {
         ptr = l->get_expr()->codegen(emitter);
+    }
+    else {
+        std::cout << "UNREACHABLE UnaryExpr::codegen\n";
     }
 
     if (op_ == Op::PREFIX_ADD or op_ == Op::PREFIX_MINUS) {
@@ -842,7 +857,8 @@ auto SizeOfExpr::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
     if (is_type_) {
         auto t = emitter->llvm_type(type_to_size_);
         size_ = data_layout.getTypeAllocSize(t);
-    } else {
+    }
+    else {
         auto e_t = expr_to_size_->get_type();
         size_ = data_layout.getTypeAllocSize(emitter->llvm_type(e_t));
     }
@@ -853,7 +869,8 @@ auto SizeOfExpr::print(std::ostream& os) const -> void {
     os << "sizeof(";
     if (is_type_) {
         os << *type_to_size_;
-    } else {
+    }
+    else {
         expr_to_size_->print(os);
     }
     os << ")";
