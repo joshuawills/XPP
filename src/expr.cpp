@@ -349,7 +349,12 @@ auto UnaryExpr::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
         }
     }
     else if (op_ == Op::DEREF) {
-        return emitter->llvm_builder->CreateLoad(emitter->llvm_type(get_type()), value);
+        if (get_type()->is_class()) {
+            return value;
+        }
+        else {
+            return emitter->llvm_builder->CreateLoad(emitter->llvm_type(get_type()), value);
+        }
     }
     else {
         std::cout << "UNREACHABLE UnaryExpr::codegen " << op_ << "\n";

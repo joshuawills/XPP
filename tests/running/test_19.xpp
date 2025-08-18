@@ -1,0 +1,24 @@
+// Further messing around with basic class stuff
+
+extern printf(i8*, ...) i32;
+
+class IntBox {
+    pub mut x: i64;
+
+    pub IntBox(x_: i64) {
+        printf("Calling standard constructor :)\n");
+        x = x_;
+    }
+
+    pub fn get_x() i64 {
+        return x;
+    }
+
+}
+
+fn main() void {
+    printf("%d\n", (IntBox(21)).x);
+    let mut x = IntBox(19);
+    let mut y: IntBox* = &x;
+    printf("%d\n", (*y).x);
+}

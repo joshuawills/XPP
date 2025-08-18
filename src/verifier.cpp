@@ -1186,6 +1186,11 @@ auto Verifier::visit_enum_access_expr(std::shared_ptr<EnumAccessExpr> enum_acces
 
 auto Verifier::visit_field_access_expr(std::shared_ptr<FieldAccessExpr> field_access_expr) -> void {
     field_access_expr->get_class_instance()->visit(shared_from_this());
+    if (updated_expr_) {
+        field_access_expr->set_class_instance(updated_expr_);
+        updated_expr_ = nullptr;
+    }
+
     auto class_type = std::dynamic_pointer_cast<ClassType>(field_access_expr->get_class_instance()->get_type());
     if (!class_type) {
         auto error = std::stringstream{};

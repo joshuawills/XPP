@@ -618,6 +618,10 @@ class FieldAccessExpr
         return class_instance_;
     }
 
+    auto set_class_instance(std::shared_ptr<Expr> e) -> void {
+        class_instance_ = e;
+    }
+
     auto get_field_name() const -> std::string {
         return field_name_;
     }
@@ -643,7 +647,7 @@ class FieldAccessExpr
     }
 
  private:
-    std::shared_ptr<Expr> const class_instance_;
+    std::shared_ptr<Expr> class_instance_;
     std::string const field_name_;
     std::shared_ptr<ClassDecl> class_ref_ = nullptr;
     std::shared_ptr<ClassFieldDecl> ref_ = nullptr;
