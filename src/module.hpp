@@ -55,6 +55,12 @@ class Module {
         return classes_;
     }
 
+    auto class_with_name_exists(std::string const& name) const -> bool {
+        return std::any_of(classes_.begin(), classes_.end(), [&name](auto const& class_) {
+            return class_->get_ident() == name;
+        });
+    }
+
     auto function_with_name_exists(std::string const& name) const -> bool {
         auto const user_func = std::any_of(functions_.begin(), functions_.end(), [&name](auto const& func) {
             return func->get_ident() == name;
@@ -67,6 +73,8 @@ class Module {
     }
 
     auto get_decl(std::shared_ptr<CallExpr> call_expr) const -> std::optional<std::shared_ptr<Decl>>;
+    auto get_constructor_decl(std::shared_ptr<ConstructorCallExpr> constructor_call_expr) const
+        -> std::optional<std::shared_ptr<ConstructorDecl>>;
     auto get_enum(std::string enum_name) const -> std::optional<std::shared_ptr<EnumDecl>>;
 
  private:

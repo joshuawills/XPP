@@ -82,6 +82,11 @@ auto Verifier::visit_local_var_decl(std::shared_ptr<LocalVarDecl> local_var_decl
         current_numerical_type = local_var_decl->get_type();
     }
     local_var_decl->get_expr()->visit(shared_from_this());
+    if (updated_expr_) {
+        local_var_decl->set_expr(updated_expr_);
+        updated_expr_ = nullptr;
+    }
+
     current_numerical_type = std::nullopt;
 
     auto const& expr_type = local_var_decl->get_expr()->get_type();
@@ -159,6 +164,10 @@ auto Verifier::visit_global_var_decl(std::shared_ptr<GlobalVarDecl> global_var_d
         current_numerical_type = global_var_decl->get_type();
     }
     global_var_decl->get_expr()->visit(shared_from_this());
+    if (updated_expr_) {
+        global_var_decl->set_expr(updated_expr_);
+        updated_expr_ = nullptr;
+    }
     current_numerical_type = std::nullopt;
 
     auto const& expr_type = global_var_decl->get_expr()->get_type();
@@ -652,6 +661,11 @@ auto Verifier::visit_binary_expr(std::shared_ptr<BinaryExpr> binary_expr) -> voi
 
 auto Verifier::visit_unary_expr(std::shared_ptr<UnaryExpr> unary_expr) -> void {
     auto e = unary_expr->get_expr();
+    if (updated_expr_) {
+        unary_expr->set_expr(updated_expr_);
+        e = updated_expr_;
+        updated_expr_ = nullptr;
+    }
     auto op = unary_expr->get_operator();
     e->visit(shared_from_this());
     if (e->get_type()->is_error()) {
@@ -872,6 +886,14 @@ auto Verifier::visit_var_expr(std::shared_ptr<VarExpr> var_expr) -> void {
 auto Verifier::visit_call_expr(std::shared_ptr<CallExpr> call_expr) -> void {
     auto const function_name = call_expr->get_name();
 
+    if (current_module_->class_with_name_exists(function_name)) {
+        auto constructor_call_expr =
+            std::make_shared<ConstructorCallExpr>(call_expr->pos(), function_name, call_expr->get_args());
+        constructor_call_expr->visit(shared_from_this());
+        updated_expr_ = constructor_call_expr;
+        return;
+    }
+
     if (!current_module_->function_with_name_exists(function_name)) {
         handler_->report_error(current_filename_, all_errors_[12], function_name, call_expr->pos());
         return;
@@ -923,8 +945,43 @@ auto Verifier::visit_call_expr(std::shared_ptr<CallExpr> call_expr) -> void {
     return;
 }
 
+auto Verifier::visit_constructor_call_expr(std::shared_ptr<ConstructorCallExpr> constructor_call_expr) -> void {
+    auto p = constructor_call_expr->pos();
+    for (auto& arg : constructor_call_expr->get_args()) {
+        arg->visit(shared_from_this());
+    }
+
+    auto equivalent_constructor = current_module_->get_constructor_decl(constructor_call_expr);
+    if (!equivalent_constructor) {
+        handler_->report_error(current_filename_, all_errors_[59], "on class: '" + constructor_call_expr->get_name() + "'", p);
+        constructor_call_expr->set_type(handler_->ERROR_TYPE);
+        return;
+    }
+
+    auto paras = (*equivalent_constructor)->get_paras();
+    auto c = 0u;
+    for (auto& arg : constructor_call_expr->get_args()) {
+        if (c < paras.size() and paras[c]->get_type()->is_numeric()) {
+            current_numerical_type = paras[c]->get_type();
+        }
+        arg->visit(shared_from_this());
+        current_numerical_type = std::nullopt;
+        ++c;
+    }
+
+    (*equivalent_constructor)->set_used();
+    constructor_call_expr->set_ref(*equivalent_constructor);
+    constructor_call_expr->set_type((*equivalent_constructor)->get_type());
+    return;
+}
+
 auto Verifier::visit_cast_expr(std::shared_ptr<CastExpr> cast_expr) -> void {
     auto expr = cast_expr->get_expr();
+    if (updated_expr_) {
+        cast_expr->set_expr(updated_expr_);
+        expr = updated_expr_;
+        updated_expr_ = nullptr;
+    }
     auto to_type = cast_expr->get_to_type();
     expr->visit(shared_from_this());
     auto const valid_one = expr->get_type()->is_numeric() and to_type->is_numeric();
@@ -972,16 +1029,28 @@ auto Verifier::visit_array_init_expr(std::shared_ptr<ArrayInitExpr> array_init_e
 
     auto element_types = individual_type;
     auto elem_num = 0u;
+    auto updated_exprs = std::vector<std::shared_ptr<Expr>>{};
     for (auto& expr : array_init_expr->get_exprs()) {
         expr->visit(shared_from_this());
-        if (elem_num == 0 and !has_sub_type_specified) {
-            element_types = expr->get_type();
+        if (updated_expr_) {
+            updated_exprs.push_back(expr);
+            updated_expr_ = nullptr;
+        }
+        else {
+            updated_exprs.push_back(expr);
         }
 
-        if (!expr->get_type()->is_error() and *expr->get_type() != *element_types) {
+        auto last_expr = updated_exprs.back();
+        auto last_t = last_expr->get_type();
+
+        if (elem_num == 0 and !has_sub_type_specified) {
+            element_types = last_t;
+        }
+
+        if (!last_t->is_error() and *last_t != *element_types) {
             auto stream = std::stringstream{};
-            stream << "position " << elem_num << ". Expected " << *element_types << ", got " << *expr->get_type();
-            if (element_types->is_numeric() and expr->get_type()->is_numeric()) {
+            stream << "position " << elem_num << ". Expected " << *element_types << ", got " << *last_t;
+            if (element_types->is_numeric() and last_t->is_numeric()) {
                 stream << ". You may require an explicit type cast";
             }
             if (element_types->is_numeric()) {
@@ -992,6 +1061,9 @@ auto Verifier::visit_array_init_expr(std::shared_ptr<ArrayInitExpr> array_init_e
         }
         ++elem_num;
     }
+
+    // Update the args vector
+    array_init_expr->set_exprs(updated_exprs);
 
     current_numerical_type = std::nullopt;
 
@@ -1137,6 +1209,11 @@ auto Verifier::visit_local_var_stmt(std::shared_ptr<LocalVarStmt> local_var_stmt
 auto Verifier::visit_return_stmt(std::shared_ptr<ReturnStmt> return_stmt) -> void {
     has_return_ = true;
     auto expr = return_stmt->get_expr();
+    if (updated_expr_) {
+        return_stmt->set_expr(updated_expr_);
+        expr = updated_expr_;
+        updated_expr_ = nullptr;
+    }
     auto is_constructor = std::dynamic_pointer_cast<ConstructorDecl>(current_function_or_method_);
 
     if (is_constructor) {
@@ -1167,6 +1244,10 @@ auto Verifier::visit_return_stmt(std::shared_ptr<ReturnStmt> return_stmt) -> voi
 
 auto Verifier::visit_expr_stmt(std::shared_ptr<ExprStmt> expr_stmt) -> void {
     expr_stmt->get_expr()->visit(shared_from_this());
+    if (updated_expr_) {
+        expr_stmt->set_expr(updated_expr_);
+        updated_expr_ = nullptr;
+    }
 }
 
 auto Verifier::visit_while_stmt(std::shared_ptr<WhileStmt> while_stmt) -> void {
@@ -1445,6 +1526,13 @@ auto Verifier::check_duplicate_globals() -> void {
 auto Verifier::check_duplicate_function_declaration() -> void {
     std::vector<Function> seen_functions;
     for (const auto& func : current_module_->get_functions()) {
+        if (current_module_->class_with_name_exists(func->get_ident())) {
+            handler_->report_error(current_filename_,
+                                   all_errors_[58],
+                                   "function '" + func->get_ident() + "' conflicts with class",
+                                   func->pos());
+        }
+
         auto it = std::find(seen_functions.begin(), seen_functions.end(), *func);
         if (it != seen_functions.end()) {
             handler_->report_error(current_filename_, all_errors_[1], func->get_ident(), func->pos());

@@ -94,12 +94,15 @@ class ReturnStmt
 : public Stmt
 , public std::enable_shared_from_this<ReturnStmt> {
  public:
-    ReturnStmt(Position const pos, std::shared_ptr<Expr> const expr)
+    ReturnStmt(Position const pos, std::shared_ptr<Expr> expr)
     : Stmt(pos)
     , expr_(expr) {}
 
     auto get_expr() const -> std::shared_ptr<Expr> {
         return expr_;
+    }
+    auto set_expr(std::shared_ptr<Expr> expr) -> void {
+        expr_ = expr;
     }
 
     auto visit(std::shared_ptr<Visitor> visitor) -> void override {
@@ -109,19 +112,22 @@ class ReturnStmt
     auto print(std::ostream& os) const -> void override;
 
  private:
-    std::shared_ptr<Expr> const expr_;
+    std::shared_ptr<Expr> expr_;
 };
 
 class ExprStmt
 : public Stmt
 , public std::enable_shared_from_this<ExprStmt> {
  public:
-    ExprStmt(Position const pos, std::shared_ptr<Expr> const expr)
+    ExprStmt(Position const pos, std::shared_ptr<Expr> expr)
     : Stmt(pos)
     , expr_(expr) {}
 
     auto get_expr() const -> std::shared_ptr<Expr> {
         return expr_;
+    }
+    auto set_expr(std::shared_ptr<Expr> expr) -> void {
+        expr_ = expr;
     }
 
     auto visit(std::shared_ptr<Visitor> visitor) -> void override {
@@ -131,7 +137,7 @@ class ExprStmt
     auto print(std::ostream& os) const -> void override;
 
  private:
-    std::shared_ptr<Expr> const expr_;
+    std::shared_ptr<Expr> expr_;
 };
 
 class WhileStmt

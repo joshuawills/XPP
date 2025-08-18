@@ -160,11 +160,14 @@ class UnaryExpr
 : public Expr
 , public std::enable_shared_from_this<UnaryExpr> {
  public:
-    UnaryExpr(Position const pos, Op const op, std::shared_ptr<Expr> const expr)
+    UnaryExpr(Position const pos, Op const op, std::shared_ptr<Expr> expr)
     : Expr(pos, std::make_shared<Type>())
     , op_(op)
     , expr_(expr) {}
 
+    auto set_expr(std::shared_ptr<Expr> expr) -> void {
+        expr_ = expr;
+    }
     auto get_expr() const -> std::shared_ptr<Expr> {
         return expr_;
     }
@@ -180,7 +183,7 @@ class UnaryExpr
 
  private:
     Op const op_;
-    std::shared_ptr<Expr> const expr_;
+    std::shared_ptr<Expr> expr_;
 };
 
 class IntExpr
@@ -422,11 +425,56 @@ class CallExpr
     std::shared_ptr<Decl> ref_ = nullptr;
 };
 
+class ConstructorCallExpr
+: public Expr
+, public std::enable_shared_from_this<ConstructorCallExpr> {
+ public:
+    ConstructorCallExpr(Position const pos, std::string const name, std::vector<std::shared_ptr<Expr>> const args)
+    : Expr(pos, std::make_shared<Type>())
+    , name_(name)
+    , args_(args) {}
+
+    ConstructorCallExpr(Position const pos,
+                        std::shared_ptr<Type> t,
+                        std::string const name,
+                        std::vector<std::shared_ptr<Expr>> const args)
+    : Expr(pos, t)
+    , name_(name)
+    , args_(args) {}
+
+    auto visit(std::shared_ptr<Visitor> visitor) -> void override {
+        visitor->visit_constructor_call_expr(shared_from_this());
+    }
+    auto codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* override;
+    auto print(std::ostream& os) const -> void override;
+
+    auto get_name() const -> std::string {
+        return name_;
+    }
+
+    auto set_ref(std::shared_ptr<Decl> ref) -> void {
+        ref_ = ref;
+    }
+
+    auto get_ref() const -> std::shared_ptr<Decl> {
+        return ref_;
+    }
+
+    auto get_args() -> std::vector<std::shared_ptr<Expr>> {
+        return args_;
+    }
+
+ private:
+    std::string const name_;
+    std::vector<std::shared_ptr<Expr>> const args_;
+    std::shared_ptr<Decl> ref_ = nullptr;
+};
+
 class CastExpr
 : public Expr
 , public std::enable_shared_from_this<CastExpr> {
  public:
-    CastExpr(Position const pos, std::shared_ptr<Expr> const expr, std::shared_ptr<Type> const to)
+    CastExpr(Position const pos, std::shared_ptr<Expr> expr, std::shared_ptr<Type> const to)
     : Expr(pos, to)
     , expr_(expr)
     , to_(to) {}
@@ -437,6 +485,9 @@ class CastExpr
     auto codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* override;
     auto print(std::ostream& os) const -> void override;
 
+    auto set_expr(std::shared_ptr<Expr> expr) -> void {
+        expr_ = expr;
+    }
     auto get_expr() const -> std::shared_ptr<Expr> {
         return expr_;
     }
@@ -446,7 +497,7 @@ class CastExpr
     }
 
  private:
-    std::shared_ptr<Expr> const expr_;
+    std::shared_ptr<Expr> expr_;
     std::shared_ptr<Type> const to_;
 };
 
@@ -454,7 +505,7 @@ class ArrayInitExpr
 : public Expr
 , public std::enable_shared_from_this<ArrayInitExpr> {
  public:
-    ArrayInitExpr(Position const pos, std::vector<std::shared_ptr<Expr>> const exprs)
+    ArrayInitExpr(Position const pos, std::vector<std::shared_ptr<Expr>> exprs)
     : Expr(pos, std::make_shared<Type>())
     , exprs_(exprs) {}
 
@@ -464,12 +515,16 @@ class ArrayInitExpr
     auto codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* override;
     auto print(std::ostream& os) const -> void override;
 
+    auto set_exprs(std::vector<std::shared_ptr<Expr>> exprs) -> void {
+        exprs_ = std::move(exprs);
+    }
+
     auto get_exprs() const -> std::vector<std::shared_ptr<Expr>> {
         return exprs_;
     }
 
  private:
-    std::vector<std::shared_ptr<Expr>> const exprs_;
+    std::vector<std::shared_ptr<Expr>> exprs_;
 };
 
 class ArrayIndexExpr

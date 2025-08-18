@@ -21,6 +21,33 @@ auto operator<<(std::ostream& os, Module const& mod) -> std::ostream& {
     return os;
 }
 
+auto Module::get_constructor_decl(std::shared_ptr<ConstructorCallExpr> constructor_call_expr) const
+    -> std::optional<std::shared_ptr<ConstructorDecl>> {
+    auto it = std::find_if(classes_.begin(), classes_.end(), [&constructor_call_expr](auto const& class_) {
+        return class_->get_ident() == constructor_call_expr->get_name();
+    });
+    if (it != classes_.end()) {
+        for (auto& constructor : (*it)->get_constructors()) {
+            auto const& call_args = constructor_call_expr->get_args();
+            auto const& constructor_args = constructor->get_paras();
+            if (call_args.size() != constructor_args.size()) {
+                continue;
+            }
+            bool match = true;
+            for (auto i = 0u; i < call_args.size(); ++i) {
+                if (!call_args[i]->get_type()->equal_soft(*constructor_args[i]->get_type())) {
+                    match = false;
+                    break;
+                }
+            }
+            if (match) {
+                return constructor;
+            }
+        }
+    }
+    return std::nullopt;
+}
+
 auto Module::get_decl(std::shared_ptr<CallExpr> call_expr) const -> std::optional<std::shared_ptr<Decl>> {
     auto it = std::find_if(functions_.begin(), functions_.end(), [&call_expr](auto const& func) {
         auto dot_pos = func->get_ident().find('.');

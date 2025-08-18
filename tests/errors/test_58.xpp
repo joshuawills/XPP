@@ -1,0 +1,7 @@
+// Function named the same as a constructor
+
+fn IntBox() void {}
+
+class IntBox {}
+
+fn main() void{}

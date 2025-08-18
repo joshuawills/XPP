@@ -559,6 +559,42 @@ auto CallExpr::print(std::ostream& os) const -> void {
     return;
 }
 
+auto ConstructorCallExpr::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
+    auto constructor_ref = std::dynamic_pointer_cast<ConstructorDecl>(ref_);
+    if (!constructor_ref) {
+        std::cout << "UNREACHABLE ConstructorCallExpr::codegen\n";
+        return nullptr;
+    }
+    auto name = "constructor." + constructor_ref->get_ident() + constructor_ref->get_type_output();
+    auto callee = emitter->llvm_module->getFunction(name);
+
+    auto class_ptr = emitter->alloca;
+    assert(class_ptr != nullptr);
+
+    auto arg_vals = std::vector<llvm::Value*>{};
+
+    arg_vals.push_back(class_ptr);
+
+    for (auto& arg : args_) {
+        auto const val = arg->codegen(emitter);
+        arg_vals.push_back(val);
+    }
+    emitter->llvm_builder->CreateCall(callee, arg_vals);
+    return class_ptr;
+}
+
+auto ConstructorCallExpr::print(std::ostream& os) const -> void {
+    os << name_ << "(";
+    for (auto const& arg : args_) {
+        arg->print(os);
+        if (arg != args_.back()) {
+            os << ", ";
+        }
+    }
+    os << ")";
+    return;
+}
+
 auto CastExpr::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
     auto value = expr_->codegen(emitter);
     auto expr_type = expr_->get_type();

@@ -142,7 +142,7 @@ auto MethodDecl::print(std::ostream& os) const -> void {
 }
 
 auto ConstructorDecl::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
-    auto name = "constructor." + ident_;
+    auto name = "constructor." + ident_ + get_type_output();
     auto constructor = emitter->llvm_module->getFunction(name);
 
     auto idx = 0u;
@@ -259,7 +259,15 @@ auto ParaDecl::print(std::ostream& os) const -> void {
 
 auto LocalVarDecl::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
     auto llvm_type = emitter->llvm_type(get_type());
-    auto alloca = emitter->llvm_builder->CreateAlloca(llvm_type, nullptr, get_ident());
+
+    auto constructor_decl = std::dynamic_pointer_cast<ConstructorCallExpr>(expr_);
+    auto alloca = emitter->llvm_builder->CreateAlloca(llvm_type, nullptr, get_ident() + get_append());
+    if (constructor_decl) {
+        emitter->alloca = alloca;
+        expr_->codegen(emitter);
+        emitter->named_values[get_ident() + get_append()] = alloca;
+        return alloca;
+    }
 
     if (get_type()->is_array()) {
         emitter->set_array_alloca(alloca);

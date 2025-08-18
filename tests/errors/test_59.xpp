@@ -1,0 +1,9 @@
+// No constructor exists for provided parameters
+
+class IntBox {
+	pub IntBox() {}
+}
+
+fn main() void {
+	let b = IntBox(21);
+}

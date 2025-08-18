@@ -132,7 +132,7 @@ class GlobalVarDecl
 : public Decl
 , public std::enable_shared_from_this<GlobalVarDecl> {
  public:
-    GlobalVarDecl(Position pos, std::string const ident, std::shared_ptr<Type> t, std::shared_ptr<Expr> const expr)
+    GlobalVarDecl(Position pos, std::string const ident, std::shared_ptr<Type> t, std::shared_ptr<Expr> expr)
     : Decl(pos, ident, t)
     , expr_(expr) {}
 
@@ -147,6 +147,10 @@ class GlobalVarDecl
         return get_ident() == other.get_ident();
     }
 
+    auto set_expr(std::shared_ptr<Expr> expr) -> void {
+        expr_ = expr;
+    }
+
     auto get_expr() const -> std::shared_ptr<Expr> {
         return expr_;
     }
@@ -154,7 +158,7 @@ class GlobalVarDecl
     auto handle_global_arr(std::shared_ptr<Emitter> emitter) -> llvm::Value*;
 
  private:
-    std::shared_ptr<Expr> const expr_;
+    std::shared_ptr<Expr> expr_;
 };
 
 class Function
@@ -190,7 +194,7 @@ class Function
 
         auto buffer = std::stringstream{};
         for (auto& para : paras_) {
-            buffer << para->get_type();
+            buffer << *para->get_type();
         }
         buffer << '.';
         type_output = buffer.str();
@@ -237,7 +241,7 @@ class MethodDecl
 
         auto buffer = std::stringstream{};
         for (auto& para : paras_) {
-            buffer << para->get_type();
+            buffer << *para->get_type();
         }
         buffer << '.';
         type_output = buffer.str();
@@ -286,7 +290,7 @@ class ConstructorDecl
 
         auto buffer = std::stringstream{};
         for (auto& para : paras_) {
-            buffer << para->get_type();
+            buffer << *para->get_type();
         }
         buffer << '.';
         type_output = buffer.str();

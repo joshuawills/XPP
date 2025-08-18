@@ -55,6 +55,10 @@
 
 - FEAT: working further on class constructors
 
+## 18 Aug 2025
+
+- FEAT: calling class constructors
+
 ## TODO
 
 - Add in for loops 

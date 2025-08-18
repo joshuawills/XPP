@@ -24,6 +24,7 @@ class StringExpr;
 class CharExpr;
 class VarExpr;
 class CallExpr;
+class ConstructorCallExpr;
 class CastExpr;
 class ArrayInitExpr;
 class ArrayIndexExpr;
@@ -62,6 +63,7 @@ class Visitor {
     virtual auto visit_char_expr(std::shared_ptr<CharExpr> char_expr) -> void = 0;
     virtual auto visit_var_expr(std::shared_ptr<VarExpr> var_expr) -> void = 0;
     virtual auto visit_call_expr(std::shared_ptr<CallExpr> call_expr) -> void = 0;
+    virtual auto visit_constructor_call_expr(std::shared_ptr<ConstructorCallExpr> constructor_call_expr) -> void = 0;
     virtual auto visit_cast_expr(std::shared_ptr<CastExpr> cast_expr) -> void = 0;
     virtual auto visit_array_init_expr(std::shared_ptr<ArrayInitExpr> array_init_expr) -> void = 0;
     virtual auto visit_array_index_expr(std::shared_ptr<ArrayIndexExpr> array_index_expr) -> void = 0;

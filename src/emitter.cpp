@@ -119,6 +119,17 @@ auto Emitter::llvm_type(std::shared_ptr<Type> t) -> llvm::Type* {
         auto const num_element = *a_t->get_length();
         return llvm::ArrayType::get(element_type, num_element);
     }
+    else if (t->is_class()) {
+        auto c_t = std::dynamic_pointer_cast<ClassType>(t);
+        auto const class_name = "class." + c_t->get_ref()->get_class_type_name();
+        auto lookup = llvm::StructType::getTypeByName(*context, class_name);
+        if (lookup) {
+            return lookup;
+        }
+        else {
+            std::cout << "UNREACHABLE Emitter::llvm_type: " << *t << "\n";
+        }
+    }
 
     switch (t->get_type_spec()) {
     case TypeSpec::BOOL: return llvm::Type::getInt1Ty(*context);
@@ -132,7 +143,7 @@ auto Emitter::llvm_type(std::shared_ptr<Type> t) -> llvm::Type* {
     case TypeSpec::F32: return llvm::Type::getFloatTy(*context);
     case TypeSpec::F64: return llvm::Type::getDoubleTy(*context);
     case TypeSpec::VOID: return llvm::Type::getVoidTy(*context);
-    default: std::cout << "UNREACHABLE Emitter::llvm_type: " << t << "\n";
+    default: std::cout << "UNREACHABLE Emitter::llvm_type: " << *t << "\n";
     }
     return nullptr;
 }
@@ -185,7 +196,7 @@ auto Emitter::forward_declare_constructor(std::shared_ptr<ConstructorDecl> const
     }
 
     // Instantiating function
-    auto name = "constructor." + curr_class_->get_ident();
+    auto name = "constructor." + curr_class_->get_ident() + constructor->get_type_output();
     auto const constructor_type = llvm::FunctionType::get(return_type, param_types, false);
     llvm::Function::Create(constructor_type, llvm::Function::ExternalLinkage, name, *llvm_module);
 }
@@ -203,10 +214,7 @@ auto Emitter::forward_declare_method(std::shared_ptr<MethodDecl> method) -> void
     }
 
     // Instantiating function
-    auto name = "method." + method->get_ident();
-    if (name != "main") {
-        name += method->get_type_output();
-    }
+    auto name = "method." + method->get_ident() + method->get_type_output();
     auto const method_type = llvm::FunctionType::get(return_type, param_types, false);
     llvm::Function::Create(method_type, llvm::Function::ExternalLinkage, name, *llvm_module);
 }

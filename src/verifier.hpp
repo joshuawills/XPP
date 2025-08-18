@@ -73,6 +73,7 @@ class Verifier
     auto visit_char_expr(std::shared_ptr<CharExpr> char_expr) -> void override;
     auto visit_var_expr(std::shared_ptr<VarExpr> var_expr) -> void override;
     auto visit_call_expr(std::shared_ptr<CallExpr> call_expr) -> void override;
+    auto visit_constructor_call_expr(std::shared_ptr<ConstructorCallExpr> constructor_call_expr) -> void override;
     auto visit_cast_expr(std::shared_ptr<CastExpr> cast_expr) -> void override;
     auto visit_array_init_expr(std::shared_ptr<ArrayInitExpr> array_init_expr) -> void override;
     auto visit_array_index_expr(std::shared_ptr<ArrayIndexExpr> array_index_expr) -> void override;
@@ -92,6 +93,7 @@ class Verifier
     std::optional<std::shared_ptr<Type>> current_numerical_type = std::nullopt;
     Position unmurk_pos;
     std::shared_ptr<ClassDecl> curr_class = nullptr;
+    std::shared_ptr<Expr> updated_expr_ = nullptr;
     bool in_constructor_ = false;
 
  private:
@@ -168,7 +170,9 @@ class Verifier
                                                   "54: duplicate method declaration: %",
                                                   "55: unused class constructor: %",
                                                   "56: duplicate class constructor: %",
-                                                  "57: cannot return value from constructor: %"};
+                                                  "57: cannot return value from constructor: %",
+                                                  "58: function named the same as a constructor: %",
+                                                  "59: no constructor exists for provided parameters: %"};
 
     auto check_duplicate_function_declaration() -> void;
     auto check_duplicate_method_declaration(std::shared_ptr<ClassDecl>& class_decl) -> void;
