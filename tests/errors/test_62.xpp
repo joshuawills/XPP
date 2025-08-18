@@ -1,0 +1,13 @@
+// Accessing private field on class
+
+class IntBox {
+	x: i64;
+	pub IntBox(x_: i64) {
+		x = x_;
+	}
+}
+
+fn main() void {
+	let i = IntBox(21);
+	let a = i.x;
+}

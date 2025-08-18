@@ -595,4 +595,59 @@ class EnumAccessExpr
     int field_num_;
 };
 
+class FieldAccessExpr
+: public Expr
+, public std::enable_shared_from_this<FieldAccessExpr> {
+ public:
+    FieldAccessExpr(Position const pos, std::shared_ptr<Expr> class_instance, std::string const& field_name)
+    : Expr(pos, std::make_shared<Type>())
+    , class_instance_(class_instance)
+    , field_name_(field_name) {}
+
+    auto visit(std::shared_ptr<Visitor> visitor) -> void override {
+        visitor->visit_field_access_expr(shared_from_this());
+    }
+    auto codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* override;
+    auto print(std::ostream& os) const -> void override;
+
+    auto set_field_num(int field_num) -> void {
+        field_num_ = field_num;
+    }
+
+    auto get_class_instance() const -> std::shared_ptr<Expr> {
+        return class_instance_;
+    }
+
+    auto get_field_name() const -> std::string {
+        return field_name_;
+    }
+
+    auto get_field_num() -> int {
+        return field_num_;
+    }
+
+    auto set_class_ref(std::shared_ptr<ClassDecl> class_ref) -> void {
+        class_ref_ = class_ref;
+    }
+
+    auto get_class_ref() const -> std::shared_ptr<ClassDecl> {
+        return class_ref_;
+    }
+
+    auto set_ref(std::shared_ptr<ClassFieldDecl> ref) -> void {
+        ref_ = ref;
+    }
+
+    auto get_ref() const -> std::shared_ptr<ClassFieldDecl> {
+        return ref_;
+    }
+
+ private:
+    std::shared_ptr<Expr> const class_instance_;
+    std::string const field_name_;
+    std::shared_ptr<ClassDecl> class_ref_ = nullptr;
+    std::shared_ptr<ClassFieldDecl> ref_ = nullptr;
+    int field_num_ = -1;
+};
+
 #endif // EXPR_HPP

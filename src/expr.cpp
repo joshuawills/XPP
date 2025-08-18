@@ -77,6 +77,14 @@ auto AssignmentExpr::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
     else if (auto const& lhs = std::dynamic_pointer_cast<ArrayIndexExpr>(left_)) {
         ptr = lhs->codegen(emitter);
     }
+    else if (auto const& lhs = std::dynamic_pointer_cast<FieldAccessExpr>(left_)) {
+        auto const class_instance = lhs->get_class_instance()->codegen(emitter);
+        if (!class_instance) {
+            return nullptr;
+        }
+        auto const class_type = emitter->llvm_type(lhs->get_class_ref());
+        ptr = emitter->llvm_builder->CreateStructGEP(class_type, class_instance, lhs->get_field_num());
+    }
     else {
         std::cout << "UNREACHABLE AssignmentExpr::codegen";
     }
@@ -448,7 +456,7 @@ auto VarExpr::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
     }
 
     auto const ptr = emitter->named_values[name_ + get_ref()->get_append()];
-    if (get_type()->is_array()) {
+    if (get_type()->is_class() or get_type()->is_array()) {
         return ptr;
     }
     else {
@@ -568,7 +576,15 @@ auto ConstructorCallExpr::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Val
     auto name = "constructor." + constructor_ref->get_ident() + constructor_ref->get_type_output();
     auto callee = emitter->llvm_module->getFunction(name);
 
-    auto class_ptr = emitter->alloca;
+    llvm::AllocaInst* class_ptr;
+    if (emitter->alloca) {
+        class_ptr = emitter->alloca;
+    }
+    else {
+        class_ptr = emitter->llvm_builder->CreateAlloca(emitter->llvm_type(get_type()),
+                                                        nullptr,
+                                                        std::to_string(emitter->global_counter++));
+    }
     assert(class_ptr != nullptr);
 
     auto arg_vals = std::vector<llvm::Value*>{};
@@ -771,4 +787,19 @@ auto EnumAccessExpr::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
 
 auto EnumAccessExpr::print(std::ostream& os) const -> void {
     os << enum_name_ << "::" << field_;
+}
+
+auto FieldAccessExpr::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
+    auto class_val = class_instance_->codegen(emitter);
+    if (!class_val)
+        return nullptr;
+
+    auto const class_type = emitter->llvm_type(class_ref_);
+    auto const val = emitter->llvm_builder->CreateStructGEP(class_type, class_val, field_num_);
+    return emitter->llvm_builder->CreateLoad(emitter->llvm_type(get_type()), val);
+}
+
+auto FieldAccessExpr::print(std::ostream& os) const -> void {
+    class_instance_->print(os);
+    os << "." << field_name_;
 }

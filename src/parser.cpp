@@ -682,6 +682,11 @@ auto Parser::parse_postfix_expr() -> std::shared_ptr<Expr> {
         finish(p);
         return std::make_shared<EnumAccessExpr>(p, enum_name, field_name);
     }
+    else if (try_consume(TokenType::DOT)) {
+        auto field_name = parse_ident();
+        finish(p);
+        return std::make_shared<FieldAccessExpr>(p, p_expr, field_name);
+    }
     else {
         return p_expr;
     }

@@ -1,0 +1,26 @@
+// Basic class accesses and constructor calling
+
+extern printf(i8*, ...) i32;
+
+class IntBox {
+    pub mut x: i64;
+
+    pub IntBox(x_: i64) {
+        printf("Calling standard constructor :)\n");
+        x = x_;
+    }
+
+    pub fn get_x() i64 {
+        return x;
+    }
+
+}
+
+fn main() void {
+    let mut box: IntBox = IntBox(43);
+    printf("%d\n", box.x);
+    box.x = 45;
+    printf("%d\n", box.x);
+    box.x -= 5;
+    printf("%d\n", box.x);
+}

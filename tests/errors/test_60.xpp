@@ -1,0 +1,7 @@
+// May only perform field access on a class type
+
+fn main() void {
+	let x = (21).y;
+	let z = "haha";
+	let a = z.foo;
+}

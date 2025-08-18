@@ -1,5 +1,12 @@
 // Cannot mutate constant variable
 
+class IntBox {
+    pub x: i64;
+    pub IntBox(x_: i64) {
+        x = x_;
+    }
+}
+
 fn main() void {
     let x = 21;
     x = 22;
@@ -14,4 +21,10 @@ fn main() void {
 
 	let arr = [1, 2, 3, 4, 5];
 	arr[0] = 19;
+
+    let mut b = IntBox(21);
+    b.x = 45;
+
+
 }
+

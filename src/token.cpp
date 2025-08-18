@@ -95,6 +95,7 @@ auto operator<<(std::ostream& os, TokenType const& t) -> std::ostream& {
     case TokenType::CLOSE_SQUARE: os << "OPEN_SQUARE"; break;
     case TokenType::ENUM: os << "ENUM"; break;
     case TokenType::DOUBLE_COLON: os << "DOUBLE_COLON"; break;
+    case TokenType::DOT: os << "DOT"; break;
     default: os << "UNKNOWN";
     }
     return os;

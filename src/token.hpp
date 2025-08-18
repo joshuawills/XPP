@@ -68,7 +68,8 @@ enum class TokenType {
     ENUM,
     DOUBLE_COLON,
     CLASS,
-    PUB
+    PUB,
+    DOT
 };
 
 class Token {

@@ -78,6 +78,7 @@ class Verifier
     auto visit_array_init_expr(std::shared_ptr<ArrayInitExpr> array_init_expr) -> void override;
     auto visit_array_index_expr(std::shared_ptr<ArrayIndexExpr> array_index_expr) -> void override;
     auto visit_enum_access_expr(std::shared_ptr<EnumAccessExpr> enum_access_expr) -> void override;
+    auto visit_field_access_expr(std::shared_ptr<FieldAccessExpr> field_access_expr) -> void override;
 
     auto visit_empty_stmt(std::shared_ptr<EmptyStmt> empty_stmt) -> void override;
     auto visit_compound_stmt(std::shared_ptr<CompoundStmt> compound_stmt) -> void override;
@@ -172,7 +173,12 @@ class Verifier
                                                   "56: duplicate class constructor: %",
                                                   "57: cannot return value from constructor: %",
                                                   "58: function named the same as a constructor: %",
-                                                  "59: no constructor exists for provided parameters: %"};
+                                                  "59: no constructor exists for provided parameters: %",
+                                                  "60: may only perform field access on a class type: %",
+                                                  "61: no such field exists on class type: %",
+                                                  "62: field for class type must by public to access outside of class: "
+                                                  "%",
+                                                  "63: cannot mutate field from a const declared class identifier: %"};
 
     auto check_duplicate_function_declaration() -> void;
     auto check_duplicate_method_declaration(std::shared_ptr<ClassDecl>& class_decl) -> void;

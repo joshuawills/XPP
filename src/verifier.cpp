@@ -470,7 +470,10 @@ auto Verifier::visit_assignment_expr(std::shared_ptr<AssignmentExpr> assignment_
     auto res = std::dynamic_pointer_cast<VarExpr>(l);
     auto deref_res = std::dynamic_pointer_cast<UnaryExpr>(l);
     auto array_index_res = std::dynamic_pointer_cast<ArrayIndexExpr>(l);
-    if ((!res and !deref_res and !array_index_res) or (deref_res and deref_res->get_operator() != Op::DEREF)) {
+    auto class_field_res = std::dynamic_pointer_cast<FieldAccessExpr>(l);
+    if ((!res and !deref_res and !array_index_res and !class_field_res)
+        or (deref_res and deref_res->get_operator() != Op::DEREF))
+    {
         handler_->report_error(current_filename_, all_errors_[7], "", assignment_expr->pos());
         assignment_expr->set_type(handler_->ERROR_TYPE);
         return;
@@ -532,6 +535,28 @@ auto Verifier::visit_assignment_expr(std::shared_ptr<AssignmentExpr> assignment_
     }
     r->visit(shared_from_this());
     current_numerical_type = std::nullopt;
+
+    if (class_field_res) {
+        auto ref = class_field_res->get_ref();
+        ref->set_reassigned();
+        if (!ref->is_mut()) {
+            auto error = "field '" + class_field_res->get_field_name() + "' in class '"
+                         + class_field_res->get_class_ref()->get_ident() + "' is marked constant";
+            handler_->report_error(current_filename_, all_errors_[20], error, assignment_expr->pos());
+        }
+        if (l->get_type()->is_array()) {
+            handler_->report_error(current_filename_, all_errors_[45], ref->get_ident(), assignment_expr->pos());
+            assignment_expr->set_type(handler_->ERROR_TYPE);
+            return;
+        }
+
+        if (auto l = std::dynamic_pointer_cast<VarExpr>(class_field_res->get_class_instance())) {
+            l->get_ref()->set_reassigned();
+            if (!l->get_ref()->is_mut()) {
+                handler_->report_error(current_filename_, all_errors_[63], l->get_name(), assignment_expr->pos());
+            }
+        }
+    }
 
     // Implicit casting from array to pointer in assignment expressions
     if (l->get_type()->is_pointer() and r->get_type()->is_array()) {
@@ -953,7 +978,10 @@ auto Verifier::visit_constructor_call_expr(std::shared_ptr<ConstructorCallExpr> 
 
     auto equivalent_constructor = current_module_->get_constructor_decl(constructor_call_expr);
     if (!equivalent_constructor) {
-        handler_->report_error(current_filename_, all_errors_[59], "on class: '" + constructor_call_expr->get_name() + "'", p);
+        handler_->report_error(current_filename_,
+                               all_errors_[59],
+                               "on class: '" + constructor_call_expr->get_name() + "'",
+                               p);
         constructor_call_expr->set_type(handler_->ERROR_TYPE);
         return;
     }
@@ -1154,6 +1182,44 @@ auto Verifier::visit_enum_access_expr(std::shared_ptr<EnumAccessExpr> enum_acces
     (*ref)->set_used();
     enum_access_expr->set_type(std::make_shared<EnumType>(*ref));
     enum_access_expr->set_field_num(*num);
+}
+
+auto Verifier::visit_field_access_expr(std::shared_ptr<FieldAccessExpr> field_access_expr) -> void {
+    field_access_expr->get_class_instance()->visit(shared_from_this());
+    auto class_type = std::dynamic_pointer_cast<ClassType>(field_access_expr->get_class_instance()->get_type());
+    if (!class_type) {
+        auto error = std::stringstream{};
+        error << "received type " << *field_access_expr->get_class_instance()->get_type();
+        handler_->report_error(current_filename_, all_errors_[60], error.str(), field_access_expr->pos());
+        field_access_expr->set_type(handler_->ERROR_TYPE);
+        return;
+    }
+
+    auto class_ref = class_type->get_ref();
+    assert(class_ref != nullptr);
+
+    auto f_name = field_access_expr->get_field_name();
+    if (!class_ref->field_exists(f_name)) {
+        auto error = "field '" + f_name + "' does not exist on class '" + class_ref->get_ident() + "'";
+        handler_->report_error(current_filename_, all_errors_[61], error, field_access_expr->pos());
+        field_access_expr->set_type(handler_->ERROR_TYPE);
+        return;
+    }
+    auto ref = class_ref->get_field(f_name);
+
+    if (!ref->is_pub()) {
+        auto error = "field '" + f_name + "' is marked private in class '" + class_ref->get_ident() + "'";
+        handler_->report_error(current_filename_, all_errors_[62], error, field_access_expr->pos());
+        field_access_expr->set_type(handler_->ERROR_TYPE);
+        return;
+    }
+    ref->set_used();
+
+    field_access_expr->set_class_ref(class_ref);
+    field_access_expr->set_ref(ref);
+    field_access_expr->set_field_num(class_ref->get_index_for_field(f_name));
+    field_access_expr->set_type(class_ref->get_field_type(f_name));
+    return;
 }
 
 auto Verifier::visit_empty_stmt(std::shared_ptr<EmptyStmt> empty_stmt) -> void {

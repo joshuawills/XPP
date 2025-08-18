@@ -58,6 +58,7 @@
 ## 18 Aug 2025
 
 - FEAT: calling class constructors
+- FEAT: accessing public class fields
 
 ## TODO
 

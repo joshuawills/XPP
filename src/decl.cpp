@@ -265,6 +265,7 @@ auto LocalVarDecl::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
     if (constructor_decl) {
         emitter->alloca = alloca;
         expr_->codegen(emitter);
+        emitter->alloca = nullptr;
         emitter->named_values[get_ident() + get_append()] = alloca;
         return alloca;
     }
@@ -431,6 +432,44 @@ auto ClassDecl::get_index_for_field(std::string field_name) const -> int {
     }
     std::cout << "UNREACHABLE ClassDecl::get_index_for_field. field not found: " << field_name << std::endl;
     return -1;
+}
+
+auto ClassDecl::field_exists(std::string const& field_name) const -> bool {
+    for (auto const& field : fields_) {
+        if (field->get_ident() == field_name) {
+            return true;
+        }
+    }
+    return false;
+}
+
+auto ClassDecl::get_field_type(std::string field_name) const -> std::shared_ptr<Type> {
+    for (auto const& field : fields_) {
+        if (field->get_ident() == field_name) {
+            return field->get_type();
+        }
+    }
+    std::cout << "UNREACHABLE ClassDecl::get_field_type. field not found: " << field_name << std::endl;
+    return nullptr;
+}
+
+auto ClassDecl::field_is_private(std::string const& field_name) const -> bool {
+    for (auto const& field : fields_) {
+        if (field->get_ident() == field_name) {
+            return !field->is_pub();
+        }
+    }
+    return false;
+}
+
+auto ClassDecl::get_field(std::string const& name) const -> std::shared_ptr<ClassFieldDecl> {
+    for (auto const& field : fields_) {
+        if (field->get_ident() == name) {
+            return field;
+        }
+    }
+    std::cout << "UNREACHABLE ClassDecl::get_field. field not found: " << name << std::endl;
+    return nullptr;
 }
 
 auto ClassDecl::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {

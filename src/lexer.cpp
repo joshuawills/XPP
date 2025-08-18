@@ -52,8 +52,8 @@ auto Lexer::generate_token() -> std::optional<Token> {
             }
             return Token{buf, line_, col_ - buf.size(), col_ - 1, TokenType::FLOAT_LITERAL};
         }
-        std::cerr << "Invalid character";
-        exit(EXIT_FAILURE);
+        consume();
+        return Token{".", line_, col_ - 1, col_ - 1, TokenType::DOT};
     }
     case '>': {
         consume();
