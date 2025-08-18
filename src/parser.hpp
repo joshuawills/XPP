@@ -67,6 +67,7 @@ class Parser {
     auto parse_postfix_expr() -> std::shared_ptr<Expr>;
     auto parse_primary_expr() -> std::shared_ptr<Expr>;
     auto parse_array_init_expr() -> std::shared_ptr<Expr>;
+    auto parse_size_of_expr() -> std::shared_ptr<Expr>;
 
     auto is_assignment_operator() -> bool;
 

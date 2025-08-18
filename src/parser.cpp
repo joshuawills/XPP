@@ -498,6 +498,9 @@ auto Parser::parse_expr_stmt(Position p) -> std::shared_ptr<ExprStmt> {
 }
 
 auto Parser::parse_expr() -> std::shared_ptr<Expr> {
+    if (peek(TokenType::SIZE_OF)) {
+        return parse_size_of_expr();
+    }
     auto p = Position{};
     start(p);
     auto expr = parse_assignment_expr();
@@ -629,8 +632,28 @@ auto Parser::parse_unary_expr() -> std::shared_ptr<Expr> {
     else if (peek(TokenType::OPEN_SQUARE)) {
         return parse_array_init_expr();
     }
+    else if (peek(TokenType::SIZE_OF)) {
+        return parse_size_of_expr();
+    }
     else {
         return parse_postfix_expr();
+    }
+}
+
+auto Parser::parse_size_of_expr() -> std::shared_ptr<Expr> {
+    auto p = Position{};
+    start(p);
+    match(TokenType::SIZE_OF);
+    
+    if (try_consume(TokenType::OPEN_BRACKET)) {
+        auto type = parse_type();
+        finish(p);
+        match(TokenType::CLOSE_BRACKET);
+        return std::make_shared<SizeOfExpr>(p, type);
+    } else {
+        auto expr = parse_unary_expr();
+        finish(p);
+        return std::make_shared<SizeOfExpr>(p, expr);
     }
 }
 

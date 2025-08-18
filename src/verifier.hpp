@@ -80,6 +80,7 @@ class Verifier
     auto visit_enum_access_expr(std::shared_ptr<EnumAccessExpr> enum_access_expr) -> void override;
     auto visit_field_access_expr(std::shared_ptr<FieldAccessExpr> field_access_expr) -> void override;
     auto visit_method_access_expr(std::shared_ptr<MethodAccessExpr> method_access_expr) -> void override;
+    auto visit_size_of_expr(std::shared_ptr<SizeOfExpr> size_of_expr) -> void override;
 
     auto visit_empty_stmt(std::shared_ptr<EmptyStmt> empty_stmt) -> void override;
     auto visit_compound_stmt(std::shared_ptr<CompoundStmt> compound_stmt) -> void override;

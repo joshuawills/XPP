@@ -1315,6 +1315,23 @@ auto Verifier::visit_method_access_expr(std::shared_ptr<MethodAccessExpr> method
     return;
 }
 
+auto Verifier::visit_size_of_expr(std::shared_ptr<SizeOfExpr> size_of_expr) -> void {
+    if (size_of_expr->is_type()) {
+        if (size_of_expr->get_type_to_size()->is_murky()) {
+            auto m_t = std::dynamic_pointer_cast<MurkyType>(size_of_expr->get_type_to_size());
+            size_of_expr->set_type_to_size(unmurk_direct(m_t));
+        }
+    }
+    else {
+        size_of_expr->get_expr_to_size()->visit(shared_from_this());
+        if (updated_expr_) {
+            size_of_expr->set_expr_to_size(updated_expr_);
+            updated_expr_ = nullptr;
+        }
+    }
+    return;
+}
+
 auto Verifier::visit_empty_stmt(std::shared_ptr<EmptyStmt> empty_stmt) -> void {
     (void)empty_stmt;
     return;

@@ -1,0 +1,26 @@
+// Testing size of
+
+extern printf(i8*, ...) i32;
+
+class IntBox {
+    x: i64;
+    y: i64;
+    z: u8;
+
+    pub IntBox() {}
+}
+
+fn main() void {
+    let x = size_of(i64);
+    printf("%u\n", x);
+
+    let y = size_of(i8*);
+    printf("%u\n", y);
+
+    let z = size_of(IntBox);
+    printf("%u\n", z);
+
+    let u = 21;
+    printf("%u\n", size_of u);
+
+}

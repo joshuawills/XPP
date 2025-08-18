@@ -60,6 +60,8 @@
 - FEAT: calling class constructors
 - FEAT: accessing public class fields
 - FEAT: accessing public class methods
+- FEAT: size_of support
+
 
 ## TODO
 

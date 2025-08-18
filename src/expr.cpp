@@ -835,3 +835,26 @@ auto MethodAccessExpr::print(std::ostream& os) const -> void {
     }
     os << ")";
 }
+
+auto SizeOfExpr::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
+    uint64_t size_ = 0;
+    auto& data_layout = emitter->llvm_module->getDataLayout();
+    if (is_type_) {
+        auto t = emitter->llvm_type(type_to_size_);
+        size_ = data_layout.getTypeAllocSize(t);
+    } else {
+        auto e_t = expr_to_size_->get_type();
+        size_ = data_layout.getTypeAllocSize(emitter->llvm_type(e_t));
+    }
+    return llvm::ConstantInt::get(llvm::Type::getInt64Ty(*emitter->context), size_);
+}
+
+auto SizeOfExpr::print(std::ostream& os) const -> void {
+    os << "sizeof(";
+    if (is_type_) {
+        os << *type_to_size_;
+    } else {
+        expr_to_size_->print(os);
+    }
+    os << ")";
+}
