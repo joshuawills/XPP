@@ -178,3 +178,78 @@ auto ElseIfStmt::print(std::ostream& os) const -> void {
     stmt_two_->print(os);
     return;
 }
+
+auto LoopStmt::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
+    auto l_v = var_decl_;
+    auto llvm_type = emitter->llvm_type(l_v->get_type());
+    auto alloca = emitter->llvm_builder->CreateAlloca(llvm_type, nullptr, l_v->get_ident() + l_v->get_append());
+    emitter->named_values[l_v->get_ident() + l_v->get_append()] = alloca;
+
+    llvm::Value* val;
+    if (lower_bound_.has_value()) {
+        val = (*lower_bound_)->codegen(emitter);
+        if (!val)
+            return nullptr;
+        emitter->llvm_builder->CreateStore(val, alloca);
+    }
+    else {
+        val = emitter->llvm_builder->getInt64(0);
+        emitter->llvm_builder->CreateStore(val, alloca);
+    }
+    auto const& function = emitter->llvm_builder->GetInsertBlock()->getParent();
+
+    auto top_label_value = std::to_string(emitter->global_counter++);
+    auto top_label = llvm::BasicBlock::Create(*(emitter->context), top_label_value, function);
+
+    auto middle_label_value = std::to_string(emitter->global_counter++);
+    auto middle_label = llvm::BasicBlock::Create(*(emitter->context), middle_label_value, function);
+
+    auto iterate_label_value = std::to_string(emitter->global_counter++);
+    auto iterate_label = llvm::BasicBlock::Create(*(emitter->context), iterate_label_value, function);
+
+    auto bottom_label_value = std::to_string(emitter->global_counter++);
+    auto bottom_label = llvm::BasicBlock::Create(*(emitter->context), bottom_label_value, function);
+
+    emitter->llvm_builder->CreateBr(top_label);
+    emitter->llvm_builder->SetInsertPoint(top_label);
+
+    if (upper_bound_.has_value()) {
+        auto lower = emitter->llvm_builder->CreateLoad(llvm_type, alloca);
+        auto upper = (*upper_bound_)->codegen(emitter);
+        auto cond = emitter->llvm_builder->CreateICmpSLT(lower, upper);
+        emitter->llvm_builder->CreateCondBr(cond, middle_label, bottom_label);
+    }
+    else {
+        emitter->llvm_builder->CreateBr(middle_label);
+    }
+
+    emitter->llvm_builder->SetInsertPoint(middle_label);
+    body_stmt_->codegen(emitter);
+    emitter->llvm_builder->CreateBr(iterate_label);
+
+    emitter->llvm_builder->SetInsertPoint(iterate_label);
+
+    auto lower = emitter->llvm_builder->CreateLoad(llvm_type, alloca);
+    auto new_lower = emitter->llvm_builder->CreateAdd(lower, emitter->llvm_builder->getInt64(1));
+    emitter->llvm_builder->CreateStore(new_lower, alloca);
+    emitter->llvm_builder->CreateBr(top_label);
+
+    emitter->llvm_builder->SetInsertPoint(bottom_label);
+
+    return nullptr;
+}
+
+auto LoopStmt::print(std::ostream& os) const -> void {
+    os << "loop " << var_name_;
+    if (lower_bound_.has_value()) {
+        os << " from ";
+        (*lower_bound_)->print(os);
+    }
+    if (upper_bound_.has_value()) {
+        os << " to ";
+        (*upper_bound_)->print(os);
+    }
+    os << "{\n";
+    body_stmt_->print(os);
+    os << "}\n";
+}

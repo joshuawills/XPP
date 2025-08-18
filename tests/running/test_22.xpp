@@ -1,0 +1,33 @@
+// Testing basic loop statements
+
+extern printf(i8*, ...) i32;
+
+let mut global_counter: i64 = 10;
+
+fn get_val() i64 { 
+    return --global_counter;
+}
+
+fn main() void {
+    loop i in 1, 10 {
+        printf("%d\n", i);
+    }
+
+    loop i in 1, 10 {
+        let i = -1;
+        printf("%d\n", i);
+    }
+
+    loop i in -10 {
+        printf("%d\n", i);
+    }
+
+    loop i in 1 {
+        printf("%d\n", i);
+    }
+
+    loop i in -5, get_val() {
+        printf("%d\n", i);
+    }
+    
+}

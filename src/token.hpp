@@ -70,7 +70,9 @@ enum class TokenType {
     CLASS,
     PUB,
     DOT,
-    SIZE_OF
+    SIZE_OF,
+    LOOP,
+    IN
 };
 
 class Token {

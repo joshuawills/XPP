@@ -246,4 +246,64 @@ class ElseIfStmt
     std::shared_ptr<Stmt> const stmt_one_, stmt_two_;
 };
 
+class LoopStmt
+: public Stmt
+, public std::enable_shared_from_this<LoopStmt> {
+ public:
+    LoopStmt(Position const pos,
+             std::string const& var_name,
+             std::optional<std::shared_ptr<Expr>> lower_bound,
+             std::optional<std::shared_ptr<Expr>> upper_bound,
+             std::shared_ptr<Stmt> body_stmt)
+    : Stmt(pos)
+    , var_name_(var_name)
+    , lower_bound_(lower_bound)
+    , upper_bound_(upper_bound)
+    , body_stmt_(body_stmt) {}
+
+    auto visit(std::shared_ptr<Visitor> visitor) -> void override {
+        visitor->visit_loop_stmt(shared_from_this());
+    }
+    auto codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* override;
+    auto print(std::ostream& os) const -> void override;
+
+    auto has_lower_bound() const -> bool {
+        return lower_bound_.has_value();
+    }
+    auto get_lower_bound() const -> std::optional<std::shared_ptr<Expr>> {
+        return lower_bound_;
+    }
+    auto set_lower_bound(std::shared_ptr<Expr> expr) -> void {
+        lower_bound_ = expr;
+    }
+    auto has_upper_bound() const -> bool {
+        return upper_bound_.has_value();
+    }
+    auto get_upper_bound() const -> std::optional<std::shared_ptr<Expr>> {
+        return upper_bound_;
+    }
+    auto set_upper_bound(std::shared_ptr<Expr> expr) -> void {
+        upper_bound_ = expr;
+    }
+    auto get_var_name() const -> std::string {
+        return var_name_;
+    }
+    auto set_var_decl(std::shared_ptr<LocalVarDecl> var_decl) -> void {
+        var_decl_ = var_decl;
+    }
+    auto get_var_decl() const -> std::shared_ptr<LocalVarDecl> {
+        return var_decl_;
+    }
+    auto get_body_stmt() const -> std::shared_ptr<Stmt> {
+        return body_stmt_;
+    }
+
+ private:
+    std::string var_name_;
+    std::optional<std::shared_ptr<Expr>> lower_bound_;
+    std::optional<std::shared_ptr<Expr>> upper_bound_;
+    std::shared_ptr<Stmt> body_stmt_;
+    std::shared_ptr<LocalVarDecl> var_decl_;
+};
+
 #endif // STMT_HPP

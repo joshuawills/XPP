@@ -2,6 +2,7 @@
 #define TYPE_HPP
 
 #include <iostream>
+#include <sstream>
 
 #include "./ast.hpp"
 
@@ -54,6 +55,12 @@ class Type {
 
     auto operator!=(const Type& other) -> bool {
         return !equals(other);
+    }
+
+    auto to_string() const -> std::string {
+        auto s = std::stringstream{};
+        print(s);
+        return s.str();
     }
 
     virtual auto print(std::ostream& os) const -> void {
@@ -215,7 +222,22 @@ class PointerType : public Type {
     }
 
     auto equal_soft(const Type& other) const -> bool override {
-        return equals(other);
+        auto *array_ptr = dynamic_cast<const ArrayType*>(&other);
+        if (array_ptr) {
+            return *sub_type_ == *array_ptr->get_sub_type();
+        }
+
+        if (t_ != other.get_type_spec())
+            return false;
+
+        auto* other_ptr = dynamic_cast<const PointerType*>(&other);
+        if (!other_ptr)
+            return false;
+
+        if (sub_type_->is_void() or other_ptr->sub_type_->is_void()) {
+            return true;
+        }
+        return *sub_type_ == *other_ptr->sub_type_;
     }
 
  private:

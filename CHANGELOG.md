@@ -61,7 +61,7 @@
 - FEAT: accessing public class fields
 - FEAT: accessing public class methods
 - FEAT: size_of support
-
+- FEAT: loop stmt support
 
 ## TODO
 

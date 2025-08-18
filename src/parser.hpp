@@ -54,6 +54,7 @@ class Parser {
     auto parse_if_stmt(Position p) -> std::shared_ptr<IfStmt>;
     auto parse_else_if_stmt(Position p) -> std::shared_ptr<ElseIfStmt>;
     auto parse_expr_stmt(Position p) -> std::shared_ptr<ExprStmt>;
+    auto parse_loop_stmt(Position p) -> std::shared_ptr<LoopStmt>;
 
     auto parse_expr() -> std::shared_ptr<Expr>;
     auto parse_assignment_expr() -> std::shared_ptr<Expr>;

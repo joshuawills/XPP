@@ -90,6 +90,7 @@ class Verifier
     auto visit_while_stmt(std::shared_ptr<WhileStmt> while_stmt) -> void override;
     auto visit_if_stmt(std::shared_ptr<IfStmt> if_stmt) -> void override;
     auto visit_else_if_stmt(std::shared_ptr<ElseIfStmt> else_if_stmt) -> void override;
+    auto visit_loop_stmt(std::shared_ptr<LoopStmt> loop_stmt) -> void override;
 
     auto check(std::string const& filename, bool is_main) -> void;
 
@@ -188,7 +189,9 @@ class Verifier
                                                   "67: private method cannot be accessed outside of class: %",
                                                   "68: cannot access mutable method from a const declare class "
                                                   "identifier: %",
-                                                  "69: cannot mutate a class field in a const declared method: %"};
+                                                  "69: cannot mutate a class field in a const declared method: %",
+                                                  "70: loop lower bound must be of type i64: %",
+                                                  "71: loop upper bound must be of type i64: %"};
 
     auto check_duplicate_function_declaration() -> void;
     auto check_duplicate_method_declaration(std::shared_ptr<ClassDecl>& class_decl) -> void;

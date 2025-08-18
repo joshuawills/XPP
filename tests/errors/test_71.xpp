@@ -1,0 +1,11 @@
+// Loop upper bound must be of type i64
+
+fn main() void {
+	loop i in 100, 200u {}
+
+	loop i in 100, 200u as i64 {}
+
+	loop i in 19, "char" {}
+
+	loop i in 19, true {}
+}

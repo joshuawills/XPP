@@ -401,6 +401,9 @@ auto Parser::parse_compound_stmt() -> std::shared_ptr<CompoundStmt> {
         else if (peek(TokenType::OPEN_CURLY)) {
             stmts.push_back(parse_compound_stmt());
         }
+        else if (try_consume(TokenType::LOOP)) {
+            stmts.push_back(parse_loop_stmt(p));
+        }
         else {
             stmts.push_back(parse_expr_stmt(p));
         }
@@ -497,13 +500,33 @@ auto Parser::parse_expr_stmt(Position p) -> std::shared_ptr<ExprStmt> {
     return std::make_shared<ExprStmt>(p, expr);
 }
 
+auto Parser::parse_loop_stmt(Position p) -> std::shared_ptr<LoopStmt> {
+    auto i = parse_ident();
+    std::optional<std::shared_ptr<Expr>> lower_bound = std::nullopt;
+    std::optional<std::shared_ptr<Expr>> upper_bound = std::nullopt;
+    if (try_consume(TokenType::IN)) {
+        auto e = parse_expr();
+        if (try_consume(TokenType::COMMA)) {
+            lower_bound = std::optional{e};
+            upper_bound = std::optional{parse_expr()};
+        }
+        else {
+            upper_bound = std::optional{e};
+        }
+    }
+    auto stmts = parse_compound_stmt();
+    finish(p);
+    return std::make_shared<LoopStmt>(p, i, lower_bound, upper_bound, stmts);
+}
+
 auto Parser::parse_expr() -> std::shared_ptr<Expr> {
     auto p = Position{};
     start(p);
     std::shared_ptr<Expr> expr;
     if (peek(TokenType::SIZE_OF)) {
         expr = parse_size_of_expr();
-    } else {
+    }
+    else {
         expr = parse_assignment_expr();
     }
     if (try_consume(TokenType::AS)) {

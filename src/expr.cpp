@@ -305,9 +305,6 @@ auto UnaryExpr::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
     else if (auto l = std::dynamic_pointer_cast<UnaryExpr>(expr_)) {
         ptr = l->get_expr()->codegen(emitter);
     }
-    else {
-        std::cout << "UNREACHABLE UnaryExpr::codegen\n";
-    }
 
     if (op_ == Op::PREFIX_ADD or op_ == Op::PREFIX_MINUS) {
         llvm::Value* new_val;

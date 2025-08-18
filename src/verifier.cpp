@@ -1263,7 +1263,7 @@ auto Verifier::visit_method_access_expr(std::shared_ptr<MethodAccessExpr> method
         return;
     }
 
-    for (auto& arg: method_access_expr->get_args()) {
+    for (auto& arg : method_access_expr->get_args()) {
         arg->visit(shared_from_this());
     }
 
@@ -1475,6 +1475,61 @@ auto Verifier::visit_else_if_stmt(std::shared_ptr<ElseIfStmt> else_if_stmt) -> v
 
     else_if_stmt->get_nested_else_if_stmt()->visit(shared_from_this());
 
+    return;
+}
+
+auto Verifier::visit_loop_stmt(std::shared_ptr<LoopStmt> loop_stmt) -> void {
+    symbol_table_.open_scope();
+
+    auto var = std::make_shared<LocalVarDecl>(loop_stmt->pos(),
+                                              loop_stmt->get_var_name(),
+                                              std::make_shared<Type>(TypeSpec::I64),
+                                              std::make_shared<EmptyExpr>(loop_stmt->pos()));
+    var->set_statement_num(global_statement_counter_);
+    var->set_depth_num(loop_depth_);
+    loop_stmt->set_var_decl(var);
+    declare_variable(loop_stmt->get_var_name(), var);
+
+    if (loop_stmt->has_lower_bound()) {
+        auto lower_bound = *loop_stmt->get_lower_bound();
+        lower_bound->visit(shared_from_this());
+        if (updated_expr_) {
+            loop_stmt->set_lower_bound(updated_expr_);
+            updated_expr_ = nullptr;
+        }
+        lower_bound = *loop_stmt->get_lower_bound();
+
+        auto lower_t = lower_bound->get_type();
+        if (!lower_t->is_i64()) {
+            handler_->report_error(current_filename_,
+                                   all_errors_[70],
+                                   "received type " + lower_t->to_string(),
+                                   lower_bound->pos());
+            return;
+        }
+    }
+
+    if (loop_stmt->has_upper_bound()) {
+        auto upper_bound = *loop_stmt->get_upper_bound();
+        upper_bound->visit(shared_from_this());
+        if (updated_expr_) {
+            loop_stmt->set_upper_bound(updated_expr_);
+            updated_expr_ = nullptr;
+        }
+        upper_bound = *loop_stmt->get_upper_bound();
+
+        auto upper_t = upper_bound->get_type();
+        if (!upper_t->is_i64()) {
+            handler_->report_error(current_filename_,
+                                   all_errors_[71],
+                                   "received type " + upper_t->to_string(),
+                                   upper_bound->pos());
+            return;
+        }
+    }
+    loop_stmt->get_body_stmt()->visit(shared_from_this());
+
+    symbol_table_.close_scope();
     return;
 }
 
