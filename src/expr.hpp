@@ -99,6 +99,9 @@ class AssignmentExpr
     auto set_rhs_expression(std::shared_ptr<Expr> expr) -> void {
         right_ = expr;
     }
+    auto set_lhs_expression(std::shared_ptr<Expr> expr) -> void {
+        left_ = expr;
+    }
 
     auto visit(std::shared_ptr<Visitor> visitor) -> void override {
         visitor->visit_assignment_expr(shared_from_this());

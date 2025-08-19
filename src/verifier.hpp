@@ -204,7 +204,9 @@ class Verifier
                                                   "73: 'continue' must be in a loop construct",
                                                   "74: cannot access private function via import access: %",
                                                   "75: cannot access private class via import access: %",
-                                                  "76: cannot call private constructor out of class scope"};
+                                                  "76: cannot call private constructor out of class scope",
+                                                  "77: cannot access private global var via import access: %",
+                                                  "78: no such global var in specified module: %"};
 
     auto check_duplicate_function_declaration() -> void;
     auto check_duplicate_method_declaration(std::shared_ptr<ClassDecl>& class_decl) -> void;

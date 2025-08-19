@@ -1,0 +1,7 @@
+// Cannot access private global var via import access
+
+import "foo" as foo;
+
+fn main() void {
+	let x = foo::private;
+}

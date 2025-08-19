@@ -1,0 +1,15 @@
+// Accessing global variables
+
+import "foo" as foo;
+
+extern printf(i8*, ...) i32;
+
+fn main() void {
+	printf("%d\n", foo::global);
+	foo::global += 1;
+	printf("%d\n", foo::global);
+
+
+	let x = foo::global / 20;
+	printf("%d\n", x);
+}

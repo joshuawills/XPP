@@ -467,6 +467,16 @@ auto Verifier::visit_assignment_expr(std::shared_ptr<AssignmentExpr> assignment_
     auto const op = assignment_expr->get_operator();
     auto l = assignment_expr->get_left();
     auto r = assignment_expr->get_right();
+
+    visiting_lhs_of_assignment_ = true;
+    l->visit(shared_from_this());
+    if (updated_expr_) {
+        assignment_expr->set_lhs_expression(updated_expr_);
+        l = updated_expr_;
+        updated_expr_ = nullptr;
+    }
+    visiting_lhs_of_assignment_ = false;
+
     auto res = std::dynamic_pointer_cast<VarExpr>(l);
     auto deref_res = std::dynamic_pointer_cast<UnaryExpr>(l);
     auto array_index_res = std::dynamic_pointer_cast<ArrayIndexExpr>(l);
@@ -478,10 +488,6 @@ auto Verifier::visit_assignment_expr(std::shared_ptr<AssignmentExpr> assignment_
         assignment_expr->set_type(handler_->ERROR_TYPE);
         return;
     }
-
-    visiting_lhs_of_assignment_ = true;
-    l->visit(shared_from_this());
-    visiting_lhs_of_assignment_ = false;
 
     if (res) {
         if (auto ref = res->get_ref()) {
@@ -896,7 +902,34 @@ auto Verifier::visit_var_expr(std::shared_ptr<VarExpr> var_expr) -> void {
     auto n = var_expr->get_name();
     std::shared_ptr<Decl> d;
     auto entry = symbol_table_.retrieve(n);
-    if (!entry.has_value()) {
+
+    if (curr_module_access_) {
+        // Checking for global var
+        auto found = false;
+        for (auto& global_var : curr_module_access_->get_global_vars()) {
+            if (global_var->get_ident() == n) {
+                d = global_var;
+                if (!d->is_pub()) {
+                    handler_->report_error(current_filename_,
+                                           all_errors_[77],
+                                           "variable '" + n + "' is marked private",
+                                           var_expr->pos());
+                    var_expr->set_type(handler_->ERROR_TYPE);
+                    return;
+                }
+                found = true;
+                break;
+            }
+        }
+
+        if (!found) {
+            auto error = "global variable '" + n + "' not found in module '" + curr_module_alias_ + "'";
+            handler_->report_error(current_filename_, all_errors_[78], error, var_expr->pos());
+            var_expr->set_type(handler_->ERROR_TYPE);
+            return;
+        }
+    }
+    else if (!entry.has_value()) {
         auto const method_d = std::dynamic_pointer_cast<MethodDecl>(current_function_or_method_);
         auto const constructor_d = std::dynamic_pointer_cast<ConstructorDecl>(current_function_or_method_);
         if (!method_d and !constructor_d) {

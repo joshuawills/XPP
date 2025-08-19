@@ -1,0 +1,7 @@
+// No such global var in specified module
+
+import "foo" as foo;
+
+fn main() void {
+	let x = foo::ghost;
+}
