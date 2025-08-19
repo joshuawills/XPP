@@ -391,7 +391,7 @@ class CallExpr
 : public Expr
 , public std::enable_shared_from_this<CallExpr> {
  public:
-    CallExpr(Position const pos, std::string const name, std::vector<std::shared_ptr<Expr>> const args)
+    CallExpr(Position const pos, std::string const name, std::vector<std::shared_ptr<Expr>> args)
     : Expr(pos, std::make_shared<Type>())
     , name_(name)
     , args_(args) {}
@@ -426,9 +426,13 @@ class CallExpr
         return args_;
     }
 
+    auto set_args(std::vector<std::shared_ptr<Expr>> args) -> void {
+        args_ = std::move(args);
+    }
+
  private:
     std::string const name_;
-    std::vector<std::shared_ptr<Expr>> const args_;
+    std::vector<std::shared_ptr<Expr>> args_;
     std::shared_ptr<Decl> ref_ = nullptr;
 };
 

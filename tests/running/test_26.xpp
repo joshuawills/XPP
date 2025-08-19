@@ -1,0 +1,9 @@
+// Basic function access from std lib
+
+import str;
+
+extern printf(i8*, ...) i32;
+
+fn main() void {
+	printf("%d\n", str::str_len("haha!\n"));
+}

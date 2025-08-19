@@ -960,9 +960,18 @@ auto Verifier::visit_call_expr(std::shared_ptr<CallExpr> call_expr) -> void {
         return;
     }
 
+    auto updated_args = std::vector<std::shared_ptr<Expr>>{};
     for (auto& arg : call_expr->get_args()) {
         arg->visit(shared_from_this());
+        if (updated_expr_) {
+            updated_args.push_back(updated_expr_);
+            updated_expr_ = nullptr;
+        }
+        else {
+            updated_args.push_back(arg);
+        }
     }
+    call_expr->set_args(updated_args);
 
     std::optional<std::shared_ptr<Decl>> equivalent_func;
     if (curr_module_access_) {
@@ -987,35 +996,6 @@ auto Verifier::visit_call_expr(std::shared_ptr<CallExpr> call_expr) -> void {
             handler_->report_error(current_filename_, all_errors_[14], function_name, call_expr->pos());
             call_expr->set_type(handler_->ERROR_TYPE);
             return;
-        }
-    }
-
-    if (auto it = std::dynamic_pointer_cast<Function>(*equivalent_func)) {
-        auto paras = it->get_paras();
-        auto c = 0u;
-        for (auto& arg : call_expr->get_args()) {
-            if (paras[c]->get_type()->is_numeric()) {
-                current_numerical_type = paras[c]->get_type();
-            }
-            if (!std::dynamic_pointer_cast<MethodAccessExpr>(arg)) {
-                arg->visit(shared_from_this());
-            }
-            current_numerical_type = std::nullopt;
-            ++c;
-        }
-    }
-    else if (auto it = std::dynamic_pointer_cast<Extern>(*equivalent_func)) {
-        auto types = it->get_types();
-        auto c = 0u;
-        for (auto& arg : call_expr->get_args()) {
-            if (c < types.size() and types[c]->is_numeric()) {
-                current_numerical_type = types[c];
-            }
-            if (!std::dynamic_pointer_cast<MethodAccessExpr>(arg)) {
-                arg->visit(shared_from_this());
-            }
-            current_numerical_type = std::nullopt;
-            ++c;
         }
     }
 
@@ -1357,7 +1337,7 @@ auto Verifier::visit_method_access_expr(std::shared_ptr<MethodAccessExpr> method
         }
         arg->visit(shared_from_this());
         if (updated_expr_) {
-            new_args.push_back(arg);
+            new_args.push_back(updated_expr_);
             updated_expr_ = nullptr;
         }
         else {
@@ -1419,7 +1399,9 @@ auto Verifier::visit_import_expr(std::shared_ptr<ImportExpr> import_expr) -> voi
             if (updated_expr_) {
                 import_expr->set_expr(updated_expr_);
             }
-            updated_expr_ = enum_access_expr;
+            else {
+                updated_expr_ = enum_access_expr;
+            }
         }
         else {
             auto error = "module '" + alias_s + "'";
@@ -1435,7 +1417,6 @@ auto Verifier::visit_import_expr(std::shared_ptr<ImportExpr> import_expr) -> voi
     import_expr->get_expr()->visit(shared_from_this());
     if (updated_expr_) {
         import_expr->set_expr(updated_expr_);
-        updated_expr_ = nullptr;
     }
     curr_module_access_ = nullptr;
 
