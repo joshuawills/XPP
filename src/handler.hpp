@@ -74,6 +74,7 @@ class Handler {
     static const std::shared_ptr<Type> BOOL_TYPE;
 
     size_t num_errors_ = 0;
+    std::string stdlib_path = "/home/joshuawills/X++/lib";
 
  private:
     std::map<std::string, std::shared_ptr<std::string>> filename_to_contents_ = {};

@@ -37,7 +37,8 @@ auto get_type_from_lexeme(std::string const& str) -> std::optional<TokenType> {
         {"true", TokenType::TRUE},       {"false", TokenType::FALSE},     {"enum", TokenType::ENUM},
         {"pub", TokenType::PUB},         {"class", TokenType::CLASS},     {"size_of", TokenType::SIZE_OF},
         {"and", TokenType::LOGICAL_AND}, {"or", TokenType::LOGICAL_OR},   {"loop", TokenType::LOOP},
-        {"in", TokenType::IN},           {"break", TokenType::BREAK},     {"continue", TokenType::CONTINUE}};
+        {"in", TokenType::IN},           {"break", TokenType::BREAK},     {"continue", TokenType::CONTINUE},
+        {"import", TokenType::IMPORT}};
 
     return lookup_map.find(str) != lookup_map.end() ? std::make_optional(lookup_map.at(str)) : std::nullopt;
 }
@@ -103,6 +104,7 @@ auto operator<<(std::ostream& os, TokenType const& t) -> std::ostream& {
     case TokenType::IN: os << "IN"; break;
     case TokenType::CONTINUE: os << "CONTINUE"; break;
     case TokenType::BREAK: os << "BREAK"; break;
+    case TokenType::IMPORT: os << "IMPORT"; break;
     default: os << "UNKNOWN";
     }
     return os;

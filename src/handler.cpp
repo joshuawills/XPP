@@ -44,7 +44,8 @@ auto Handler::get_file_contents(const std::string& filename) -> std::shared_ptr<
     if (it != filename_to_contents_.end()) {
         return it->second;
     }
-    return nullptr;
+    add_file(filename);
+    return get_file_contents(filename);
 }
 
 auto Handler::report_error(std::string const& filename,

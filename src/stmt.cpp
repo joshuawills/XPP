@@ -128,7 +128,7 @@ auto IfStmt::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
 
     stmt_one_->codegen(emitter);
     auto temp = std::dynamic_pointer_cast<CompoundStmt>(stmt_one_);
-    if ((!temp or (temp and !temp->has_return()))  and !emitter->llvm_builder->GetInsertBlock()->getTerminator()) {
+    if ((!temp or (temp and !temp->has_return())) and !emitter->llvm_builder->GetInsertBlock()->getTerminator()) {
         emitter->llvm_builder->CreateBr(bottom_block);
     }
 
@@ -136,7 +136,7 @@ auto IfStmt::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
     stmt_two_->codegen(emitter);
     stmt_three_->codegen(emitter);
     temp = std::dynamic_pointer_cast<CompoundStmt>(stmt_one_);
-    if ((!temp or (temp and !temp->has_return()))  and !emitter->llvm_builder->GetInsertBlock()->getTerminator()) {
+    if ((!temp or (temp and !temp->has_return())) and !emitter->llvm_builder->GetInsertBlock()->getTerminator()) {
         emitter->llvm_builder->CreateBr(bottom_block);
     }
 
@@ -171,7 +171,7 @@ auto ElseIfStmt::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
     stmt_one_->codegen(emitter);
 
     auto temp = std::dynamic_pointer_cast<CompoundStmt>(stmt_one_);
-    if ((!temp or (temp and !temp->has_return()))  and !emitter->llvm_builder->GetInsertBlock()->getTerminator()) {
+    if ((!temp or (temp and !temp->has_return())) and !emitter->llvm_builder->GetInsertBlock()->getTerminator()) {
         emitter->llvm_builder->CreateBr(emitter->true_bottom);
     }
 

@@ -55,6 +55,14 @@ class Module {
         return classes_;
     }
 
+    auto get_imported_filepaths() const -> std::vector<std::string> {
+        return imported_files;
+    }
+
+    auto add_imported_filepath(std::string const& filepath) -> void {
+        imported_files.push_back(filepath);
+    }
+
     auto class_with_name_exists(std::string const& name) const -> bool {
         return std::any_of(classes_.begin(), classes_.end(), [&name](auto const& class_) {
             return class_->get_ident() == name;
@@ -72,6 +80,10 @@ class Module {
         });
     }
 
+    auto add_imported_module(std::string const& name, std::shared_ptr<Module> module) -> void {
+        imported_modules[name] = module;
+    }
+
     auto get_decl(std::shared_ptr<CallExpr> call_expr) const -> std::optional<std::shared_ptr<Decl>>;
     auto get_constructor_decl(std::shared_ptr<ConstructorCallExpr> constructor_call_expr) const
         -> std::optional<std::shared_ptr<ConstructorDecl>>;
@@ -84,6 +96,9 @@ class Module {
     std::vector<std::shared_ptr<GlobalVarDecl>> global_vars_ = {};
     std::vector<std::shared_ptr<EnumDecl>> enums_ = {};
     std::vector<std::shared_ptr<ClassDecl>> classes_ = {};
+
+    std::vector<std::string> imported_files = {};
+    std::map<std::string, std::shared_ptr<Module>> imported_modules = {};
 };
 
 auto operator<<(std::ostream& os, Module const& mod) -> std::ostream&;
@@ -108,6 +123,15 @@ class AllModules {
             }
         }
         return false;
+    }
+
+    auto get_module_from_filepath(std::string const& filepath) const -> std::shared_ptr<Module> {
+        for (const auto& module : modules_) {
+            if (module->get_filepath() == filepath) {
+                return module;
+            }
+        }
+        return nullptr;
     }
 
     auto get_modules() -> std::vector<std::shared_ptr<Module>> {

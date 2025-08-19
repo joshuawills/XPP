@@ -64,6 +64,10 @@
 - FEAT: loop stmt support
 - FEAT: support for break and continue statements
 
+## 19 Aug 2025
+
+- FEAT: starting work on modules
+
 ## TODO
 
 - Add in for loops 

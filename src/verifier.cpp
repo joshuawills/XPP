@@ -1574,6 +1574,19 @@ auto Verifier::check(std::string const& filename, bool is_main) -> void {
 
     current_module_ = module;
 
+    // Load in all imported modules
+    for (auto const& import : current_module_->get_imported_filepaths()) {
+        auto imported_module = modules_->get_module_from_filepath(import);
+        if (imported_module) {
+            current_module_->add_imported_module(import, imported_module);
+        }
+        else {
+            // Time to do all the work with it
+            check(import, false);
+            current_module_->add_imported_module(import, modules_->get_module_from_filepath(import));
+        }
+    }
+
     check_duplicate_custom_type();
     for (auto& enum_ : current_module_->get_enums()) {
         enum_->visit(shared_from_this());

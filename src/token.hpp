@@ -74,7 +74,8 @@ enum class TokenType {
     LOOP,
     IN,
     CONTINUE,
-    BREAK
+    BREAK,
+    IMPORT
 };
 
 class Token {

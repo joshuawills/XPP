@@ -3,6 +3,10 @@
 auto operator<<(std::ostream& os, Module const& mod) -> std::ostream& {
     os << "Module " << mod.get_filepath() << "\n";
 
+    for (auto const& import : mod.get_imported_filepaths()) {
+        os << "  Import: " << import << "\n";
+    }
+
     for (auto const& class_ : mod.get_classes()) {
         class_->print(os);
     }

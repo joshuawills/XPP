@@ -1,4 +1,5 @@
 #include "./parser.hpp"
+#include <filesystem>
 #include <iostream>
 #include <map>
 #include <sstream>
@@ -66,6 +67,29 @@ auto Parser::peek(TokenType t, size_t pos) -> bool {
 
 auto Parser::parse() -> std::shared_ptr<Module> {
     auto module = std::make_shared<Module>(filename_);
+
+    while (peek(TokenType::IMPORT)) {
+        consume();
+        while (curr_token_.has_value() and !(*curr_token_)->type_matches(TokenType::SEMICOLON)) {
+            if (peek(TokenType::IDENT)) {
+                // Standard library paths
+                auto path = handler_->stdlib_path + "/" + parse_ident() + ".xpp";
+                module->add_imported_filepath(path);
+            }
+            else {
+                std::filesystem::path p = (*curr_token_)->lexeme();
+                match(TokenType::STRING_LITERAL);
+                auto path = filename_ / p;
+                module->add_imported_filepath(path);
+            }
+
+            if (peek(TokenType::SEMICOLON)) {
+                break;
+            }
+            match(TokenType::COMMA);
+        }
+        match(TokenType::SEMICOLON);
+    }
 
     while (curr_token_.has_value()) {
         auto p = Position{};
