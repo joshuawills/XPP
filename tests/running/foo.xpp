@@ -24,3 +24,5 @@ pub class PublicClass {
 		x = 21;
 	}
 }
+
+pub enum EnumExample { A, B }

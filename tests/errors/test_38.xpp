@@ -1,5 +1,6 @@
-// No such enum
+// No such enum or alias recognised
 
 fn main() void {
 	let x = What::bar;
+	let y: foo::What;
 }

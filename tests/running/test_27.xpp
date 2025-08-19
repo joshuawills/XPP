@@ -1,4 +1,4 @@
-// Accessing global variables
+// Accessing global variables via import
 
 import "foo" as foo;
 

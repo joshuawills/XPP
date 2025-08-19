@@ -70,11 +70,10 @@
 - FEAT: call public functions from other modules
 - FEAT: access public classes from other modules
 - FEAT: access global vars from other modules
+- FEAT specify import types and enum accesses
 
 ## TODO
 
-- access enums from other modules
-- Declare types out of scope
 - Add in for loops 
 - Moduling system
 - References?

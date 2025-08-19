@@ -1,0 +1,14 @@
+// Access enums via import stmt
+
+import "foo" as foo;
+
+extern printf(i8*, ...) i32;
+
+fn main() void {
+    let v: foo::EnumExample = foo::EnumExample::A;
+    if v == foo::EnumExample::B {
+        printf("true!\n");
+    } else {
+        printf("false!\n");
+    }
+}

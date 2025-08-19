@@ -303,6 +303,12 @@ auto Parser::parse_type() -> std::shared_ptr<Type> {
 
     consume();
 
+    if (try_consume(TokenType::DOUBLE_COLON)) {
+        // Entered an import type
+        auto sub_type = parse_type();
+        return std::make_shared<ImportType>(curr_lexeme, sub_type);
+    }
+
     // Handle pointer/array types
     std::shared_ptr<Type> return_type;
     if (type_spec == TypeSpec::MURKY) {

@@ -1,5 +1,7 @@
 // Unknown type declared
 
+import "foo" as foo;
+
 class What {
 	pub fn get_one(x: Sigma, y: What) Haha {} 
 }
@@ -10,4 +12,6 @@ fn bar() Haha {}
 
 fn main() void {
 	let x: Preposterous;
+
+	let y: foo::NonExistent;
 }

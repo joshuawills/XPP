@@ -73,6 +73,7 @@ auto operator<<(std::ostream& os, TypeSpec const& ts) -> std::ostream& {
     case TypeSpec::UNKNOWN: os << "unknown"; break;
     case TypeSpec::ARRAY: os << "array"; break;
     case TypeSpec::ENUM: os << "enum"; break;
+    case TypeSpec::IMPORT: os << "import"; break;
     default: os << "invalid typespec"; break;
     }
     return os;
@@ -141,7 +142,7 @@ auto ClassType::set_ref(std::shared_ptr<ClassDecl> ref) -> void {
 }
 
 auto MurkyType::print(std::ostream& os) const -> void {
-    os << "murkytype " << name_;
+    os << name_;
 }
 auto MurkyType::equals(const Type& other) const -> bool {
     (void)other;

@@ -24,7 +24,8 @@ enum TypeSpec {
     ARRAY,
     ENUM,
     MURKY,
-    CLASS
+    CLASS,
+    IMPORT
 };
 
 auto operator<<(std::ostream& os, TypeSpec const& ts) -> std::ostream&;
@@ -133,6 +134,10 @@ class Type {
 
     auto is_class() const noexcept -> bool {
         return t_ == TypeSpec::CLASS;
+    }
+
+    auto is_import() const noexcept -> bool {
+        return t_ == TypeSpec::IMPORT;
     }
 
  protected:
@@ -276,6 +281,51 @@ class ClassType : public Type {
 
  private:
     std::shared_ptr<ClassDecl> ref_ = nullptr;
+};
+
+class ImportType : public Type {
+ public:
+    ImportType(std::string import_path, std::shared_ptr<Type> sub_type)
+    : Type(TypeSpec::IMPORT)
+    , import_path_(import_path)
+    , sub_type_(sub_type) {}
+
+    auto get_sub_type() const -> std::shared_ptr<Type> {
+        return sub_type_;
+    }
+
+    auto print(std::ostream& os) const -> void override {
+        os << import_path_ << "::";
+        sub_type_->print(os);
+    }
+
+    auto equals(const Type& other) const -> bool override {
+        auto* import_ptr = dynamic_cast<const ImportType*>(&other);
+        if (import_ptr) {
+            return *sub_type_ == *import_ptr->get_sub_type();
+        }
+        else {
+            return *sub_type_ == other;
+        }
+    }
+
+    auto equal_soft(const Type& other) const -> bool override {
+        auto* import_ptr = dynamic_cast<const ImportType*>(&other);
+        if (import_ptr) {
+            return sub_type_->equal_soft(*import_ptr->get_sub_type());
+        }
+        else {
+            return sub_type_->equal_soft(other);
+        }
+    }
+
+    auto get_name() const -> std::string {
+        return import_path_;
+    }
+
+ private:
+    std::string import_path_;
+    std::shared_ptr<Type> sub_type_ = nullptr;
 };
 
 class MurkyType : public Type {

@@ -1252,7 +1252,13 @@ auto Verifier::visit_array_index_expr(std::shared_ptr<ArrayIndexExpr> array_inde
 auto Verifier::visit_enum_access_expr(std::shared_ptr<EnumAccessExpr> enum_access_expr) -> void {
     auto enum_name = enum_access_expr->get_enum_name();
     auto field_name = enum_access_expr->get_field();
-    auto ref = current_module_->get_enum(enum_name);
+    std::optional<std::shared_ptr<EnumDecl>> ref;
+    if (curr_module_access_) {
+        ref = curr_module_access_->get_enum(enum_name);
+    }
+    else {
+        ref = current_module_->get_enum(enum_name);
+    }
     if (!ref) {
         handler_->report_error(current_filename_, all_errors_[38], enum_name, enum_access_expr->pos());
         enum_access_expr->set_type(handler_->ERROR_TYPE);
@@ -1422,7 +1428,14 @@ auto Verifier::visit_import_expr(std::shared_ptr<ImportExpr> import_expr) -> voi
 
     if (!module) {
         // Check if an enum exists with that name
-        auto potential_enum = current_module_->get_enum(alias_s);
+        std::optional<std::shared_ptr<EnumDecl>> potential_enum;
+        if (curr_module_access_) {
+            potential_enum = curr_module_access_->get_enum(alias_s);
+        }
+        else {
+            potential_enum = current_module_->get_enum(alias_s);
+        }
+
         auto is_var_expr = std::dynamic_pointer_cast<VarExpr>(import_expr->get_expr());
         if (potential_enum.has_value() and is_var_expr) {
             auto enum_access_expr = std::make_shared<EnumAccessExpr>(import_expr->pos(),
@@ -2018,26 +2031,55 @@ auto Verifier::unmurk(std::shared_ptr<Type> murky_t) -> std::shared_ptr<Type> {
         auto l = std::dynamic_pointer_cast<PointerType>(murky_t);
         return std::make_shared<PointerType>(unmurk(l->get_sub_type()));
     }
+    else if (murky_t->is_import()) {
+        auto l = std::dynamic_pointer_cast<ImportType>(murky_t);
+        assert(l->get_sub_type()->is_murky());
+        auto module = current_module_->get_module_from_alias(l->get_name());
+        if (!module.has_value()) {
+            auto err = "alias '" + l->get_name() + "' not recognised for type declaration";
+            handler_->report_error(current_filename_, all_errors_[38], err, unmurk_pos);
+            return std::make_shared<Type>(TypeSpec::ERROR);
+        }
+
+        curr_module_access_ = *module;
+        curr_module_alias_ = l->get_name();
+        return unmurk_direct(std::dynamic_pointer_cast<MurkyType>(l->get_sub_type()));
+        curr_module_access_ = nullptr;
+    }
     return murky_t;
 }
 
 auto Verifier::unmurk_direct(std::shared_ptr<MurkyType> murky_t) -> std::shared_ptr<Type> {
-    auto lex = murky_t->get_name();
+    auto lex = std::string{};
+    lex += murky_t->get_name();
 
-    for (auto& enum_ : current_module_->get_enums()) {
+    std::shared_ptr<Module> mod;
+    if (curr_module_access_) {
+        mod = curr_module_access_;
+    }
+    else {
+        mod = current_module_;
+    }
+
+    for (auto& enum_ : mod->get_enums()) {
         if (enum_->get_ident() == lex) {
             enum_->set_used();
             return std::make_shared<EnumType>(enum_);
         }
     }
 
-    for (auto& class_ : current_module_->get_classes()) {
+    for (auto& class_ : mod->get_classes()) {
         if (class_->get_ident() == lex) {
             class_->set_used();
             return std::make_shared<ClassType>(class_);
         }
     }
+    auto err = std::string{};
+    if (curr_module_access_) {
+        err += curr_module_alias_ + "::";
+    }
+    err += murky_t->get_name();
 
-    handler_->report_error(current_filename_, all_errors_[42], lex, unmurk_pos);
+    handler_->report_error(current_filename_, all_errors_[42], err, unmurk_pos);
     return std::make_shared<Type>(TypeSpec::ERROR);
 }

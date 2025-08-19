@@ -5,6 +5,6 @@ import "foo" as foo;
 extern printf(i8*, ...) i32;
 
 fn main() void {
-	let x = foo::PublicClass(2);
+	let x: foo::PublicClass = foo::PublicClass(2);
 	printf("%d\n", x.get_x());
 }
