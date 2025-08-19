@@ -72,6 +72,7 @@ auto operator<<(std::ostream& os, TypeSpec const& ts) -> std::ostream& {
     case TypeSpec::VARIATIC: os << "..."; break;
     case TypeSpec::UNKNOWN: os << "unknown"; break;
     case TypeSpec::ARRAY: os << "array"; break;
+    case TypeSpec::ENUM: os << "enum"; break;
     default: os << "invalid typespec"; break;
     }
     return os;
@@ -93,7 +94,6 @@ auto EnumType::get_ref() const -> std::shared_ptr<EnumDecl> {
 }
 
 auto EnumType::print(std::ostream& os) const -> void {
-    os << t_;
     ref_->print(os);
 }
 

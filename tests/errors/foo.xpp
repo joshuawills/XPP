@@ -1,0 +1,2 @@
+fn get_one() i64 { return 1; }
+pub fn get_two() i64 { return 2; }

@@ -1,0 +1,9 @@
+pub fn str_len(v: i8*) i64 {
+    let mut p = v;
+    let mut c = 0;
+    while *p != '\0' {
+        ++p;
+        ++c;
+    }
+    return c;
+}

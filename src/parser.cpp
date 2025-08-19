@@ -73,14 +73,24 @@ auto Parser::parse() -> std::shared_ptr<Module> {
         while (curr_token_.has_value() and !(*curr_token_)->type_matches(TokenType::SEMICOLON)) {
             if (peek(TokenType::IDENT)) {
                 // Standard library paths
-                auto path = handler_->stdlib_path + "/" + parse_ident() + ".xpp";
-                module->add_imported_filepath(path);
+                auto i = parse_ident();
+                auto path = handler_->stdlib_path + "/" + i + ".xpp";
+                if (try_consume(TokenType::AS)) {
+                    auto alias = parse_ident();
+                    module->add_imported_filepath(alias, path);
+                }
+                else {
+                    module->add_imported_filepath(i, path);
+                }
             }
             else {
                 std::filesystem::path p = (*curr_token_)->lexeme();
                 match(TokenType::STRING_LITERAL);
-                auto path = filename_ / p;
-                module->add_imported_filepath(path);
+                auto path = static_cast<std::filesystem::path>(filename_).parent_path() / p;
+                path += ".xpp";
+                match(TokenType::AS);
+                auto alias = parse_ident();
+                module->add_imported_filepath(alias, path);
             }
 
             if (peek(TokenType::SEMICOLON)) {
@@ -761,11 +771,12 @@ auto Parser::parse_postfix_expr() -> std::shared_ptr<Expr> {
         return std::make_shared<ArrayIndexExpr>(p, p_expr, index_expr);
     }
     else if (peek(TokenType::DOUBLE_COLON) and v) {
-        auto enum_name = v->get_name();
+        // Could be an import access OR an enum access. This is resolved at verification stage
+        auto import_name = v->get_name();
         match(TokenType::DOUBLE_COLON);
-        auto field_name = parse_ident();
+        auto expr = parse_postfix_expr();
         finish(p);
-        return std::make_shared<EnumAccessExpr>(p, enum_name, field_name);
+        return std::make_shared<ImportExpr>(p, expr, import_name);
     }
     else if (try_consume(TokenType::DOT)) {
         auto field_name = parse_ident();

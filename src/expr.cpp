@@ -564,6 +564,11 @@ auto CallExpr::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
         name = name_;
     }
     auto callee = emitter->llvm_module->getFunction(name);
+    if (!callee) {
+        std::cout << "UNREACHABLE CallExpr::codegen, function not found: " << name << "\n";
+        return nullptr;
+    }
+
     auto arg_vals = std::vector<llvm::Value*>{};
     for (auto& arg : args_) {
         auto const val = arg->codegen(emitter);
@@ -871,4 +876,13 @@ auto SizeOfExpr::print(std::ostream& os) const -> void {
         expr_to_size_->print(os);
     }
     os << ")";
+}
+
+auto ImportExpr::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
+    return expr_->codegen(emitter);
+}
+
+auto ImportExpr::print(std::ostream& os) const -> void {
+    os << alias_name_ << "::";
+    expr_->print(os);
 }

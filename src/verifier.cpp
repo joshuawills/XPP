@@ -536,6 +536,12 @@ auto Verifier::visit_assignment_expr(std::shared_ptr<AssignmentExpr> assignment_
         current_numerical_type = l->get_type();
     }
     r->visit(shared_from_this());
+    if (updated_expr_) {
+        assignment_expr->set_rhs_expression(updated_expr_);
+        r = updated_expr_;
+        updated_expr_ = nullptr;
+    }
+
     current_numerical_type = std::nullopt;
 
     if (class_field_res) {
@@ -608,7 +614,19 @@ auto Verifier::visit_binary_expr(std::shared_ptr<BinaryExpr> binary_expr) -> voi
     auto l = binary_expr->get_left();
     auto r = binary_expr->get_right();
     l->visit(shared_from_this());
+    if (updated_expr_) {
+        binary_expr->set_l_expr(updated_expr_);
+        updated_expr_ = nullptr;
+    }
+
     r->visit(shared_from_this());
+    if (updated_expr_) {
+        binary_expr->set_r_expr(updated_expr_);
+        updated_expr_ = nullptr;
+    }
+
+    l = binary_expr->get_left();
+    r = binary_expr->get_right();
 
     auto const l_t = l->get_type();
     auto const r_t = r->get_type();
@@ -925,7 +943,7 @@ auto Verifier::visit_call_expr(std::shared_ptr<CallExpr> call_expr) -> void {
         return;
     }
 
-    if (!current_module_->function_with_name_exists(function_name)) {
+    if (!current_module_->function_with_name_exists(function_name) and !curr_module_access_) {
         handler_->report_error(current_filename_, all_errors_[12], function_name, call_expr->pos());
         return;
     }
@@ -938,11 +956,30 @@ auto Verifier::visit_call_expr(std::shared_ptr<CallExpr> call_expr) -> void {
         arg->visit(shared_from_this());
     }
 
-    auto equivalent_func = current_module_->get_decl(call_expr);
+    std::optional<std::shared_ptr<Decl>> equivalent_func;
+    if (curr_module_access_) {
+        equivalent_func = curr_module_access_->get_decl(call_expr);
+        if (!equivalent_func) {
+            auto error = "function '" + function_name + "' not found in module '" + curr_module_alias_ + "'";
+            handler_->report_error(current_filename_, all_errors_[14], error, call_expr->pos());
+            call_expr->set_type(handler_->ERROR_TYPE);
+            return;
+        }
 
-    if (!equivalent_func) {
-        handler_->report_error(current_filename_, all_errors_[14], function_name, call_expr->pos());
-        return;
+        if (!(*equivalent_func)->is_pub()) {
+            auto error = "function '" + function_name + "' is private";
+            handler_->report_error(current_filename_, all_errors_[74], error, call_expr->pos());
+            call_expr->set_type(handler_->ERROR_TYPE);
+            return;
+        }
+    }
+    else {
+        equivalent_func = current_module_->get_decl(call_expr);
+        if (!equivalent_func) {
+            handler_->report_error(current_filename_, all_errors_[14], function_name, call_expr->pos());
+            call_expr->set_type(handler_->ERROR_TYPE);
+            return;
+        }
     }
 
     if (auto it = std::dynamic_pointer_cast<Function>(*equivalent_func)) {
@@ -1008,6 +1045,13 @@ auto Verifier::visit_constructor_call_expr(std::shared_ptr<ConstructorCallExpr> 
     }
 
     (*equivalent_constructor)->set_used();
+    auto class_ref = std::dynamic_pointer_cast<ClassType>((*equivalent_constructor)->get_type());
+    if (class_ref) {
+        class_ref->get_ref()->set_used();
+    }
+    else {
+        std::cout << "UNREACHABLE Emitter::visit_constructor_call_expr";
+    }
     constructor_call_expr->set_ref(*equivalent_constructor);
     constructor_call_expr->set_type((*equivalent_constructor)->get_type());
     return;
@@ -1336,6 +1380,46 @@ auto Verifier::visit_size_of_expr(std::shared_ptr<SizeOfExpr> size_of_expr) -> v
     return;
 }
 
+auto Verifier::visit_import_expr(std::shared_ptr<ImportExpr> import_expr) -> void {
+    auto alias_s = import_expr->get_alias_name();
+    // Check if alias exists
+    auto module = current_module_->get_module_from_alias(alias_s);
+
+    if (!module) {
+        // Check if an enum exists with that name
+        auto potential_enum = current_module_->get_enum(alias_s);
+        auto is_var_expr = std::dynamic_pointer_cast<VarExpr>(import_expr->get_expr());
+        if (potential_enum.has_value() and is_var_expr) {
+            auto enum_access_expr = std::make_shared<EnumAccessExpr>(import_expr->pos(),
+                                                                     potential_enum.value()->get_ident(),
+                                                                     is_var_expr->get_name());
+            enum_access_expr->visit(shared_from_this());
+            if (updated_expr_) {
+                import_expr->set_expr(updated_expr_);
+            }
+            updated_expr_ = enum_access_expr;
+        }
+        else {
+            auto error = "module '" + alias_s + "'";
+            handler_->report_error(current_filename_, all_errors_[38], error, import_expr->pos());
+            import_expr->set_type(handler_->ERROR_TYPE);
+        }
+        return;
+    }
+
+    curr_module_access_ = *module;
+    curr_module_alias_ = alias_s;
+    import_expr->set_module_ref(*module);
+    import_expr->get_expr()->visit(shared_from_this());
+    if (updated_expr_) {
+        import_expr->set_expr(updated_expr_);
+        updated_expr_ = nullptr;
+    }
+    curr_module_access_ = nullptr;
+
+    return;
+}
+
 auto Verifier::visit_empty_stmt(std::shared_ptr<EmptyStmt> empty_stmt) -> void {
     (void)empty_stmt;
     return;
@@ -1582,7 +1666,8 @@ auto Verifier::check(std::string const& filename, bool is_main) -> void {
         }
         else {
             // Time to do all the work with it
-            check(import, false);
+            auto new_verifier = std::make_shared<Verifier>(handler_, modules_);
+            new_verifier->check(import, false);
             current_module_->add_imported_module(import, modules_->get_module_from_filepath(import));
         }
     }
@@ -1903,12 +1988,14 @@ auto Verifier::unmurk_direct(std::shared_ptr<MurkyType> murky_t) -> std::shared_
 
     for (auto& enum_ : current_module_->get_enums()) {
         if (enum_->get_ident() == lex) {
+            enum_->set_used();
             return std::make_shared<EnumType>(enum_);
         }
     }
 
     for (auto& class_ : current_module_->get_classes()) {
         if (class_->get_ident() == lex) {
+            class_->set_used();
             return std::make_shared<ClassType>(class_);
         }
     }

@@ -59,8 +59,9 @@ class Module {
         return imported_files;
     }
 
-    auto add_imported_filepath(std::string const& filepath) -> void {
+    auto add_imported_filepath(std::string const& alias, std::string const& filepath) -> void {
         imported_files.push_back(filepath);
+        alias_import_to_path[alias] = filepath;
     }
 
     auto class_with_name_exists(std::string const& name) const -> bool {
@@ -80,6 +81,24 @@ class Module {
         });
     }
 
+    auto get_module_from_alias(std::string const& alias) const -> std::optional<std::shared_ptr<Module>> {
+        auto it = alias_import_to_path.find(alias);
+        if (it != alias_import_to_path.end()) {
+            return get_module_from_filepath(it->second);
+        }
+        return std::nullopt;
+    }
+
+    auto get_module_from_filepath(std::string const& filepath) const -> std::optional<std::shared_ptr<Module>> {
+        for (const auto& module : imported_modules) {
+            if (module.second->get_filepath() == filepath) {
+                return module.second;
+            }
+        }
+        return std::nullopt;
+    }
+
+    // name is the filepath
     auto add_imported_module(std::string const& name, std::shared_ptr<Module> module) -> void {
         imported_modules[name] = module;
     }
@@ -97,6 +116,7 @@ class Module {
     std::vector<std::shared_ptr<EnumDecl>> enums_ = {};
     std::vector<std::shared_ptr<ClassDecl>> classes_ = {};
 
+    std::map<std::string, std::string> alias_import_to_path = {};
     std::vector<std::string> imported_files = {};
     std::map<std::string, std::shared_ptr<Module>> imported_modules = {};
 };

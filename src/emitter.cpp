@@ -13,43 +13,60 @@
 #include <iostream>
 
 auto Emitter::emit() -> void {
-    for (auto& global : main_module_->get_global_vars()) {
-        if (!global->codegen(shared_from_this())) {
-            std::cerr << "LLVM failed to generate extern\n";
-            exit(EXIT_FAILURE);
+    // Forward declaring everything necessary
+    for (auto& module : modules_->get_modules()) {
+        for (auto& global : module->get_global_vars()) {
+            if (global->is_used()) {
+                if (!global->codegen(shared_from_this())) {
+                    std::cerr << "LLVM failed to generate extern\n";
+                    exit(EXIT_FAILURE);
+                }
+            }
+        }
+
+        for (auto& extern_ : module->get_externs()) {
+            if (extern_->is_used()) {
+                if (!extern_->codegen(shared_from_this())) {
+                    std::cerr << "LLVM failed to generate extern\n";
+                    exit(EXIT_FAILURE);
+                }
+            }
+        }
+
+        for (auto& function : module->get_functions()) {
+            if (function->is_used() or function->get_ident() == "main") {
+                forward_declare_func(function);
+            }
+        }
+
+        for (auto& class_ : main_module_->get_classes()) {
+            if (class_->is_used()) {
+                curr_class_ = class_;
+                for (auto& method : class_->get_methods()) {
+                    // Inadvertantly the types as well
+                    forward_declare_method(method);
+                }
+                for (auto& constructor : class_->get_constructors()) {
+                    forward_declare_constructor(constructor);
+                }
+            }
         }
     }
 
-    for (auto& extern_ : main_module_->get_externs()) {
-        if (!extern_->codegen(shared_from_this())) {
-            std::cerr << "LLVM failed to generate extern\n";
-            exit(EXIT_FAILURE);
+    for (auto& module : modules_->get_modules()) {
+        for (auto& function : module->get_functions()) {
+            if (function->is_used() or function->get_ident() == "main") {
+                if (!function->codegen(shared_from_this())) {
+                    std::cerr << "LLVM failed to generate function\n";
+                    exit(EXIT_FAILURE);
+                }
+            }
         }
-    }
-
-    // Forward declare them all first
-    for (auto& function : main_module_->get_functions()) {
-        forward_declare_func(function);
-    }
-    for (auto& class_ : main_module_->get_classes()) {
-        curr_class_ = class_;
-        for (auto& method : class_->get_methods()) {
-            // Inadvertantly the types as well
-            forward_declare_method(method);
+        for (auto& class_ : module->get_classes()) {
+            if (class_->is_used()) {
+                class_->codegen(shared_from_this());
+            }
         }
-        for (auto& constructor : class_->get_constructors()) {
-            forward_declare_constructor(constructor);
-        }
-    }
-
-    for (auto& function : main_module_->get_functions()) {
-        if (!function->codegen(shared_from_this())) {
-            std::cerr << "LLVM failed to generate function\n";
-            exit(EXIT_FAILURE);
-        }
-    }
-    for (auto& class_ : main_module_->get_classes()) {
-        class_->codegen(shared_from_this());
     }
 
     if (handler_->llvm_mode()) {

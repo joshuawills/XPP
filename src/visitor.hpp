@@ -31,6 +31,7 @@ class ArrayIndexExpr;
 class EnumAccessExpr;
 class FieldAccessExpr;
 class MethodAccessExpr;
+class ImportExpr;
 class SizeOfExpr;
 class EmptyStmt;
 class CompoundStmt;
@@ -77,6 +78,7 @@ class Visitor {
     virtual auto visit_field_access_expr(std::shared_ptr<FieldAccessExpr> field_access_expr) -> void = 0;
     virtual auto visit_method_access_expr(std::shared_ptr<MethodAccessExpr> method_access_expr) -> void = 0;
     virtual auto visit_size_of_expr(std::shared_ptr<SizeOfExpr> size_of_expr) -> void = 0;
+    virtual auto visit_import_expr(std::shared_ptr<ImportExpr> import_expr) -> void = 0;
 
     virtual auto visit_empty_stmt(std::shared_ptr<EmptyStmt> empty_stmt) -> void = 0;
     virtual auto visit_compound_stmt(std::shared_ptr<CompoundStmt> compound_stmt) -> void = 0;

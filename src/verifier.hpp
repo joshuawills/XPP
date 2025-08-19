@@ -81,6 +81,7 @@ class Verifier
     auto visit_field_access_expr(std::shared_ptr<FieldAccessExpr> field_access_expr) -> void override;
     auto visit_method_access_expr(std::shared_ptr<MethodAccessExpr> method_access_expr) -> void override;
     auto visit_size_of_expr(std::shared_ptr<SizeOfExpr> size_of_expr) -> void override;
+    auto visit_import_expr(std::shared_ptr<ImportExpr> import_expr) -> void override;
 
     auto visit_empty_stmt(std::shared_ptr<EmptyStmt> empty_stmt) -> void override;
     auto visit_compound_stmt(std::shared_ptr<CompoundStmt> compound_stmt) -> void override;
@@ -99,6 +100,9 @@ class Verifier
     std::optional<std::shared_ptr<Type>> current_numerical_type = std::nullopt;
     Position unmurk_pos;
     std::shared_ptr<ClassDecl> curr_class = nullptr;
+    std::shared_ptr<Module> curr_module_access_ = nullptr;
+    std::string curr_module_alias_ = {};
+
     std::shared_ptr<Expr> updated_expr_ = nullptr;
     bool in_constructor_ = false;
     bool visiting_lhs_of_assignment_ = false;
@@ -159,7 +163,7 @@ class Verifier
                                                   "integer: %",
                                                   "36: duplicate type declarations: %",
                                                   "37: enum declared with no fields",
-                                                  "38: no such enum exists: %",
+                                                  "38: no such enum or import alias exists: %",
                                                   "39: no such field present on enum: %",
                                                   "40: enum declared with duplicate fields: %",
                                                   "41: unused enum: %",
@@ -196,7 +200,8 @@ class Verifier
                                                   "70: loop lower bound must be of type i64: %",
                                                   "71: loop upper bound must be of type i64: %",
                                                   "72: 'break' must be in a loop construct",
-                                                  "73: 'continue' must be in a loop construct"};
+                                                  "73: 'continue' must be in a loop construct",
+                                                  "74: cannot access private function via import access: %"};
 
     auto check_duplicate_function_declaration() -> void;
     auto check_duplicate_method_declaration(std::shared_ptr<ClassDecl>& class_decl) -> void;

@@ -116,7 +116,7 @@ class BinaryExpr
 : public Expr
 , public std::enable_shared_from_this<BinaryExpr> {
  public:
-    BinaryExpr(Position const pos, std::shared_ptr<Expr> const left, Op const op, std::shared_ptr<Expr> const right)
+    BinaryExpr(Position const pos, std::shared_ptr<Expr> left, Op const op, std::shared_ptr<Expr> right)
     : Expr(pos, std::make_shared<Type>())
     , left_(left)
     , op_(op)
@@ -130,6 +130,13 @@ class BinaryExpr
     }
     auto get_operator() const -> Op {
         return op_;
+    }
+
+    auto set_l_expr(std::shared_ptr<Expr> expr) -> void {
+        left_ = expr;
+    }
+    auto set_r_expr(std::shared_ptr<Expr> expr) -> void {
+        right_ = expr;
     }
 
     auto set_pointer_arithmetic() -> void {
@@ -147,9 +154,9 @@ class BinaryExpr
     auto print(std::ostream& os) const -> void override;
 
  private:
-    std::shared_ptr<Expr> const left_;
+    std::shared_ptr<Expr> left_;
     Op const op_;
-    std::shared_ptr<Expr> const right_;
+    std::shared_ptr<Expr> right_;
     bool is_pointer_arithmetic_ = false;
 
     auto handle_logical_or(std::shared_ptr<Emitter> emitter) -> llvm::Value*;
@@ -752,6 +759,43 @@ class SizeOfExpr
     std::shared_ptr<Type> type_to_size_ = nullptr;
     std::shared_ptr<Expr> expr_to_size_ = nullptr;
     bool is_type_ = false;
+};
+
+class ImportExpr
+: public Expr
+, public std::enable_shared_from_this<ImportExpr> {
+ public:
+    ImportExpr(Position const pos, std::shared_ptr<Expr> expr, std::string const& alias_name)
+    : Expr(pos, std::make_shared<Type>())
+    , expr_(expr)
+    , alias_name_(alias_name) {}
+
+    auto set_module_ref(std::shared_ptr<Module> module_ref) -> void {
+        module_ref_ = module_ref;
+    }
+    auto get_module_ref() const -> std::shared_ptr<Module> {
+        return module_ref_;
+    }
+    auto set_expr(std::shared_ptr<Expr> expr) -> void {
+        expr_ = expr;
+    }
+    auto get_expr() const -> std::shared_ptr<Expr> {
+        return expr_;
+    }
+    auto get_alias_name() const -> std::string {
+        return alias_name_;
+    }
+
+    auto visit(std::shared_ptr<Visitor> visitor) -> void override {
+        visitor->visit_import_expr(shared_from_this());
+    }
+    auto codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* override;
+    auto print(std::ostream& os) const -> void override;
+
+ private:
+    std::shared_ptr<Expr> expr_;
+    std::string alias_name_;
+    std::shared_ptr<Module> module_ref_ = nullptr;
 };
 
 #endif // EXPR_HPP

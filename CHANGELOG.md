@@ -67,6 +67,7 @@
 ## 19 Aug 2025
 
 - FEAT: starting work on modules
+- FEAT: call public methods from other modules
 
 ## TODO
 
