@@ -1,0 +1,22 @@
+// Attempting to call private constructor
+
+extern printf(i8*, ...) i32;
+
+class IntBox {
+    pub x: i64;
+
+    pub IntBox() {
+        IntBox(21);
+    }
+
+    IntBox(x_: i64) {
+        x = x_;
+    }
+}
+
+fn main() void {
+    let valid = IntBox();
+    printf("%d\n", valid.x);
+
+    let invalid = IntBox(21);
+}

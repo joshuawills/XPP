@@ -39,6 +39,7 @@ class Emitter : public std::enable_shared_from_this<Emitter> {
 
     auto emit() -> void;
 
+    bool instantiating_constructor_ = false;
     size_t global_counter = 0;
     llvm::BasicBlock* true_bottom = {};
     llvm::AllocaInst* alloca = nullptr;

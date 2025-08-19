@@ -1,0 +1,10 @@
+// Cannot access privte class via import access
+
+import "foo" as foo;
+
+fn main() void {
+	let private = foo::PrivateClass(21);
+
+	let public = foo::PublicClass(21);
+	let public_private_constructor = foo::PublicClass();
+}

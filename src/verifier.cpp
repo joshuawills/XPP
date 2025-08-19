@@ -935,6 +935,14 @@ auto Verifier::visit_var_expr(std::shared_ptr<VarExpr> var_expr) -> void {
 auto Verifier::visit_call_expr(std::shared_ptr<CallExpr> call_expr) -> void {
     auto const function_name = call_expr->get_name();
 
+    if (curr_module_access_ and curr_module_access_->class_with_name_exists(function_name)) {
+        auto constructor_call_expr =
+            std::make_shared<ConstructorCallExpr>(call_expr->pos(), function_name, call_expr->get_args());
+        constructor_call_expr->visit(shared_from_this());
+        updated_expr_ = constructor_call_expr;
+        return;
+    }
+
     if (current_module_->class_with_name_exists(function_name)) {
         auto constructor_call_expr =
             std::make_shared<ConstructorCallExpr>(call_expr->pos(), function_name, call_expr->get_args());
@@ -1023,7 +1031,13 @@ auto Verifier::visit_constructor_call_expr(std::shared_ptr<ConstructorCallExpr> 
         arg->visit(shared_from_this());
     }
 
-    auto equivalent_constructor = current_module_->get_constructor_decl(constructor_call_expr);
+    std::optional<std::shared_ptr<ConstructorDecl>> equivalent_constructor;
+    if (curr_module_access_) {
+        equivalent_constructor = curr_module_access_->get_constructor_decl(constructor_call_expr);
+    }
+    else {
+        equivalent_constructor = current_module_->get_constructor_decl(constructor_call_expr);
+    }
     if (!equivalent_constructor) {
         handler_->report_error(current_filename_,
                                all_errors_[59],
@@ -1031,6 +1045,10 @@ auto Verifier::visit_constructor_call_expr(std::shared_ptr<ConstructorCallExpr> 
                                p);
         constructor_call_expr->set_type(handler_->ERROR_TYPE);
         return;
+    }
+
+    if (!(*equivalent_constructor)->is_pub() and !in_constructor_) {
+        handler_->report_error(current_filename_, all_errors_[76], "", constructor_call_expr->pos());
     }
 
     auto paras = (*equivalent_constructor)->get_paras();
@@ -1047,6 +1065,10 @@ auto Verifier::visit_constructor_call_expr(std::shared_ptr<ConstructorCallExpr> 
     (*equivalent_constructor)->set_used();
     auto class_ref = std::dynamic_pointer_cast<ClassType>((*equivalent_constructor)->get_type());
     if (class_ref) {
+        if (curr_module_access_ and !class_ref->get_ref()->is_pub()) {
+            auto error = "class '" + class_ref->get_ref()->get_ident() + "' is not accessible outside of its module";
+            handler_->report_error(current_filename_, all_errors_[75], error, constructor_call_expr->pos());
+        }
         class_ref->get_ref()->set_used();
     }
     else {
@@ -1416,6 +1438,8 @@ auto Verifier::visit_import_expr(std::shared_ptr<ImportExpr> import_expr) -> voi
         updated_expr_ = nullptr;
     }
     curr_module_access_ = nullptr;
+
+    updated_expr_ = import_expr->get_expr();
 
     return;
 }

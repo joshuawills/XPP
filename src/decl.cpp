@@ -140,6 +140,7 @@ auto MethodDecl::print(std::ostream& os) const -> void {
 }
 
 auto ConstructorDecl::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
+    emitter->instantiating_constructor_ = true;
     auto name = "constructor." + ident_ + get_type_output();
     auto constructor = emitter->llvm_module->getFunction(name);
 
@@ -167,6 +168,7 @@ auto ConstructorDecl::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* 
     stmts_->codegen(emitter);
 
     emitter->llvm_builder->CreateRetVoid();
+    emitter->instantiating_constructor_ = false;
     return constructor;
 }
 

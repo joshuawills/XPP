@@ -98,6 +98,7 @@ class Verifier
     auto check(std::string const& filename, bool is_main) -> void;
 
     std::optional<std::shared_ptr<Type>> current_numerical_type = std::nullopt;
+    bool in_constructor_decl_ = false;
     Position unmurk_pos;
     std::shared_ptr<ClassDecl> curr_class = nullptr;
     std::shared_ptr<Module> curr_module_access_ = nullptr;
@@ -201,7 +202,9 @@ class Verifier
                                                   "71: loop upper bound must be of type i64: %",
                                                   "72: 'break' must be in a loop construct",
                                                   "73: 'continue' must be in a loop construct",
-                                                  "74: cannot access private function via import access: %"};
+                                                  "74: cannot access private function via import access: %",
+                                                  "75: cannot access private class via import access: %",
+                                                  "76: cannot call private constructor out of class scope"};
 
     auto check_duplicate_function_declaration() -> void;
     auto check_duplicate_method_declaration(std::shared_ptr<ClassDecl>& class_decl) -> void;

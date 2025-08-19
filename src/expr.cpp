@@ -599,7 +599,18 @@ auto ConstructorCallExpr::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Val
     auto callee = emitter->llvm_module->getFunction(name);
 
     llvm::AllocaInst* class_ptr;
-    if (emitter->alloca) {
+    if (emitter->instantiating_constructor_) {
+        auto val = emitter->llvm_builder->CreateLoad(emitter->llvm_type(get_type()), emitter->named_values["this"]);
+        auto arg_vals = std::vector<llvm::Value*>{};
+        arg_vals.push_back(val);
+        for (auto& arg : args_) {
+            auto const val = arg->codegen(emitter);
+            arg_vals.push_back(val);
+        }
+        emitter->llvm_builder->CreateCall(callee, arg_vals);
+        return nullptr;
+    }
+    else if (emitter->alloca) {
         class_ptr = emitter->alloca;
     }
     else {

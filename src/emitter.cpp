@@ -39,7 +39,7 @@ auto Emitter::emit() -> void {
             }
         }
 
-        for (auto& class_ : main_module_->get_classes()) {
+        for (auto& class_ : module->get_classes()) {
             if (class_->is_used()) {
                 curr_class_ = class_;
                 for (auto& method : class_->get_methods()) {
@@ -144,7 +144,8 @@ auto Emitter::llvm_type(std::shared_ptr<Type> t) -> llvm::Type* {
             return lookup;
         }
         else {
-            std::cout << "UNREACHABLE Emitter::llvm_type: " << *t << "\n";
+            std::cout << "UNREACHABLE Emitter::llvm_type 1: " << *t << "\n";
+            return nullptr;
         }
     }
 
