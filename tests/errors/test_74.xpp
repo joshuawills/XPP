@@ -5,4 +5,6 @@ import "foo" as foo;
 fn main() void {
 	let val = foo::get_one();
 	let val2 = foo::get_two();
+
+    foo::printf("hi!");
 }

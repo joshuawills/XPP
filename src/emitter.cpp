@@ -32,13 +32,9 @@ auto Emitter::emit() -> void {
                 }
             }
         }
+    }
 
-        for (auto& function : module->get_functions()) {
-            if (function->is_used() or function->get_ident() == "main") {
-                forward_declare_func(function);
-            }
-        }
-
+    for (auto& module : modules_->get_modules()) {
         for (auto& class_ : module->get_classes()) {
             if (class_->is_used()) {
                 curr_class_ = class_;
@@ -49,6 +45,14 @@ auto Emitter::emit() -> void {
                 for (auto& constructor : class_->get_constructors()) {
                     forward_declare_constructor(constructor);
                 }
+            }
+        }
+    }
+
+    for (auto& module : modules_->get_modules()) {
+        for (auto& function : module->get_functions()) {
+            if (function->is_used() or function->get_ident() == "main") {
+                forward_declare_func(function);
             }
         }
     }

@@ -8,7 +8,7 @@ extern realloc(void*, i64) void*;
 
 let SECTION_SIZE: i64 = 100;
 
-class IntList {
+pub class IntList {
 	mut arr: i64*;
 	mut len: i64;
 	mut section_size: i64;
@@ -40,6 +40,10 @@ class IntList {
 
 }
 
+fn take_in_int_list(x: IntList) void {
+	x.print();
+}
+
 fn main() void {
     let mut list = IntList();
 
@@ -47,7 +51,7 @@ fn main() void {
         list.append(i);
     }
 
-    list.print();
+    take_in_int_list(list);
 
     list.free();
 

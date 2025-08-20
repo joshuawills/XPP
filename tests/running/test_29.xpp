@@ -1,0 +1,17 @@
+// Accesing int list via import
+
+import "test_21" as list;
+
+fn take_in_int_list(a: list::IntList) void {
+	a.print();
+}
+
+fn main() void {
+	let mut y = list::IntList();
+	y.append(1);
+	y.append(-5);
+	y.append(19);
+	take_in_int_list(y);
+	y.free();
+}
+

@@ -571,7 +571,10 @@ auto CallExpr::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
 
     auto arg_vals = std::vector<llvm::Value*>{};
     for (auto& arg : args_) {
-        auto const val = arg->codegen(emitter);
+        auto val = arg->codegen(emitter);
+        if (arg->get_type()->is_class() and std::dynamic_pointer_cast<VarExpr>(arg)) {
+            val = emitter->llvm_builder->CreateLoad(emitter->llvm_type(arg->get_type()), val);
+        }
         arg_vals.push_back(val);
     }
     return emitter->llvm_builder->CreateCall(callee, arg_vals);

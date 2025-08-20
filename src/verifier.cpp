@@ -903,7 +903,7 @@ auto Verifier::visit_var_expr(std::shared_ptr<VarExpr> var_expr) -> void {
     std::shared_ptr<Decl> d;
     auto entry = symbol_table_.retrieve(n);
 
-    if (curr_module_access_) {
+    if (!entry.has_value() and curr_module_access_) {
         // Checking for global var
         auto found = false;
         for (auto& global_var : curr_module_access_->get_global_vars()) {
@@ -1016,8 +1016,16 @@ auto Verifier::visit_call_expr(std::shared_ptr<CallExpr> call_expr) -> void {
             return;
         }
 
+        auto is_extern = std::dynamic_pointer_cast<Extern>(*equivalent_func);
         if (!(*equivalent_func)->is_pub()) {
-            auto error = "function '" + function_name + "' is private";
+            auto error = std::string{};
+            if (is_extern) {
+                error += "extern";
+            }
+            else {
+                error += "function";
+            }
+            error += " '" + function_name + "' is private";
             handler_->report_error(current_filename_, all_errors_[74], error, call_expr->pos());
             call_expr->set_type(handler_->ERROR_TYPE);
             return;

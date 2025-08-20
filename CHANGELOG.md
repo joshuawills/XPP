@@ -72,6 +72,11 @@
 - FEAT: access global vars from other modules
 - FEAT specify import types and enum accesses
 
+## 20 Aug 2025
+
+- FEAT: accessing imported externs
+- FIX: bugs re. passing classes as functions
+
 ## TODO
 
 - Add in for loops 

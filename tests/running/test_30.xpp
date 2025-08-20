@@ -1,0 +1,8 @@
+// Accessing imported externs
+
+import "foo" as foo;
+
+fn main() void {
+	foo::printf("hello world!\n");
+	return;
+}
