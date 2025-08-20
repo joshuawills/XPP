@@ -19,6 +19,14 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y cmake make clang diffutils grep sed coreutils findutils
 
+      - name: Compile the program
+        run: \
+          mkdir -p build
+          cd build
+          cmake ..
+          make
+          cd ..
+
       - name: Make tests.sh executable
         run: chmod +x ./tests.sh
 
