@@ -4,3 +4,6 @@ gen_err_numbers.sh
 a.out
 example.xpp
 .vscode/
+website/mydocs/publish/
+website/mydocs/public/
+	
