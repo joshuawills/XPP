@@ -1,5 +1,5 @@
 ---
-title: "Grammar"
+title: "Grammar for X++"
 weight: 1
 ---
 

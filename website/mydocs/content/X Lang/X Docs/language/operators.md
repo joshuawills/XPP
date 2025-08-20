@@ -4,7 +4,7 @@ weight: 1
 ---
 
 X supports all standard mathematical operators a language like C has. For a formal understanding of operator
-precedence, check out the [grammar page](/docs/grammar), but it can be summarised as below. All expressions are left-associative.
+precedence, check out the [grammar page](/X Docs/grammar), but it can be summarised as below. All expressions are left-associative.
 
 1. 
     - unary negation and positive (*-* and *+*) for integers
