@@ -1,0 +1,191 @@
+{
+   "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+   "name": "x",
+   "patterns": [
+     {
+       "include": "#comments"
+     },
+     {
+       "include": "#keywords"
+     },
+     {
+       "include": "#libraries"
+     },
+     {
+       "include": "#datatypes"
+     },
+     {
+       "include": "#operators"
+     },
+     {
+       "include": "#literal"
+     },
+     {
+       "include": "#strings"
+     },
+     {
+       "include": "#numbers"
+     },
+     {
+       "include": "#characters"
+     },
+     {
+       "include": "#functions"
+     }
+   ],
+   "repository": {
+     "libraries": {
+       "patterns": [
+         {
+           "match": "([a-zA-Z_]+)(::)([_a-zA-Z0-9]+)",
+           "captures": {
+             "1": {
+               "name": "entity.name.function.preprocessor.xpp"
+             },
+             "2": {
+               "name": "keyword.operator.logical.xpp"
+             },
+             "3": {
+               "name": "support.type.property-name.less.xpp"
+             }
+           }
+         }
+       ]
+     },
+     "operators": {
+       "patterns": [
+         {
+           "match": "&&|!|\\|\\|",
+           "name": "keyword.operator.logical.xpp"
+         },
+         {
+           "match": "=",
+           "name": "keyword.operator.assignment.xpp"
+         },
+         {
+           "match": "!=|<=|>=|==|<|>",
+           "name": "keyword.operator.comparison.xpp"
+         },
+         {
+           "match": "%=|\\+=|-=|\\*=|(?<!\\()/=",
+           "name": "keyword.operator.assignment.compound.xpp"
+         }
+       ]
+     },
+     "literal": {
+       "patterns": [
+         {
+           "name": "constant.language.xpp",
+           "match": "\\b(false|true)\\b"
+         }
+       ]
+     },
+     "comments": {
+       "patterns": [
+         {
+           "begin": "//",
+           "end": "$",
+           "name": "comment.line.xpp"
+         },
+         {
+           "begin": "/\\*",
+           "end": "\\*/",
+           "name": "comment.block.xpp"
+         }
+       ]
+     },
+     "datatypes": {
+       "patterns": [
+         {
+           "name": "entity.name.type",
+           "match": "\\b(void|i8|i32|i64|u8|u32|u64|f32|f64|bool)\\b\\s*(\\*\\s*)*"
+         },
+         {
+            "match": "\\b:\\s*(\\w+\\b(\\s*\\*\\s*)*)",
+            "captures": {
+              "1": {
+                "name": "keyword.operator.assignment.xpp"
+              },
+              "2": {
+                "name": "entity.name.type"
+              }
+            }
+         },
+         {
+            "match": "\\b(class|enum)\\s+(_?[A-Z][A-Za-z0-9_]*)\\b",
+            "captures": {
+              "1": {
+                "name": "keyword.declaration.xpp"
+              },
+              "2": {
+                "name": "entity.name.type"
+              }
+            }
+         }
+       ]
+     },
+     "keywords": {
+       "patterns": [
+         {
+           "name": "storage.modifier",
+           "match": "mut"
+         },
+         {
+           "name": "keyword.other.xpp",
+           "match": "\\b(if|else if|else|while|in|loop|do|for|return|fn|let|enum|as|pub|extern|import)\\b"
+         },
+         {
+           "name": "keyword.control.xpp",
+           "match": "\\b(break|continue)\\b"
+         }
+       ]
+     },
+     "strings": {
+       "name": "string.quoted.double.xpp",
+       "begin": "\"",
+       "end": "\"",
+       "patterns": [
+         {
+           "name": "constant.character.escape.xpp",
+           "match": "\\\\."
+         }
+       ]
+     },
+     "numbers": {
+       "patterns": [
+         {
+           "name": "constant.numeric.integer.xpp",
+           "match": "\\b\\d+\\b"
+         },
+         {
+           "name": "constant.numeric.float.xpp",
+           "match": "\\b\\d+\\.\\d+\\b"
+         }
+       ]
+     },
+     "characters": {
+       "patterns": [
+         {
+           "name": "constant.character.xpp",
+           "begin": "'",
+           "end": "'",
+           "patterns": [
+             {
+               "name": "constant.character.escape.xpp",
+               "match": "\\\\."
+             }
+           ]
+         }
+       ]
+     },
+     "functions": {
+       "patterns": [
+         {
+           "match": "\\b([a-zA-Z_][a-zA-Z0-9_]*)\\s*(?=\\()",
+           "name": "entity.name.function.xpp"
+         }
+       ]
+     }
+   },
+   "scopeName": "source.xpp"
+ }

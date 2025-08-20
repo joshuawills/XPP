@@ -1,0 +1,36 @@
+{
+  "name": "xpp",
+  "displayName": "XPP",
+  "description": "X++ Programming Language",
+  "publisher": "A",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.81.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "contributes": {
+    "languages": [{
+      "id": "x",
+      "aliases": ["XPP Programming Language"],
+      "extensions": [".xpp"],
+      "configuration": "./language-configuration.json"
+    }],
+    "grammars": [{
+      "language": "xpp",
+      "scopeName": "source.xpp",
+      "path": "./syntaxes/xpp.tmLanguage.json"
+    }],
+    "iconThemes": [
+      {
+         "id": "id-theme-icon",
+         "label": "XPP Icon",
+         "path": "./icons/XPP-Logo.json"
+      }
+    ],
+    "activationEvents": [
+      "onLanguage:xpp"
+    ]
+  }
+}

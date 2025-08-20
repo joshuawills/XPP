@@ -1,0 +1,14 @@
+{
+   "iconDefinitions": {
+     "file-icon": {
+       "iconPath": "./XPP-Logo.png"
+     }
+   },
+   "fileExtensions": {
+     "xpp": "file-icon"
+   },
+   "languageIds": {
+     "yourLanguageId": "file-icon"
+   }
+ }
+ 
