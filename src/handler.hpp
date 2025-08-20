@@ -5,6 +5,7 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <filesystem>
 
 #include "./token.hpp"
 #include "./type.hpp"
@@ -74,7 +75,7 @@ class Handler {
     static const std::shared_ptr<Type> BOOL_TYPE;
 
     size_t num_errors_ = 0;
-    std::string stdlib_path = "/home/joshuawills/X++/lib";
+    std::string stdlib_path = (std::filesystem::current_path() / "lib").string();
 
  private:
     std::map<std::string, std::shared_ptr<std::string>> filename_to_contents_ = {};
