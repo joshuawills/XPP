@@ -1294,7 +1294,23 @@ auto Verifier::visit_field_access_expr(std::shared_ptr<FieldAccessExpr> field_ac
         updated_expr_ = nullptr;
     }
 
-    auto class_type = std::dynamic_pointer_cast<ClassType>(field_access_expr->get_class_instance()->get_type());
+    std::shared_ptr<ClassType> class_type;
+    if (field_access_expr->is_arrow()) {
+        if (!field_access_expr->get_class_instance()->get_type()->is_pointer()) {
+            auto error = std::stringstream{};
+            error << "received type " << *field_access_expr->get_class_instance()->get_type()
+                  << " instead of a pointer type";
+            handler_->report_error(current_filename_, all_errors_[79], error.str(), field_access_expr->pos());
+            field_access_expr->set_type(handler_->ERROR_TYPE);
+            return;
+        }
+        auto pointer_type = std::dynamic_pointer_cast<PointerType>(field_access_expr->get_class_instance()->get_type());
+        class_type = std::dynamic_pointer_cast<ClassType>(pointer_type->get_sub_type());
+    }
+    else {
+        class_type = std::dynamic_pointer_cast<ClassType>(field_access_expr->get_class_instance()->get_type());
+    }
+
     if (!class_type) {
         auto error = std::stringstream{};
         error << "received type " << *field_access_expr->get_class_instance()->get_type();
@@ -1338,7 +1354,24 @@ auto Verifier::visit_method_access_expr(std::shared_ptr<MethodAccessExpr> method
         updated_expr_ = nullptr;
     }
 
-    if (!method_access_expr->get_class_instance()->get_type()->is_class()) {
+    std::shared_ptr<ClassType> class_type;
+    if (method_access_expr->is_arrow()) {
+        if (!method_access_expr->get_class_instance()->get_type()->is_pointer()) {
+            auto error = std::stringstream{};
+            error << "received type " << *method_access_expr->get_class_instance()->get_type()
+                  << " instead of a pointer type";
+            handler_->report_error(current_filename_, all_errors_[79], error.str(), method_access_expr->pos());
+            method_access_expr->set_type(handler_->ERROR_TYPE);
+            return;
+        }
+        auto pointer_type = std::dynamic_pointer_cast<PointerType>(method_access_expr->get_class_instance()->get_type());
+        class_type = std::dynamic_pointer_cast<ClassType>(pointer_type->get_sub_type());
+    }
+    else {
+        class_type = std::dynamic_pointer_cast<ClassType>(method_access_expr->get_class_instance()->get_type());
+    }
+
+    if (!class_type) {
         auto error = std::stringstream{};
         error << "received type " << *method_access_expr->get_class_instance()->get_type();
         handler_->report_error(current_filename_, all_errors_[64], error.str(), method_access_expr->pos());
@@ -1346,7 +1379,6 @@ auto Verifier::visit_method_access_expr(std::shared_ptr<MethodAccessExpr> method
         return;
     }
 
-    auto class_type = std::dynamic_pointer_cast<ClassType>(method_access_expr->get_class_instance()->get_type());
     auto class_ref = class_type->get_ref();
 
     if (!class_ref->method_exists(n)) {

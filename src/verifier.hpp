@@ -206,7 +206,8 @@ class Verifier
                                                   "75: cannot access private class via import access: %",
                                                   "76: cannot call private constructor out of class scope",
                                                   "77: cannot access private global var via import access: %",
-                                                  "78: no such global var in specified module: %"};
+                                                  "78: no such global var in specified module: %",
+                                                  "79: attempting to dereference a non pointer class type: %"};
 
     auto check_duplicate_function_declaration() -> void;
     auto check_duplicate_method_declaration(std::shared_ptr<ClassDecl>& class_decl) -> void;

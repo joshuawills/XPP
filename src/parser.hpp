@@ -42,6 +42,7 @@ class Parser {
     auto parse_operator() -> Op;
     auto parse_ident() -> std::string;
     auto parse_type() -> std::shared_ptr<Type>;
+    auto parse_import_type() -> std::shared_ptr<Type>;
     auto parse_para_list() -> std::vector<std::shared_ptr<ParaDecl>>;
     auto parse_type_list() -> std::vector<std::shared_ptr<Type>>;
     auto parse_arg_list() -> std::vector<std::shared_ptr<Expr>>;

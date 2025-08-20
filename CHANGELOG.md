@@ -76,6 +76,7 @@
 
 - FEAT: accessing imported externs
 - FIX: bugs re. passing classes as functions
+- ADDITION: access class fields/methods via pointer '->'
 
 ## TODO
 

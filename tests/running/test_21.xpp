@@ -1,6 +1,6 @@
 // Simple array list class implementation
 
-extern printf(i8*, ...) i32;
+pub extern printf(i8*, ...) i32;
 extern malloc(i64) void*;
 extern calloc(i64, i64) void*;
 extern free(void*) void;
@@ -10,7 +10,7 @@ let SECTION_SIZE: i64 = 100;
 
 pub class IntList {
 	mut arr: i64*;
-	mut len: i64;
+	pub mut len: i64;
 	mut section_size: i64;
 	
 	pub IntList() {

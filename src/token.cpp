@@ -105,6 +105,7 @@ auto operator<<(std::ostream& os, TokenType const& t) -> std::ostream& {
     case TokenType::CONTINUE: os << "CONTINUE"; break;
     case TokenType::BREAK: os << "BREAK"; break;
     case TokenType::IMPORT: os << "IMPORT"; break;
+    case TokenType::ARROW: os << "ARROW"; break;
     default: os << "UNKNOWN";
     }
     return os;

@@ -1,0 +1,18 @@
+// Accesing class via pointer
+
+import "test_21" as list;
+
+extern printf(i8*, ...) i32;
+
+fn main() void {
+	let mut l = list::IntList();
+	let mut z = &l;
+	z->append(1);
+    l.append(2);
+    z->print();
+	l.print();
+    let a = z->len;
+    printf("%d\n", a);
+
+	l.free();
+}

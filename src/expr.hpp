@@ -613,10 +613,11 @@ class FieldAccessExpr
 : public Expr
 , public std::enable_shared_from_this<FieldAccessExpr> {
  public:
-    FieldAccessExpr(Position const pos, std::shared_ptr<Expr> class_instance, std::string const& field_name)
+    FieldAccessExpr(Position const pos, std::shared_ptr<Expr> class_instance, std::string const& field_name, bool is_arrow)
     : Expr(pos, std::make_shared<Type>())
     , class_instance_(class_instance)
-    , field_name_(field_name) {}
+    , field_name_(field_name)
+    , is_arrow_(is_arrow) {}
 
     auto visit(std::shared_ptr<Visitor> visitor) -> void override {
         visitor->visit_field_access_expr(shared_from_this());
@@ -660,11 +661,16 @@ class FieldAccessExpr
         return ref_;
     }
 
+    auto is_arrow() const -> bool {
+        return is_arrow_;
+    }
+
  private:
     std::shared_ptr<Expr> class_instance_;
     std::string const field_name_;
     std::shared_ptr<ClassDecl> class_ref_ = nullptr;
     std::shared_ptr<ClassFieldDecl> ref_ = nullptr;
+    bool is_arrow_ = false;
     int field_num_ = -1;
 };
 
@@ -675,11 +681,13 @@ class MethodAccessExpr
     MethodAccessExpr(Position const pos,
                      std::shared_ptr<Expr> class_instance,
                      std::string const& method_name,
-                     std::vector<std::shared_ptr<Expr>> args)
+                     std::vector<std::shared_ptr<Expr>> args,
+                     bool is_arrow)
     : Expr(pos, std::make_shared<Type>())
     , class_instance_(class_instance)
     , method_name_(method_name)
-    , args_(args) {}
+    , args_(args)
+    , is_arrow_(is_arrow) {}
 
     auto visit(std::shared_ptr<Visitor> visitor) -> void override {
         visitor->visit_method_access_expr(shared_from_this());
@@ -715,10 +723,15 @@ class MethodAccessExpr
         return ref_;
     }
 
+    auto is_arrow() const -> bool {
+        return is_arrow_;
+    }
+
  private:
     std::shared_ptr<Expr> class_instance_;
     std::string const method_name_;
     std::vector<std::shared_ptr<Expr>> args_;
+    bool is_arrow_ = false;
     std::shared_ptr<MethodDecl> ref_ = nullptr;
 };
 

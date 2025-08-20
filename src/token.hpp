@@ -75,7 +75,8 @@ enum class TokenType {
     IN,
     CONTINUE,
     BREAK,
-    IMPORT
+    IMPORT,
+    ARROW
 };
 
 class Token {

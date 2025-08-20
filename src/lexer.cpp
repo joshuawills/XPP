@@ -126,6 +126,10 @@ auto Lexer::generate_token() -> std::optional<Token> {
             consume();
             return Token{"--", line_, col_ - 2, col_ - 1, TokenType::MINUS_MINUS};
         }
+        else if (peek('>')) {
+            consume();
+            return Token{"->", line_, col_ - 2, col_ - 1, TokenType::ARROW};
+        }
         else if (peek('=')) {
             consume();
             return Token{"-=", line_, col_ - 2, col_ - 1, TokenType::MINUS_ASSIGN};

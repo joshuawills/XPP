@@ -293,6 +293,23 @@ auto Parser::parse_ident() -> std::string {
     return spelling;
 }
 
+auto Parser::parse_import_type() -> std::shared_ptr<Type> {
+    if (!curr_token_.has_value()) {
+        syntactic_error("TYPE expected, but found end of file", "");
+    }
+
+    auto const& curr_lexeme = (*curr_token_)->lexeme();
+    consume();
+
+    if (try_consume(TokenType::DOUBLE_COLON)) {
+        auto sub_type = parse_import_type();
+        return std::make_shared<ImportType>(curr_lexeme, sub_type);
+    }
+    else {
+        return std::make_shared<MurkyType>(curr_lexeme);
+    }
+}
+
 auto Parser::parse_type() -> std::shared_ptr<Type> {
     if (!curr_token_.has_value()) {
         syntactic_error("TYPE expected, but found end of file", "");
@@ -303,15 +320,14 @@ auto Parser::parse_type() -> std::shared_ptr<Type> {
 
     consume();
 
-    if (try_consume(TokenType::DOUBLE_COLON)) {
-        // Entered an import type
-        auto sub_type = parse_type();
-        return std::make_shared<ImportType>(curr_lexeme, sub_type);
-    }
-
     // Handle pointer/array types
     std::shared_ptr<Type> return_type;
-    if (type_spec == TypeSpec::MURKY) {
+    if (try_consume(TokenType::DOUBLE_COLON)) {
+        // Entered an import type
+        auto sub_type = parse_import_type();
+        return_type = std::make_shared<ImportType>(curr_lexeme, sub_type);
+    }
+    else if (type_spec == TypeSpec::MURKY) {
         return_type = std::make_shared<MurkyType>(curr_lexeme);
     }
     else {
@@ -784,17 +800,21 @@ auto Parser::parse_postfix_expr() -> std::shared_ptr<Expr> {
         finish(p);
         return std::make_shared<ImportExpr>(p, expr, import_name);
     }
-    else if (try_consume(TokenType::DOT)) {
+    else if (peek(TokenType::DOT) or peek(TokenType::ARROW)) {
+        auto is_arrow = try_consume(TokenType::ARROW);
+        if (!is_arrow) {
+            match(TokenType::DOT);
+        }
         auto field_name = parse_ident();
         if (!peek(TokenType::OPEN_BRACKET)) {
             finish(p);
-            return std::make_shared<FieldAccessExpr>(p, p_expr, field_name);
+            return std::make_shared<FieldAccessExpr>(p, p_expr, field_name, is_arrow);
         }
         else {
             match(TokenType::OPEN_BRACKET);
             auto args = parse_arg_list();
             finish(p);
-            return std::make_shared<MethodAccessExpr>(p, p_expr, field_name, args);
+            return std::make_shared<MethodAccessExpr>(p, p_expr, field_name, args, is_arrow);
         }
     }
     else {
