@@ -223,8 +223,10 @@ if [ "$FAIL" = 0 ]
 then
     echo -e "    ${GREEN}All passed${RESET}"
     echo -e "    ${PASS} total"
+	exit 0
 else
     echo -e "    ${GREEN}${PASS} passed${RESET}"
     echo -e "    ${RED}${FAIL} failed${RESET}"
     echo -e "    $((PASS + FAIL)) total"
+	exit 1
 fi
