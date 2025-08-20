@@ -16,11 +16,17 @@ jobs:
 
       - name: Install dependencies
         run: |
+          set -e
           sudo apt-get update
           sudo apt-get install -y cmake make clang diffutils grep sed coreutils findutils
 
+      - name: Debug PATH and mkdir
+        run: |
+          echo $PATH
+          which mkdir
+
       - name: Compile the program
-        run: \
+        run: |
           mkdir -p build
           cd build
           cmake ..
