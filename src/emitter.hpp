@@ -43,6 +43,7 @@ class Emitter : public std::enable_shared_from_this<Emitter> {
     size_t global_counter = 0;
     llvm::BasicBlock* true_bottom = {};
     llvm::Value* alloca = nullptr;
+    bool is_this_ = false;
 
     std::shared_ptr<ClassDecl> curr_class_;
 

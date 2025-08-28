@@ -316,6 +316,12 @@ auto Verifier::visit_constructor_decl(std::shared_ptr<ConstructorDecl> construct
 
     current_function_or_method_ = constructor_decl;
     symbol_table_.open_scope();
+    // Add in the this keyword
+    auto this_decl = std::make_shared<ParaDecl>(constructor_decl->pos(),
+                                                "this",
+                                                std::make_shared<PointerType>(curr_class->get_type()));
+    this_decl->set_mut();
+    this_decl->visit(shared_from_this());
     for (auto const& para : constructor_decl->get_paras()) {
         para->visit(shared_from_this());
     }
@@ -325,11 +331,11 @@ auto Verifier::visit_constructor_decl(std::shared_ptr<ConstructorDecl> construct
         // Check if any variables opened in that scope remained unused
         // or if they were declared mutable but never reassigned
         for (auto const& var : symbol_table_.retrieve_latest_scope()) {
-            if (!var.attr->is_used()) {
+            if (!var.attr->is_used() and var.attr->get_ident() != "this") {
                 auto err = "local variable '" + var.attr->get_ident() + "'";
                 handler_->report_minor_error(current_filename_, all_errors_[21], err, var.attr->pos());
             }
-            if (var.attr->is_mut() and !var.attr->is_reassigned()) {
+            if (var.attr->is_mut() and !var.attr->is_reassigned() and var.attr->get_ident() != "this") {
                 auto err = "variable '" + var.attr->get_ident() + "'";
                 handler_->report_minor_error(current_filename_, all_errors_[44], err, var.attr->pos());
             }
@@ -346,17 +352,24 @@ auto Verifier::visit_constructor_decl(std::shared_ptr<ConstructorDecl> construct
 auto Verifier::visit_destructor_decl(std::shared_ptr<DestructorDecl> destructor_decl) -> void {
     in_destructor_ = true;
     current_function_or_method_ = destructor_decl;
+
+    symbol_table_.open_scope();
+    auto this_decl =
+        std::make_shared<ParaDecl>(destructor_decl->pos(), "this", std::make_shared<PointerType>(curr_class->get_type()));
+    this_decl->set_mut();
+    this_decl->visit(shared_from_this());
     destructor_decl->get_compound_stmt()->visit(shared_from_this());
+    symbol_table_.close_scope();
 
     if (!handler_->quiet_mode()) {
         // Check if any variables opened in that scope remained unused
         // or if they were declared mutable but never reassigned
         for (auto const& var : symbol_table_.retrieve_latest_scope()) {
-            if (!var.attr->is_used()) {
+            if (!var.attr->is_used() and var.attr->get_ident() != "this") {
                 auto err = "local variable '" + var.attr->get_ident() + "'";
                 handler_->report_minor_error(current_filename_, all_errors_[21], err, var.attr->pos());
             }
-            if (var.attr->is_mut() and !var.attr->is_reassigned()) {
+            if (var.attr->is_mut() and !var.attr->is_reassigned() and var.attr->get_ident() != "this") {
                 auto err = "variable '" + var.attr->get_ident() + "'";
                 handler_->report_minor_error(current_filename_, all_errors_[44], err, var.attr->pos());
             }
@@ -386,6 +399,11 @@ auto Verifier::visit_method_decl(std::shared_ptr<MethodDecl> method_decl) -> voi
 
     current_function_or_method_ = method_decl;
     symbol_table_.open_scope();
+    // Add in the this keyword
+    auto this_decl =
+        std::make_shared<ParaDecl>(method_decl->pos(), "this", std::make_shared<PointerType>(curr_class->get_type()));
+    this_decl->set_mut();
+    this_decl->visit(shared_from_this());
     for (auto const& para : method_decl->get_paras()) {
         para->visit(shared_from_this());
     }
@@ -395,11 +413,11 @@ auto Verifier::visit_method_decl(std::shared_ptr<MethodDecl> method_decl) -> voi
         // Check if any variables opened in that scope remained unused
         // or if they were declared mutable but never reassigned
         for (auto const& var : symbol_table_.retrieve_latest_scope()) {
-            if (!var.attr->is_used()) {
+            if (!var.attr->is_used() and var.attr->get_ident() != "this") {
                 auto err = "local variable '" + var.attr->get_ident() + "'";
                 handler_->report_minor_error(current_filename_, all_errors_[21], err, var.attr->pos());
             }
-            if (var.attr->is_mut() and !var.attr->is_reassigned()) {
+            if (var.attr->is_mut() and !var.attr->is_reassigned() and var.attr->get_ident() != "this") {
                 auto err = "variable '" + var.attr->get_ident() + "'";
                 handler_->report_minor_error(current_filename_, all_errors_[44], err, var.attr->pos());
             }
@@ -472,11 +490,11 @@ auto Verifier::visit_function(std::shared_ptr<Function> function) -> void {
         // Check if any variables opened in that scope remained unused
         // or if they were declared mutable but never reassigned
         for (auto const& var : symbol_table_.retrieve_latest_scope()) {
-            if (!var.attr->is_used()) {
+            if (!var.attr->is_used() and var.attr->get_ident() != "this") {
                 auto err = "local variable '" + var.attr->get_ident() + "'";
                 handler_->report_minor_error(current_filename_, all_errors_[21], err, var.attr->pos());
             }
-            if (var.attr->is_mut() and !var.attr->is_reassigned()) {
+            if (var.attr->is_mut() and !var.attr->is_reassigned() and var.attr->get_ident() != "this") {
                 auto err = "variable '" + var.attr->get_ident() + "'";
                 handler_->report_minor_error(current_filename_, all_errors_[44], err, var.attr->pos());
             }
@@ -1335,6 +1353,11 @@ auto Verifier::visit_field_access_expr(std::shared_ptr<FieldAccessExpr> field_ac
         updated_expr_ = nullptr;
     }
 
+    auto is_this = false;
+    if (auto l = std::dynamic_pointer_cast<VarExpr>(field_access_expr->get_class_instance())) {
+        is_this = l->get_name() == "this";
+    }
+
     std::shared_ptr<ClassType> class_type;
     if (field_access_expr->is_arrow()) {
         if (!field_access_expr->get_class_instance()->get_type()->is_pointer()) {
@@ -1372,7 +1395,7 @@ auto Verifier::visit_field_access_expr(std::shared_ptr<FieldAccessExpr> field_ac
     }
     auto ref = class_ref->get_field(f_name);
 
-    if (!ref->is_pub()) {
+    if (!is_this and !ref->is_pub()) {
         auto error = "field '" + f_name + "' is marked private in class '" + class_ref->get_ident() + "'";
         handler_->report_error(current_filename_, all_errors_[62], error, field_access_expr->pos());
         field_access_expr->set_type(handler_->ERROR_TYPE);
@@ -1714,12 +1737,12 @@ auto Verifier::visit_compound_stmt(std::shared_ptr<CompoundStmt> compound_stmt) 
     if (!handler_->quiet_mode()) {
         // Check if any variables opened in that scope remained unused
         for (auto const& var : symbol_table_.retrieve_latest_scope()) {
-            if (!var.attr->is_used()) {
+            if (!var.attr->is_used() and var.attr->get_ident() != "this") {
                 auto stream = std::stringstream{};
                 stream << "local variable '" << var.attr->get_ident() << "'";
                 handler_->report_minor_error(current_filename_, all_errors_[21], stream.str(), var.attr->pos());
             }
-            if (var.attr->is_mut() and !var.attr->is_reassigned()) {
+            if (var.attr->is_mut() and !var.attr->is_reassigned() and var.attr->get_ident() != "this") {
                 auto err = "variable '" + var.attr->get_ident() + "'";
                 handler_->report_minor_error(current_filename_, all_errors_[44], err, var.attr->pos());
             }
