@@ -38,7 +38,7 @@ class CompoundStmt
 : public Stmt
 , public std::enable_shared_from_this<CompoundStmt> {
  public:
-    CompoundStmt(Position const pos, std::vector<std::shared_ptr<Stmt>> const stmts)
+    CompoundStmt(Position const pos, std::vector<std::shared_ptr<Stmt>> stmts)
     : Stmt(pos)
     , stmts_(stmts) {
         for (auto const& stmt : stmts_) {
@@ -48,6 +48,9 @@ class CompoundStmt
             }
         }
     }
+    CompoundStmt(Position const pos)
+    : Stmt(pos)
+    , stmts_({}) {}
 
     auto visit(std::shared_ptr<Visitor> visitor) -> void override {
         visitor->visit_compound_stmt(shared_from_this());
@@ -63,8 +66,12 @@ class CompoundStmt
         return has_return_;
     }
 
+    auto add_stmt(std::shared_ptr<Stmt> stmt) -> void {
+        stmts_.push_back(stmt);
+    }
+
  private:
-    std::vector<std::shared_ptr<Stmt>> const stmts_;
+    std::vector<std::shared_ptr<Stmt>> stmts_;
     bool has_return_ = false;
 };
 
@@ -332,6 +339,33 @@ class ContinueStmt
     }
     auto codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* override;
     auto print(std::ostream& os) const -> void override;
+};
+
+class DeleteStmt
+: public Stmt
+, public std::enable_shared_from_this<DeleteStmt> {
+ public:
+    DeleteStmt(Position const pos, std::shared_ptr<Expr> expr)
+    : Stmt(pos)
+    , expr_(std::move(expr)) {}
+
+    auto visit(std::shared_ptr<Visitor> visitor) -> void override {
+        visitor->visit_delete_stmt(shared_from_this());
+    }
+    auto codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* override;
+    auto print(std::ostream& os) const -> void override;
+
+    auto get_pointer(std::shared_ptr<Emitter> emitter, std::shared_ptr<VarExpr> e) -> llvm::Value*;
+
+    auto get_expr() const -> std::shared_ptr<Expr> {
+        return expr_;
+    }
+    auto set_expr(std::shared_ptr<Expr> expr) -> void {
+        expr_ = expr;
+    }
+
+ private:
+    std::shared_ptr<Expr> expr_;
 };
 
 #endif // STMT_HPP

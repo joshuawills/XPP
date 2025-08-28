@@ -195,6 +195,62 @@ auto ConstructorDecl::operator==(ConstructorDecl const& other) const -> bool {
     return true;
 }
 
+auto DestructorDecl::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
+    auto name = "destructor." + ident_;
+    auto destructor = emitter->llvm_module->getFunction(name);
+
+    auto arg = destructor->args().begin();
+    arg->setName("this");
+
+    auto entry_name = std::to_string(emitter->global_counter++);
+    auto entry_block = llvm::BasicBlock::Create(*emitter->context, entry_name, destructor);
+    emitter->llvm_builder->SetInsertPoint(entry_block);
+
+    auto alloca = emitter->llvm_builder->CreateAlloca(arg->getType(), nullptr, arg->getName());
+    emitter->llvm_builder->CreateStore(arg, alloca);
+    emitter->named_values[arg->getName().str()] = alloca;
+
+    stmts_->codegen(emitter);
+
+    // Check if there's any objects in the class to destroy
+    auto class_ = emitter->curr_class_;
+    auto fields = class_->get_fields();
+    for (auto it = fields.rbegin(); it != fields.rend(); ++it) {
+        auto member = *it;
+        if (member->get_type()->is_class()) {
+            auto member_type = std::dynamic_pointer_cast<ClassType>(member->get_type());
+            auto member_class = member_type->get_ref();
+            auto equivalent_destructor = emitter->llvm_module->getFunction("destructor." + member_class->get_ident());
+            assert(equivalent_destructor != nullptr);
+
+            auto const field_index = class_->get_index_for_field(member->get_ident());
+            auto const this_ptr = emitter->named_values["this"];
+            auto const class_type = emitter->llvm_type(member_class);
+
+            auto const this_pointer =
+                emitter->llvm_builder->CreateLoad(llvm::PointerType::getUnqual(class_type), this_ptr);
+            auto const val =
+                emitter->llvm_builder->CreateStructGEP(emitter->llvm_type(class_->get_type()), this_pointer, field_index);
+            auto const addr =
+                emitter->llvm_builder->CreateLoad(llvm::PointerType::getUnqual(emitter->llvm_type(member->get_type())),
+                                                  val);
+
+            emitter->llvm_builder->CreateCall(equivalent_destructor, {addr});
+        }
+    }
+
+    emitter->llvm_builder->CreateRetVoid();
+
+    return nullptr;
+}
+
+auto DestructorDecl::print(std::ostream& os) const -> void {
+    os << "Destructor " << pos() << " " << ident_ << " : " << *t_ << "\n";
+
+    stmts_->print(os);
+    os << "\n";
+}
+
 auto Extern::operator==(Extern const& other) const -> bool {
     if (this == &other) {
         return true;
@@ -261,8 +317,17 @@ auto LocalVarDecl::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
     auto llvm_type = emitter->llvm_type(get_type());
 
     auto constructor_decl = std::dynamic_pointer_cast<ConstructorCallExpr>(expr_);
+    auto new_expr = std::dynamic_pointer_cast<NewExpr>(expr_);
+    auto valid_new = false;
+    if (new_expr) {
+        auto t = std::dynamic_pointer_cast<PointerType>(new_expr->get_type());
+        if (t->get_sub_type()->is_class()) {
+            valid_new = true;
+        }
+    }
+
     auto alloca = emitter->llvm_builder->CreateAlloca(llvm_type, nullptr, get_ident() + get_append());
-    if (constructor_decl) {
+    if (constructor_decl or valid_new) {
         emitter->alloca = alloca;
         expr_->codegen(emitter);
         emitter->alloca = nullptr;
@@ -518,6 +583,15 @@ auto ClassDecl::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
         method->codegen(emitter);
     }
 
+    if (destructors_.size() == 1) {
+        destructors_.front()->codegen(emitter);
+    }
+    else {
+        auto empty_compound_stmt = std::make_shared<CompoundStmt>(pos());
+        auto destructor = std::make_shared<DestructorDecl>(pos(), get_ident(), empty_compound_stmt);
+        destructor->codegen(emitter);
+    }
+
     emitter->curr_class_ = nullptr;
     return nullptr;
 }
@@ -531,6 +605,10 @@ auto ClassDecl::print(std::ostream& os) const -> void {
     os << "constructors:\n";
     for (auto const& constructor : constructors_) {
         constructor->print(os);
+    }
+    os << "destructors\n";
+    for (auto const& destructor : destructors_) {
+        destructor->print(os);
     }
     os << "methods:\n";
     for (auto const& method : methods_) {

@@ -1,0 +1,14 @@
+21
+'a'
+'b'
+'c'
+'d'
+'e'
+'f'
+'g'
+'h'
+'i'
+'j'
+21
+19
+Calling IntList destructor!

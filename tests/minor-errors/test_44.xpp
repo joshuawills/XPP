@@ -2,6 +2,23 @@
 
 extern printf(i8*, ...) i32;
 
+class Foo {
+    x: i32;
+
+    pub Foo(x_: i32) {
+        x = x_;
+    }
+
+    destructor {
+        let mut y = 21;
+        printf("%d\n", y);
+    }
+
+    pub fn get_x() i32 {
+        return x;
+    }
+}
+
 fn foo(mut a: i32) void {
     printf("%d\n", a); 
 }
@@ -9,4 +26,7 @@ fn foo(mut a: i32) void {
 fn main() void {
     let mut x = 1;
     foo(x);
+
+    let y = Foo(19);
+    printf("%d\n", y.get_x());
 }

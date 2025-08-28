@@ -1,4 +1,4 @@
-// Cannot access privte class via import access
+// Cannot access private class via import access
 
 import "foo" as foo;
 
@@ -7,4 +7,7 @@ fn main() void {
 
 	let public = foo::PublicClass(21);
 	let public_private_constructor = foo::PublicClass();
+
+
+    let public_private_constructor_new = new foo::PrivateClass(21);
 }

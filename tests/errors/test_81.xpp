@@ -1,0 +1,7 @@
+// Can only delete certain expressions
+
+fn main() void {
+	let x = 21;
+	delete x;
+	delete 'a';
+}

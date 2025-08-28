@@ -1,0 +1,6 @@
+// Allocation of type void or void[]
+
+fn main() void {
+	let x = new void;
+	let x = new void[2];
+}

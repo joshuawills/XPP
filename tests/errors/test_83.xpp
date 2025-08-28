@@ -1,0 +1,17 @@
+// Array allocation in allocation not of type i64
+
+fn main() void {
+	// Acceptable
+	let x = new i8[19];
+	delete x;
+
+	// Acceptable
+	let z = 21;
+	let a = new i8[z - 5];
+	delete a;
+
+
+	// Unacceptable
+	let foo = new u64*[false];
+
+}

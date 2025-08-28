@@ -182,11 +182,20 @@ auto Parser::parse_class(Position p) -> std::shared_ptr<ClassDecl> {
     auto fields_vec = std::vector<std::shared_ptr<ClassFieldDecl>>{};
     auto methods_vec = std::vector<std::shared_ptr<MethodDecl>>{};
     auto constructors_vec = std::vector<std::shared_ptr<ConstructorDecl>>{};
+    auto destructors_vec = std::vector<std::shared_ptr<DestructorDecl>>{};
 
     match(TokenType::OPEN_CURLY);
     while (!peek(TokenType::CLOSE_CURLY)) {
         auto p2 = Position{};
         start(p2);
+        if (try_consume(TokenType::DESTRUCTOR)) {
+            auto stmts = parse_compound_stmt();
+            finish(p2);
+            auto destructor_decl = std::make_shared<DestructorDecl>(p2, class_name, stmts);
+            destructors_vec.push_back(destructor_decl);
+            continue;
+        }
+
         auto const is_pub = try_consume(TokenType::PUB);
         auto const is_mut = try_consume(TokenType::MUT);
         if (peek(TokenType::IDENT) and (*curr_token_)->lexeme() != class_name) {
@@ -242,7 +251,7 @@ auto Parser::parse_class(Position p) -> std::shared_ptr<ClassDecl> {
     match(TokenType::CLOSE_CURLY);
 
     finish(p);
-    auto class_ = ClassDecl::make(p, class_name, fields_vec, methods_vec, constructors_vec);
+    auto class_ = ClassDecl::make(p, class_name, fields_vec, methods_vec, constructors_vec, destructors_vec);
     return class_;
 }
 
@@ -334,7 +343,7 @@ auto Parser::parse_type() -> std::shared_ptr<Type> {
         return_type = std::make_shared<Type>(type_spec);
     }
     std::shared_ptr<Type> sub_type = nullptr;
-    if (try_consume(TokenType::OPEN_SQUARE)) {
+    if (!in_new_expr_ and try_consume(TokenType::OPEN_SQUARE)) {
         sub_type = return_type;
         if (peek(TokenType::INTEGER)) {
             auto value = std::stoul((*curr_token_)->lexeme());
@@ -459,6 +468,12 @@ auto Parser::parse_compound_stmt() -> std::shared_ptr<CompoundStmt> {
         }
         else if (try_consume(TokenType::LOOP)) {
             stmts.push_back(parse_loop_stmt(p));
+        }
+        else if (try_consume(TokenType::DELETE)) {
+            auto expr = parse_expr();
+            match(TokenType::SEMICOLON);
+            finish(p);
+            stmts.push_back(std::make_shared<DeleteStmt>(p, expr));
         }
         else if (try_consume(TokenType::BREAK)) {
             auto p2 = Position{};
@@ -594,6 +609,9 @@ auto Parser::parse_expr() -> std::shared_ptr<Expr> {
     if (peek(TokenType::SIZE_OF)) {
         expr = parse_size_of_expr();
     }
+    else if (peek(TokenType::NEW)) {
+        expr = parse_new_expr();
+    }
     else {
         expr = parse_assignment_expr();
     }
@@ -728,6 +746,9 @@ auto Parser::parse_unary_expr() -> std::shared_ptr<Expr> {
     else if (peek(TokenType::SIZE_OF)) {
         return parse_size_of_expr();
     }
+    else if (peek(TokenType::NEW)) {
+        return parse_new_expr();
+    }
     else {
         return parse_postfix_expr();
     }
@@ -749,6 +770,28 @@ auto Parser::parse_size_of_expr() -> std::shared_ptr<Expr> {
         finish(p);
         return std::make_shared<SizeOfExpr>(p, expr);
     }
+}
+
+auto Parser::parse_new_expr() -> std::shared_ptr<Expr> {
+    in_new_expr_ = true;
+    auto p = Position{};
+    start(p);
+    match(TokenType::NEW);
+    auto type = parse_type();
+    if (try_consume(TokenType::OPEN_SQUARE)) {
+        auto e = parse_expr();
+        match(TokenType::CLOSE_SQUARE);
+        return std::make_shared<NewExpr>(p, type, e);
+    }
+
+    if (try_consume(TokenType::OPEN_BRACKET)) {
+        auto args = parse_arg_list();
+        finish(p);
+        return std::make_shared<NewExpr>(p, type, args);
+    }
+
+    in_new_expr_ = true;
+    return std::make_shared<NewExpr>(p, type);
 }
 
 auto Parser::parse_array_init_expr() -> std::shared_ptr<Expr> {
@@ -835,6 +878,11 @@ auto Parser::parse_primary_expr() -> std::shared_ptr<Expr> {
         consume();
         finish(p);
         return std::make_shared<IntExpr>(p, value);
+    }
+    else if (peek(TokenType::NULL_)) {
+        consume();
+        finish(p);
+        return std::make_shared<NullExpr>(p);
     }
     else if (peek(TokenType::FLOAT_LITERAL)) {
         auto const value = std::stod((*curr_token_)->lexeme());

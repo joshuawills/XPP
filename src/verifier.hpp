@@ -25,6 +25,7 @@ class SymbolTable {
         while (!entries_.empty() and entries_.back().level == level_) {
             entries_.pop_back();
         }
+        --level_;
     }
     auto insert(std::string id, std::shared_ptr<Decl> attr) -> void {
         entries_.push_back(TableEntry{id, level_, attr});
@@ -60,12 +61,14 @@ class Verifier
     auto visit_function(std::shared_ptr<Function> function) -> void override;
     auto visit_method_decl(std::shared_ptr<MethodDecl> method_decl) -> void override;
     auto visit_constructor_decl(std::shared_ptr<ConstructorDecl> constructor_decl) -> void override;
+    auto visit_destructor_decl(std::shared_ptr<DestructorDecl> destructor_decl) -> void override;
     auto visit_extern(std::shared_ptr<Extern> extern_) -> void override;
     auto visit_empty_expr(std::shared_ptr<EmptyExpr> empty_expr) -> void override;
     auto visit_assignment_expr(std::shared_ptr<AssignmentExpr> assignment_expr) -> void override;
     auto visit_binary_expr(std::shared_ptr<BinaryExpr> binary_expr) -> void override;
     auto visit_unary_expr(std::shared_ptr<UnaryExpr> unary_expr) -> void override;
     auto visit_decimal_expr(std::shared_ptr<DecimalExpr> decimal_expr) -> void override;
+    auto visit_null_expr(std::shared_ptr<NullExpr> null_expr) -> void override;
     auto visit_int_expr(std::shared_ptr<IntExpr> int_expr) -> void override;
     auto visit_uint_expr(std::shared_ptr<UIntExpr> uint_expr) -> void override;
     auto visit_bool_expr(std::shared_ptr<BoolExpr> bool_expr) -> void override;
@@ -82,6 +85,7 @@ class Verifier
     auto visit_method_access_expr(std::shared_ptr<MethodAccessExpr> method_access_expr) -> void override;
     auto visit_size_of_expr(std::shared_ptr<SizeOfExpr> size_of_expr) -> void override;
     auto visit_import_expr(std::shared_ptr<ImportExpr> import_expr) -> void override;
+    auto visit_new_expr(std::shared_ptr<NewExpr> new_expr) -> void override;
 
     auto visit_empty_stmt(std::shared_ptr<EmptyStmt> empty_stmt) -> void override;
     auto visit_compound_stmt(std::shared_ptr<CompoundStmt> compound_stmt) -> void override;
@@ -94,11 +98,11 @@ class Verifier
     auto visit_loop_stmt(std::shared_ptr<LoopStmt> loop_stmt) -> void override;
     auto visit_break_stmt(std::shared_ptr<BreakStmt> break_stmt) -> void override;
     auto visit_continue_stmt(std::shared_ptr<ContinueStmt> continue_stmt) -> void override;
+    auto visit_delete_stmt(std::shared_ptr<DeleteStmt> delete_stmt) -> void override;
 
     auto check(std::string const& filename, bool is_main) -> void;
 
     std::optional<std::shared_ptr<Type>> current_numerical_type = std::nullopt;
-    bool in_constructor_decl_ = false;
     Position unmurk_pos;
     std::shared_ptr<ClassDecl> curr_class = nullptr;
     std::shared_ptr<Module> curr_module_access_ = nullptr;
@@ -106,6 +110,7 @@ class Verifier
 
     std::shared_ptr<Expr> updated_expr_ = nullptr;
     bool in_constructor_ = false;
+    bool in_destructor_ = false;
     bool visiting_lhs_of_assignment_ = false;
 
  private:
@@ -207,7 +212,12 @@ class Verifier
                                                   "76: cannot call private constructor out of class scope",
                                                   "77: cannot access private global var via import access: %",
                                                   "78: no such global var in specified module: %",
-                                                  "79: attempting to dereference a non pointer class type: %"};
+                                                  "79: attempting to dereference a non pointer class type: %",
+                                                  "80: class may only have one destructor: %",
+                                                  "81: can only delete an expression of pointer or class type: %",
+                                                  "82: allocation of type void or void[]",
+                                                  "83: array size in allocation not of type i64: %",
+                                                  "84: cannot perform a new constructor call on a non class type: %"};
 
     auto check_duplicate_function_declaration() -> void;
     auto check_duplicate_method_declaration(std::shared_ptr<ClassDecl>& class_decl) -> void;

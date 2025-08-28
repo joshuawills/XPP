@@ -6,4 +6,6 @@ class IntBox {
 
 fn main() void {
 	let b = IntBox(21);
+
+    let z = new IntBox(21);
 }

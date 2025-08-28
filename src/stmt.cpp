@@ -293,3 +293,72 @@ auto ContinueStmt::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
 auto ContinueStmt::print(std::ostream& os) const -> void {
     os << "continue;\n";
 }
+
+auto DeleteStmt::get_pointer(std::shared_ptr<Emitter> emitter, std::shared_ptr<VarExpr> e) -> llvm::Value* {
+    auto is_field_access = std::dynamic_pointer_cast<ClassFieldDecl>(e->get_ref());
+    if (is_field_access) {
+        assert(emitter->curr_class_ != nullptr);
+        auto const field_index = emitter->curr_class_->get_index_for_field(is_field_access->get_ident());
+        auto const this_ptr = emitter->named_values["this"];
+        auto const class_type = emitter->llvm_type(emitter->curr_class_);
+
+        auto const this_pointer = emitter->llvm_builder->CreateLoad(llvm::PointerType::getUnqual(class_type), this_ptr);
+        auto const val = emitter->llvm_builder->CreateStructGEP(class_type, this_pointer, field_index);
+        return emitter->llvm_builder->CreateLoad(emitter->llvm_type(e->get_type()), val);
+    }
+
+    return emitter->named_values[e->get_name() + e->get_ref()->get_append()];
+}
+
+auto DeleteStmt::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
+    auto val = expr_->codegen(emitter);
+    auto t = expr_->get_type();
+    if (t->is_pointer()) {
+        auto free_func = emitter->llvm_module->getFunction("free");
+
+        auto const& function = emitter->llvm_builder->GetInsertBlock()->getParent();
+        auto const if_block_value = std::to_string(emitter->global_counter++);
+        auto const if_block = llvm::BasicBlock::Create(*(emitter->context), if_block_value, function);
+
+        auto const else_block_value = std::to_string(emitter->global_counter++);
+        auto const else_block = llvm::BasicBlock::Create(*(emitter->context), else_block_value, function);
+
+        auto cond = emitter->llvm_builder->CreateICmpNE(
+            val,
+            llvm::ConstantPointerNull::get(llvm::PointerType::getUnqual(llvm::Type::getInt8Ty(*(emitter->context)))));
+        emitter->llvm_builder->CreateCondBr(cond, if_block, else_block);
+
+        emitter->llvm_builder->SetInsertPoint(if_block);
+
+        auto p_t = std::dynamic_pointer_cast<PointerType>(t);
+        if (p_t->get_sub_type()->is_class()) {
+            auto a_t = std::dynamic_pointer_cast<ClassType>(p_t->get_sub_type());
+            auto destructor = emitter->llvm_module->getFunction("destructor." + a_t->get_ref()->get_ident());
+            emitter->llvm_builder->CreateCall(destructor, {val});
+        }
+
+        emitter->llvm_builder->CreateCall(free_func, {val});
+        if (auto e = std::dynamic_pointer_cast<VarExpr>(expr_)) {
+            auto mem = get_pointer(emitter, e);
+            emitter->llvm_builder->CreateStore(
+                llvm::ConstantPointerNull::get(llvm::PointerType::getUnqual(llvm::Type::getInt8Ty(*(emitter->context)))),
+                mem);
+        }
+
+        emitter->llvm_builder->CreateBr(else_block);
+        emitter->llvm_builder->SetInsertPoint(else_block);
+    }
+    else {
+        auto class_t = std::dynamic_pointer_cast<ClassType>(t);
+        auto destructor = emitter->llvm_module->getFunction("destructor." + class_t->get_ref()->get_ident());
+        emitter->llvm_builder->CreateCall(destructor, {val});
+    }
+
+    return nullptr;
+}
+
+auto DeleteStmt::print(std::ostream& os) const -> void {
+    os << "delete ";
+    expr_->print(os);
+    os << ";\n";
+}

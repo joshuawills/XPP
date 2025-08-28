@@ -2,6 +2,18 @@
 
 extern printf(i8*, ...) i32;
 
+class Foo {
+    x: i32;
+
+    pub Foo(x_: i32) {
+        x = x_;
+    }
+
+    destructor {
+        let y = 21;
+    }
+}
+
 fn main() void {
     let y = 21;
     let x = y;
@@ -11,4 +23,6 @@ fn main() void {
     printf("%d\n", x);
 
 	let a = [1, 2, 3];
+
+    let z = Foo(19);
 }

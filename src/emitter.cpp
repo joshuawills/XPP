@@ -13,6 +13,17 @@
 #include <iostream>
 
 auto Emitter::emit() -> void {
+    // Init malloc and free
+    llvm::FunctionType* malloc_type = llvm::FunctionType::get(llvm::PointerType::get(llvm::Type::getInt8Ty(*context), 0),
+                                                              {llvm::Type::getInt64Ty(*context)},
+                                                              false);
+    llvm::Function::Create(malloc_type, llvm::Function::ExternalLinkage, "malloc", llvm_module.get());
+
+    llvm::FunctionType* free_type = llvm::FunctionType::get(llvm::Type::getVoidTy(*context),
+                                                            {llvm::PointerType::get(llvm::Type::getInt8Ty(*context), 0)},
+                                                            false);
+    llvm::Function::Create(free_type, llvm::Function::ExternalLinkage, "free", llvm_module.get());
+
     // Forward declaring everything necessary
     for (auto& module : modules_->get_modules()) {
         for (auto& global : module->get_global_vars()) {
@@ -45,6 +56,7 @@ auto Emitter::emit() -> void {
                 for (auto& constructor : class_->get_constructors()) {
                     forward_declare_constructor(constructor);
                 }
+                forward_declare_destructor(class_);
             }
         }
     }
@@ -221,6 +233,17 @@ auto Emitter::forward_declare_constructor(std::shared_ptr<ConstructorDecl> const
     auto name = "constructor." + curr_class_->get_ident() + constructor->get_type_output();
     auto const constructor_type = llvm::FunctionType::get(return_type, param_types, false);
     llvm::Function::Create(constructor_type, llvm::Function::ExternalLinkage, name, *llvm_module);
+}
+
+auto Emitter::forward_declare_destructor(std::shared_ptr<ClassDecl> class_) -> void {
+    auto return_type = llvm::Type::getVoidTy(*context);
+
+    auto param_types = std::vector<llvm::Type*>{};
+    param_types.push_back(llvm::PointerType::getUnqual(llvm_type(class_)));
+
+    auto const name = "destructor." + class_->get_ident();
+    auto const destructor_type = llvm::FunctionType::get(return_type, param_types, false);
+    llvm::Function::Create(destructor_type, llvm::Function::ExternalLinkage, name, *llvm_module);
 }
 
 auto Emitter::forward_declare_method(std::shared_ptr<MethodDecl> method) -> void {
