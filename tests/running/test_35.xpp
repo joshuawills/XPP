@@ -1,0 +1,32 @@
+// Messing around with the 'this' variable in classes
+
+extern printf(i8*, ...) i32;
+
+class IntBox {
+    mut x: i64;
+
+    pub IntBox(x: i64) {
+        this->x = x;
+    }
+    
+    pub fn get_x() i64 {
+        return this->x;
+    }
+
+    pub mut fn set_x(x: i64) void {
+        this->x = x;
+    }
+
+    destructor {
+        printf("Destroying IntBox with value: %d\n", this->x);
+    }
+
+}
+
+fn main() void {
+    let mut b_p = new IntBox(21);
+    printf("%d\n", b_p->get_x());
+    b_p->set_x(19);
+    printf("%d\n", b_p->get_x());
+    delete b_p;
+}

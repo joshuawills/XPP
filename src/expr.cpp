@@ -78,6 +78,9 @@ auto AssignmentExpr::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
         ptr = lhs->codegen(emitter);
     }
     else if (auto const& lhs = std::dynamic_pointer_cast<FieldAccessExpr>(left_)) {
+        if (auto l = std::dynamic_pointer_cast<VarExpr>(lhs->get_class_instance())) {
+            emitter->is_this_ = l->get_name() == "this";
+        }
         auto const class_instance = lhs->get_class_instance()->codegen(emitter);
         if (!class_instance) {
             return nullptr;
@@ -470,7 +473,13 @@ auto CharExpr::print(std::ostream& os) const -> void {
 
 auto VarExpr::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
     auto is_field_access = std::dynamic_pointer_cast<ClassFieldDecl>(get_ref());
-    if (is_field_access) {
+    if (emitter->is_this_) {
+        auto this_ = emitter->named_values["this"];
+        auto t = emitter->llvm_type(get_type());
+        return emitter->llvm_builder->CreateLoad(t, this_);
+    }
+
+    else if (is_field_access) {
         assert(emitter->curr_class_ != nullptr);
         auto const field_index = emitter->curr_class_->get_index_for_field(is_field_access->get_ident());
         auto const this_ptr = emitter->named_values["this"];
@@ -835,12 +844,16 @@ auto EnumAccessExpr::print(std::ostream& os) const -> void {
 }
 
 auto FieldAccessExpr::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
+    if (auto l = std::dynamic_pointer_cast<VarExpr>(class_instance_)) {
+        emitter->is_this_ = l->get_name() == "this";
+    }
     auto class_val = class_instance_->codegen(emitter);
     if (!class_val)
         return nullptr;
 
     auto const class_type = emitter->llvm_type(class_ref_);
     auto const val = emitter->llvm_builder->CreateStructGEP(class_type, class_val, field_num_);
+    emitter->is_this_ = false;
     return emitter->llvm_builder->CreateLoad(emitter->llvm_type(get_type()), val);
 }
 

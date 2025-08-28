@@ -84,10 +84,10 @@
 
 - Destructors
 - 'new' and 'delete' keywords
+- 'this' keyword
 
 ## TODO
 
-- 'this' keyword
 - Templates
 - Using statements
 - Add in for loops 
@@ -96,3 +96,4 @@
 - Documentation!
     - General instructions for language features
     - Classes in the CFG
+    - "->" in the CFG
