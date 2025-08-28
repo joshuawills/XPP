@@ -1,5 +1,7 @@
 // Unused function
 
+using str;
+
 extern exit(i32) void;
 
 fn foo() void {

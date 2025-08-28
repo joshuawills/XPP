@@ -85,11 +85,11 @@
 - Destructors
 - 'new' and 'delete' keywords
 - 'this' keyword
+- Using statements
 
 ## TODO
 
 - Templates
-- Using statements
 - Add in for loops 
 - Moduling system
 - References?
@@ -97,3 +97,7 @@
     - General instructions for language features
     - Classes in the CFG
     - "->" in the CFG
+    - you can have duplicate defs via a using statement
+        - only consider that in the current module
+        - need an import statement to access one outside of the module specifically
+        - TEST THIS CASE - for name resolution in the IR

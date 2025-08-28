@@ -327,7 +327,7 @@ auto Verifier::visit_constructor_decl(std::shared_ptr<ConstructorDecl> construct
     }
     constructor_decl->get_compound_stmt()->visit(shared_from_this());
 
-    if (!handler_->quiet_mode()) {
+    if (!handler_->quiet_mode() and !current_module_->is_lib()) {
         // Check if any variables opened in that scope remained unused
         // or if they were declared mutable but never reassigned
         for (auto const& var : symbol_table_.retrieve_latest_scope()) {
@@ -361,7 +361,7 @@ auto Verifier::visit_destructor_decl(std::shared_ptr<DestructorDecl> destructor_
     destructor_decl->get_compound_stmt()->visit(shared_from_this());
     symbol_table_.close_scope();
 
-    if (!handler_->quiet_mode()) {
+    if (!handler_->quiet_mode() and !current_module_->is_lib()) {
         // Check if any variables opened in that scope remained unused
         // or if they were declared mutable but never reassigned
         for (auto const& var : symbol_table_.retrieve_latest_scope()) {
@@ -409,7 +409,7 @@ auto Verifier::visit_method_decl(std::shared_ptr<MethodDecl> method_decl) -> voi
     }
     method_decl->get_compound_stmt()->visit(shared_from_this());
 
-    if (!handler_->quiet_mode()) {
+    if (!handler_->quiet_mode() and !current_module_->is_lib()) {
         // Check if any variables opened in that scope remained unused
         // or if they were declared mutable but never reassigned
         for (auto const& var : symbol_table_.retrieve_latest_scope()) {
@@ -486,7 +486,7 @@ auto Verifier::visit_function(std::shared_ptr<Function> function) -> void {
     }
     function->get_compound_stmt()->visit(shared_from_this());
 
-    if (!handler_->quiet_mode()) {
+    if (!handler_->quiet_mode() and !current_module_->is_lib()) {
         // Check if any variables opened in that scope remained unused
         // or if they were declared mutable but never reassigned
         for (auto const& var : symbol_table_.retrieve_latest_scope()) {
@@ -824,6 +824,10 @@ auto Verifier::visit_unary_expr(std::shared_ptr<UnaryExpr> unary_expr) -> void {
             unary_expr->set_type(handler_->ERROR_TYPE);
         }
         else {
+            auto entry = symbol_table_.retrieve(var_name);
+            if (entry.has_value()) {
+                entry->attr->set_reassigned();
+            }
             unary_expr->set_type(e->get_type());
         }
     }
@@ -988,24 +992,45 @@ auto Verifier::visit_var_expr(std::shared_ptr<VarExpr> var_expr) -> void {
         }
     }
     else if (!entry.has_value()) {
-        auto const method_d = std::dynamic_pointer_cast<MethodDecl>(current_function_or_method_);
-        auto const constructor_d = std::dynamic_pointer_cast<ConstructorDecl>(current_function_or_method_);
-        auto const destructor_d = std::dynamic_pointer_cast<DestructorDecl>(current_function_or_method_);
-        if (!method_d and !constructor_d and !destructor_d) {
-            handler_->report_error(current_filename_, all_errors_[8], n, var_expr->pos());
-            var_expr->set_type(handler_->ERROR_TYPE);
-            return;
-        }
         auto found = false;
-        for (auto& para : curr_class->get_fields()) {
-            if (para->get_ident() == n) {
-                if (visiting_lhs_of_assignment_ and method_d and !method_d->is_mut()) {
-                    auto error = "field '" + n + "' can't be mutated in constant method '" + method_d->get_ident() + "'";
-                    handler_->report_error(current_filename_, all_errors_[69], error, var_expr->pos());
+        if (!curr_module_access_) {
+            for (auto& mod : current_module_->get_using_modules()) {
+                auto v = mod->get_global_var(n);
+                if (v.has_value()) {
+                    d = v.value();
+                    found = true;
+                    if (!d->is_pub()) {
+                        handler_->report_error(current_filename_,
+                                               all_errors_[77],
+                                               "variable '" + n + "' is marked private",
+                                               var_expr->pos());
+                        var_expr->set_type(handler_->ERROR_TYPE);
+                        return;
+                    }
+                    break;
                 }
-                d = para;
-                found = true;
-                break;
+            }
+        }
+        if (!found) {
+            auto const method_d = std::dynamic_pointer_cast<MethodDecl>(current_function_or_method_);
+            auto const constructor_d = std::dynamic_pointer_cast<ConstructorDecl>(current_function_or_method_);
+            auto const destructor_d = std::dynamic_pointer_cast<DestructorDecl>(current_function_or_method_);
+            if (!method_d and !constructor_d and !destructor_d) {
+                handler_->report_error(current_filename_, all_errors_[8], n, var_expr->pos());
+                var_expr->set_type(handler_->ERROR_TYPE);
+                return;
+            }
+            for (auto& para : curr_class->get_fields()) {
+                if (para->get_ident() == n) {
+                    if (visiting_lhs_of_assignment_ and method_d and !method_d->is_mut()) {
+                        auto error =
+                            "field '" + n + "' can't be mutated in constant method '" + method_d->get_ident() + "'";
+                        handler_->report_error(current_filename_, all_errors_[69], error, var_expr->pos());
+                    }
+                    d = para;
+                    found = true;
+                    break;
+                }
             }
         }
 
@@ -1027,6 +1052,7 @@ auto Verifier::visit_var_expr(std::shared_ptr<VarExpr> var_expr) -> void {
 auto Verifier::visit_call_expr(std::shared_ptr<CallExpr> call_expr) -> void {
     auto const function_name = call_expr->get_name();
 
+    // Checking for constructor expressions
     if (curr_module_access_ and curr_module_access_->class_with_name_exists(function_name)) {
         auto constructor_call_expr =
             std::make_shared<ConstructorCallExpr>(call_expr->pos(), function_name, call_expr->get_args());
@@ -1041,6 +1067,17 @@ auto Verifier::visit_call_expr(std::shared_ptr<CallExpr> call_expr) -> void {
         constructor_call_expr->visit(shared_from_this());
         updated_expr_ = constructor_call_expr;
         return;
+    }
+    if (!curr_module_access_) {
+        for (auto& module : current_module_->get_using_modules()) {
+            if (module->class_with_name_exists(function_name)) {
+                auto constructor_call_expr =
+                    std::make_shared<ConstructorCallExpr>(call_expr->pos(), function_name, call_expr->get_args());
+                constructor_call_expr->visit(shared_from_this());
+                updated_expr_ = constructor_call_expr;
+                return;
+            }
+        }
     }
 
     if (!current_module_->function_with_name_exists(function_name) and !curr_module_access_) {
@@ -1067,7 +1104,7 @@ auto Verifier::visit_call_expr(std::shared_ptr<CallExpr> call_expr) -> void {
 
     std::optional<std::shared_ptr<Decl>> equivalent_func;
     if (curr_module_access_) {
-        equivalent_func = curr_module_access_->get_decl(call_expr);
+        equivalent_func = curr_module_access_->get_decl(call_expr, false);
         if (!equivalent_func) {
             auto error = "function '" + function_name + "' not found in module '" + curr_module_alias_ + "'";
             handler_->report_error(current_filename_, all_errors_[14], error, call_expr->pos());
@@ -1091,7 +1128,7 @@ auto Verifier::visit_call_expr(std::shared_ptr<CallExpr> call_expr) -> void {
         }
     }
     else {
-        equivalent_func = current_module_->get_decl(call_expr);
+        equivalent_func = current_module_->get_decl(call_expr, true);
         if (!equivalent_func) {
             handler_->report_error(current_filename_, all_errors_[14], function_name, call_expr->pos());
             call_expr->set_type(handler_->ERROR_TYPE);
@@ -1113,10 +1150,10 @@ auto Verifier::visit_constructor_call_expr(std::shared_ptr<ConstructorCallExpr> 
 
     std::optional<std::shared_ptr<ConstructorDecl>> equivalent_constructor;
     if (curr_module_access_) {
-        equivalent_constructor = curr_module_access_->get_constructor_decl(constructor_call_expr);
+        equivalent_constructor = curr_module_access_->get_constructor_decl(constructor_call_expr, false);
     }
     else {
-        equivalent_constructor = current_module_->get_constructor_decl(constructor_call_expr);
+        equivalent_constructor = current_module_->get_constructor_decl(constructor_call_expr, true);
     }
     if (!equivalent_constructor) {
         handler_->report_error(current_filename_,
@@ -1656,10 +1693,10 @@ auto Verifier::visit_new_expr(std::shared_ptr<NewExpr> new_expr) -> void {
 
         std::optional<std::shared_ptr<ConstructorDecl>> equivalent_constructor;
         if (curr_module_access) {
-            equivalent_constructor = curr_module_access->get_constructor_decl(constructor_call_expr);
+            equivalent_constructor = curr_module_access->get_constructor_decl(constructor_call_expr, false);
         }
         else {
-            equivalent_constructor = current_module_->get_constructor_decl(constructor_call_expr);
+            equivalent_constructor = current_module_->get_constructor_decl(constructor_call_expr, true);
         }
 
         if (!equivalent_constructor) {
@@ -1734,7 +1771,7 @@ auto Verifier::visit_compound_stmt(std::shared_ptr<CompoundStmt> compound_stmt) 
         ++i;
     }
 
-    if (!handler_->quiet_mode()) {
+    if (!handler_->quiet_mode() and !current_module_->is_lib()) {
         // Check if any variables opened in that scope remained unused
         for (auto const& var : symbol_table_.retrieve_latest_scope()) {
             if (!var.attr->is_used() and var.attr->get_ident() != "this") {
@@ -1948,7 +1985,7 @@ auto Verifier::visit_delete_stmt(std::shared_ptr<DeleteStmt> delete_stmt) -> voi
     return;
 }
 
-auto Verifier::check(std::string const& filename, bool is_main) -> void {
+auto Verifier::check(std::string const& filename, bool is_main, bool is_libc) -> void {
     current_filename_ = filename;
 
     // Already processed
@@ -1963,6 +2000,7 @@ auto Verifier::check(std::string const& filename, bool is_main) -> void {
         auto tokens = lexer.tokenize();
         auto parser = Parser(tokens, filename, handler_);
         module = parser.parse();
+        module->set_is_lib(is_libc);
         modules_->add_module(module);
     }
     else {
@@ -1973,15 +2011,31 @@ auto Verifier::check(std::string const& filename, bool is_main) -> void {
 
     // Load in all imported modules
     for (auto const& import : current_module_->get_imported_filepaths()) {
-        auto imported_module = modules_->get_module_from_filepath(import);
+        auto name = import.first;
+        auto is_libc = import.second;
+        auto imported_module = modules_->get_module_from_filepath(name);
         if (imported_module) {
-            current_module_->add_imported_module(import, imported_module);
+            current_module_->add_imported_module(name, imported_module);
         }
         else {
             // Time to do all the work with it
             auto new_verifier = std::make_shared<Verifier>(handler_, modules_);
-            new_verifier->check(import, false);
-            current_module_->add_imported_module(import, modules_->get_module_from_filepath(import));
+            new_verifier->check(name, false, is_libc);
+            current_module_->add_imported_module(name, modules_->get_module_from_filepath(name));
+        }
+    }
+    // Load in all using modules
+    for (auto const& using_ : current_module_->get_using_filepaths()) {
+        auto name = using_.first;
+        auto is_libc = using_.second;
+        auto using_module = modules_->get_module_from_filepath(name);
+        if (using_module) {
+            current_module_->add_using_module(name, using_module);
+        }
+        else {
+            auto new_verifier = std::make_shared<Verifier>(handler_, modules_);
+            new_verifier->check(name, false, is_libc);
+            current_module_->add_using_module(name, modules_->get_module_from_filepath(name));
         }
     }
 
@@ -2062,7 +2116,7 @@ auto Verifier::check(std::string const& filename, bool is_main) -> void {
         class_->visit(shared_from_this());
     }
 
-    if (!handler_->quiet_mode()) {
+    if (!handler_->quiet_mode() and is_main) {
         check_unused_declarations();
     }
 
@@ -2073,36 +2127,40 @@ auto Verifier::check(std::string const& filename, bool is_main) -> void {
 
 auto Verifier::check_unused_declarations() -> void {
     for (auto const& module : modules_->get_modules()) {
+        if (module->is_lib()) {
+            continue;
+        }
+        auto name = module->get_filepath();
         for (auto const& func : module->get_functions()) {
             if (func->get_ident() != "main" and !func->is_used()) {
                 auto stream = std::stringstream{};
                 stream << "'" << func->get_ident() << "'";
-                handler_->report_minor_error(current_filename_, all_errors_[22], stream.str(), func->pos());
+                handler_->report_minor_error(name, all_errors_[22], stream.str(), func->pos());
             }
         }
         for (auto const& extern_ : module->get_externs()) {
             if (!extern_->is_used()) {
                 auto stream = std::stringstream{};
                 stream << "'" << extern_->get_ident() << "'";
-                handler_->report_minor_error(current_filename_, all_errors_[23], stream.str(), extern_->pos());
+                handler_->report_minor_error(name, all_errors_[23], stream.str(), extern_->pos());
             }
         }
         for (auto const& enum_ : module->get_enums()) {
             if (!enum_->is_used()) {
                 auto stream = "'" + enum_->get_ident() + "'";
-                handler_->report_minor_error(current_filename_, all_errors_[41], stream, enum_->pos());
+                handler_->report_minor_error(name, all_errors_[41], stream, enum_->pos());
             }
         }
         for (auto const& class_ : module->get_classes()) {
             if (!class_->is_used()) {
                 auto stream = "'" + class_->get_ident() + "'";
-                handler_->report_minor_error(current_filename_, all_errors_[52], stream, class_->pos());
+                handler_->report_minor_error(name, all_errors_[52], stream, class_->pos());
             }
             for (auto const& constructor : class_->get_constructors()) {
                 if (!constructor->is_used()) {
                     auto stream = "in class '" + class_->get_ident() + "' at line "
                                   + std::to_string(constructor->pos().line_start_);
-                    handler_->report_minor_error(current_filename_, all_errors_[55], stream, constructor->pos());
+                    handler_->report_minor_error(name, all_errors_[55], stream, constructor->pos());
                 }
             }
             for (auto const& method : class_->get_methods()) {
@@ -2115,7 +2173,7 @@ auto Verifier::check_unused_declarations() -> void {
                         stream += "private ";
                     }
                     stream += "method '" + method->get_ident() + "' in class '" + class_->get_ident() + "'";
-                    handler_->report_minor_error(current_filename_, all_errors_[53], stream, method->pos());
+                    handler_->report_minor_error(name, all_errors_[53], stream, method->pos());
                 }
             }
         }
@@ -2336,6 +2394,24 @@ auto Verifier::unmurk_direct(std::shared_ptr<MurkyType> murky_t) -> std::shared_
             return std::make_shared<ClassType>(class_);
         }
     }
+
+    if (!curr_module_access_) {
+        for (auto& module : mod->get_using_modules()) {
+            for (auto& enum_ : module->get_enums()) {
+                if (enum_->get_ident() == lex) {
+                    enum_->set_used();
+                    return std::make_shared<EnumType>(enum_);
+                }
+            }
+            for (auto& class_ : module->get_classes()) {
+                if (class_->get_ident() == lex) {
+                    class_->set_used();
+                    return std::make_shared<ClassType>(class_);
+                }
+            }
+        }
+    }
+
     auto err = std::string{};
     if (curr_module_access_) {
         err += curr_module_alias_ + "::";

@@ -1,3 +1,7 @@
+using libc;
+
+pub let HELLO_WORLD: i8* = "hello world!\n";
+
 pub fn str_len(v: i8*) i64 {
     let mut p = v;
     let mut c = 0;
@@ -6,4 +10,38 @@ pub fn str_len(v: i8*) i64 {
         ++c;
     }
     return c;
+}
+
+pub class string {
+    mut len: i64;
+    mut capacity: i64;
+    mut data: i8*;
+
+    destructor {
+        delete data;
+    }
+
+    pub string() {
+        len = 0;
+        capacity = 0;
+        data = null;
+    }
+
+    pub string(v: i8*) {
+        len = str_len(v);
+        capacity = len;
+        data = new i8[len + 1];
+        loop i in len {
+            data[i] = v[i];
+        }
+        data[len] = '\0';
+    }
+
+    pub fn print() void {
+        printf("%s", data);
+    }
+
+    pub fn println() void {
+        printf("%s\n", data);
+    }
 }

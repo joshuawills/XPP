@@ -80,7 +80,7 @@ enum class TokenType {
     DESTRUCTOR,
     DELETE,
     NULL_,
-    NEW
+    NEW,
 };
 
 class Token {

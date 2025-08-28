@@ -1,4 +1,4 @@
-// Accesing int list via import and pointer accesses
+// Accessing int list via import and pointer accesses
 
 import "test_21" as list;
 

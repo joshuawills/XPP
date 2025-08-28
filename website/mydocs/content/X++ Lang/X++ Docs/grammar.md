@@ -8,10 +8,11 @@ defined in other language documentation.
 
 {{< katex display >}}
 \begin{align}
-\textit{program} &\to \textit{import-stmts}^* (\textit{function }|\textit{ global-var }|\textit{ enum })^*  \\ \\
+\textit{program} &\to (\textit{using-stmts } || \textit{import-stmts})^* (\textit{function }|\textit{ global-var }|\textit{ enum })^*  \\ \\
 
 \textit{import-stmts} &\to \textbf{import } \textit{STRINGLITERAL} \textbf{ as } \textit{ident} \text{ ";"} \\ 
 \textit{import-stmts} &\to \textbf{import } \textit{ident } (\textbf{ as } \textit{ident})? (\text{"," } \textit{ident})? \text{ ";"} \\
+\textit{using-stmts} &\to \textbf{using } (\textit{ident } || \textit{ STRINGLITERAL}) (\text{", " } (\textit{ident } || \textit{ STRINGLITERAL}))? \text{ ";"} \\
 
 \textit{global-var} &\to \textbf{pub}? \textbf{ let } \textbf{mut}? \textit{ ident } (\text{ ":" type})? (\text{"="} expr)? \text{";"}\\
 \textit{local-var} &\to \textbf{let } \textbf{mut}? \textit{ ident } (\text{ ":" type})? (\text{"="} expr)? \text{";"}\\
