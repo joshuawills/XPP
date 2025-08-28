@@ -22,6 +22,7 @@ class Parser {
     ~Parser() = default;
 
     auto parse() -> std::shared_ptr<Module>;
+    bool in_new_expr_ = false;
 
  private:
     std::vector<std::shared_ptr<Token>>& tokens_;
@@ -70,6 +71,7 @@ class Parser {
     auto parse_primary_expr() -> std::shared_ptr<Expr>;
     auto parse_array_init_expr() -> std::shared_ptr<Expr>;
     auto parse_size_of_expr() -> std::shared_ptr<Expr>;
+    auto parse_new_expr() -> std::shared_ptr<Expr>;
 
     auto is_assignment_operator() -> bool;
 

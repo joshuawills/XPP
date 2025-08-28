@@ -76,7 +76,11 @@ enum class TokenType {
     CONTINUE,
     BREAK,
     IMPORT,
-    ARROW
+    ARROW,
+    DESTRUCTOR,
+    DELETE,
+    NULL_,
+    NEW
 };
 
 class Token {

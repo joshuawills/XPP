@@ -1,0 +1,8 @@
+// Class may only have one destructor
+
+class Foo {
+	destructor {}
+	destructor {}
+}
+
+fn main() void {}

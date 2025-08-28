@@ -1,0 +1,5 @@
+// Cannot perform a new constructor call on a non class type
+
+fn main() void {
+	let x = new i64();
+}

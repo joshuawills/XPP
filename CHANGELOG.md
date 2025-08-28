@@ -80,9 +80,19 @@
 - ADDITION: adding in the website
 - ADDITION: improving the README
 
+## 28 Aug 2025
+
+- Destructors
+- 'new' and 'delete' keywords
+
 ## TODO
 
+- 'this' keyword
+- Templates
+- Using statements
 - Add in for loops 
 - Moduling system
 - References?
 - Documentation!
+    - General instructions for language features
+    - Classes in the CFG

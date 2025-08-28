@@ -279,6 +279,17 @@ auto Verifier::visit_class_decl(std::shared_ptr<ClassDecl> class_decl) -> void {
         method->visit(shared_from_this());
     }
 
+    auto destructors = class_decl->get_destructors();
+    if (destructors.size() > 1) {
+        auto error = "class '" + class_name + "' has multiple destructors";
+        handler_->report_error(current_filename_, all_errors_[80], error, destructors[1]->pos());
+    }
+    else {
+        for (auto& destructor : destructors) {
+            destructor->visit(shared_from_this());
+        }
+    }
+
     curr_class = nullptr;
     return;
 }
@@ -330,6 +341,30 @@ auto Verifier::visit_constructor_decl(std::shared_ptr<ConstructorDecl> construct
     has_return_ = false;
     in_constructor_ = false;
     return;
+}
+
+auto Verifier::visit_destructor_decl(std::shared_ptr<DestructorDecl> destructor_decl) -> void {
+    in_destructor_ = true;
+    current_function_or_method_ = destructor_decl;
+    destructor_decl->get_compound_stmt()->visit(shared_from_this());
+
+    if (!handler_->quiet_mode()) {
+        // Check if any variables opened in that scope remained unused
+        // or if they were declared mutable but never reassigned
+        for (auto const& var : symbol_table_.retrieve_latest_scope()) {
+            if (!var.attr->is_used()) {
+                auto err = "local variable '" + var.attr->get_ident() + "'";
+                handler_->report_minor_error(current_filename_, all_errors_[21], err, var.attr->pos());
+            }
+            if (var.attr->is_mut() and !var.attr->is_reassigned()) {
+                auto err = "variable '" + var.attr->get_ident() + "'";
+                handler_->report_minor_error(current_filename_, all_errors_[44], err, var.attr->pos());
+            }
+        }
+    }
+
+    global_statement_counter_ = 0;
+    in_destructor_ = false;
 }
 
 auto Verifier::visit_method_decl(std::shared_ptr<MethodDecl> method_decl) -> void {
@@ -833,6 +868,11 @@ auto Verifier::visit_unary_expr(std::shared_ptr<UnaryExpr> unary_expr) -> void {
     return;
 }
 
+auto Verifier::visit_null_expr(std::shared_ptr<NullExpr> null_expr) -> void {
+    (void)null_expr;
+    return;
+}
+
 auto Verifier::visit_int_expr(std::shared_ptr<IntExpr> int_expr) -> void {
     if (current_numerical_type.has_value() and !(*current_numerical_type)->is_signed_int()) {
         int_expr->set_type(handler_->ERROR_TYPE);
@@ -932,7 +972,8 @@ auto Verifier::visit_var_expr(std::shared_ptr<VarExpr> var_expr) -> void {
     else if (!entry.has_value()) {
         auto const method_d = std::dynamic_pointer_cast<MethodDecl>(current_function_or_method_);
         auto const constructor_d = std::dynamic_pointer_cast<ConstructorDecl>(current_function_or_method_);
-        if (!method_d and !constructor_d) {
+        auto const destructor_d = std::dynamic_pointer_cast<DestructorDecl>(current_function_or_method_);
+        if (!method_d and !constructor_d and !destructor_d) {
             handler_->report_error(current_filename_, all_errors_[8], n, var_expr->pos());
             var_expr->set_type(handler_->ERROR_TYPE);
             return;
@@ -1093,7 +1134,7 @@ auto Verifier::visit_constructor_call_expr(std::shared_ptr<ConstructorCallExpr> 
         class_ref->get_ref()->set_used();
     }
     else {
-        std::cout << "UNREACHABLE Emitter::visit_constructor_call_expr";
+        std::cout << "unreachable emitter::visit_constructor_call_expr";
     }
     constructor_call_expr->set_ref(*equivalent_constructor);
     constructor_call_expr->set_type((*equivalent_constructor)->get_type());
@@ -1511,6 +1552,142 @@ auto Verifier::visit_import_expr(std::shared_ptr<ImportExpr> import_expr) -> voi
     return;
 }
 
+auto Verifier::visit_new_expr(std::shared_ptr<NewExpr> new_expr) -> void {
+    if (new_expr->get_new_type()->is_murky()) {
+        new_expr->set_new_type(unmurk_direct(std::dynamic_pointer_cast<MurkyType>(new_expr->get_new_type())));
+    }
+    auto t = new_expr->get_new_type();
+
+    auto array_arg = new_expr->get_array_size_args();
+    auto constructor_arg = new_expr->get_constructor_args();
+    if (!array_arg.has_value() and !constructor_arg.has_value()) {
+        if (t->is_void()) {
+            handler_->report_error(current_filename_, all_errors_[82], "", new_expr->pos());
+            new_expr->set_type(handler_->ERROR_TYPE);
+            return;
+        }
+    }
+    else if (array_arg.has_value()) {
+        // We have an array allocation
+        if (t->is_void()) {
+            handler_->report_error(current_filename_, all_errors_[82], "", new_expr->pos());
+            new_expr->set_type(handler_->ERROR_TYPE);
+            return;
+        }
+
+        array_arg.value()->visit(shared_from_this());
+        if (updated_expr_) {
+            new_expr->set_array_size_args(updated_expr_);
+            array_arg = updated_expr_;
+            updated_expr_ = nullptr;
+        }
+
+        if (!(*array_arg)->get_type()->is_i64()) {
+            auto error = std::stringstream{};
+            error << "received " << *(*array_arg)->get_type();
+            handler_->report_error(current_filename_, all_errors_[83], error.str(), (*array_arg)->pos());
+        }
+    }
+    else if (constructor_arg.has_value()) {
+        // We have a call to a class constructor
+        // Check for import type
+        std::shared_ptr<ClassType> class_type = nullptr;
+        std::shared_ptr<Module> curr_module_access = nullptr;
+        std::string name = {};
+        if (t->is_class()) {
+            class_type = std::dynamic_pointer_cast<ClassType>(t);
+            name = class_type->get_ref()->get_ident();
+        }
+        else if (t->is_import()) {
+            auto mod = current_module_->get_module_from_alias(std::dynamic_pointer_cast<ImportType>(t)->get_name());
+            t = unmurk(t);
+            if (t->is_class()) {
+                class_type = std::dynamic_pointer_cast<ClassType>(t);
+                name = class_type->get_ref()->get_ident();
+            }
+            curr_module_access = *mod;
+        }
+
+        if (!class_type) {
+            auto error = std::stringstream{};
+            error << "received " << *t;
+            handler_->report_error(current_filename_, all_errors_[84], error.str(), new_expr->pos());
+            new_expr->set_type(handler_->ERROR_TYPE);
+            return;
+        }
+
+        auto new_constructor_args = std::vector<std::shared_ptr<Expr>>{};
+        for (auto& arg : *constructor_arg) {
+            arg->visit(shared_from_this());
+            if (updated_expr_) {
+                new_constructor_args.push_back(updated_expr_);
+                updated_expr_ = nullptr;
+            }
+            else {
+                new_constructor_args.push_back(arg);
+            }
+        }
+        *constructor_arg = new_constructor_args;
+
+        auto constructor_call_expr = std::make_shared<ConstructorCallExpr>(new_expr->pos(), name, *constructor_arg);
+
+        std::optional<std::shared_ptr<ConstructorDecl>> equivalent_constructor;
+        if (curr_module_access) {
+            equivalent_constructor = curr_module_access->get_constructor_decl(constructor_call_expr);
+        }
+        else {
+            equivalent_constructor = current_module_->get_constructor_decl(constructor_call_expr);
+        }
+
+        if (!equivalent_constructor) {
+            handler_->report_error(current_filename_,
+                                   all_errors_[59],
+                                   "on class: '" + constructor_call_expr->get_name() + "'",
+                                   new_expr->pos());
+            new_expr->set_type(handler_->ERROR_TYPE);
+            return;
+        }
+
+        if (!(*equivalent_constructor)->is_pub()) {
+            handler_->report_error(current_filename_, all_errors_[76], "", constructor_call_expr->pos());
+        }
+
+        auto paras = (*equivalent_constructor)->get_paras();
+        auto c = 0u;
+        for (auto& arg : constructor_call_expr->get_args()) {
+            if (c < paras.size() and paras[c]->get_type()->is_numeric()) {
+                current_numerical_type = paras[c]->get_type();
+            }
+            arg->visit(shared_from_this());
+            current_numerical_type = std::nullopt;
+            ++c;
+        }
+
+        (*equivalent_constructor)->set_used();
+        auto class_ref = std::dynamic_pointer_cast<ClassType>((*equivalent_constructor)->get_type());
+        if (class_ref) {
+            if (curr_module_access_ and !class_ref->get_ref()->is_pub()) {
+                auto error = "class '" + class_ref->get_ref()->get_ident() + "' is not accessible outside of its module";
+                handler_->report_error(current_filename_, all_errors_[75], error, constructor_call_expr->pos());
+                constructor_call_expr->set_type(handler_->ERROR_TYPE);
+            }
+            else {
+                class_ref->get_ref()->set_used();
+            }
+        }
+        else {
+            std::cout << "unreachable emitter::visit_constructor_call_expr";
+        }
+        constructor_call_expr->set_ref(*equivalent_constructor);
+        constructor_call_expr->set_type((*equivalent_constructor)->get_type());
+
+        new_expr->set_call_expr(constructor_call_expr);
+    }
+
+    new_expr->set_type(std::make_shared<PointerType>(t));
+    return;
+}
+
 auto Verifier::visit_empty_stmt(std::shared_ptr<EmptyStmt> empty_stmt) -> void {
     (void)empty_stmt;
     return;
@@ -1518,11 +1695,8 @@ auto Verifier::visit_empty_stmt(std::shared_ptr<EmptyStmt> empty_stmt) -> void {
 
 auto Verifier::visit_compound_stmt(std::shared_ptr<CompoundStmt> compound_stmt) -> void {
     auto p = compound_stmt->get_parent();
-    auto parent_is_function = p != nullptr and std::dynamic_pointer_cast<Function>(p);
 
-    if (!parent_is_function) {
-        symbol_table_.open_scope();
-    }
+    symbol_table_.open_scope();
     auto i = 0u;
     auto const s = compound_stmt->get_stmts().size();
     for (auto& stmt : compound_stmt->get_stmts()) {
@@ -1536,7 +1710,8 @@ auto Verifier::visit_compound_stmt(std::shared_ptr<CompoundStmt> compound_stmt) 
         }
         ++i;
     }
-    if (!parent_is_function and !handler_->quiet_mode()) {
+
+    if (!handler_->quiet_mode()) {
         // Check if any variables opened in that scope remained unused
         for (auto const& var : symbol_table_.retrieve_latest_scope()) {
             if (!var.attr->is_used()) {
@@ -1551,9 +1726,19 @@ auto Verifier::visit_compound_stmt(std::shared_ptr<CompoundStmt> compound_stmt) 
         }
     }
 
-    if (!parent_is_function) {
-        symbol_table_.close_scope();
+    auto latest_scope = symbol_table_.retrieve_latest_scope();
+    for (auto it = latest_scope.rbegin(); it != latest_scope.rend(); ++it) {
+        auto member = *it;
+        if (member.attr->get_type()->is_class()) {
+            auto expr =
+                std::make_shared<VarExpr>(compound_stmt->pos(), member.attr->get_ident(), member.attr->get_type());
+            auto delete_stmt = std::make_shared<DeleteStmt>(compound_stmt->pos(), expr);
+            delete_stmt->visit(shared_from_this());
+            compound_stmt->add_stmt(delete_stmt);
+        }
     }
+
+    symbol_table_.close_scope();
     return;
 }
 
@@ -1722,6 +1907,20 @@ auto Verifier::visit_break_stmt(std::shared_ptr<BreakStmt> break_stmt) -> void {
 auto Verifier::visit_continue_stmt(std::shared_ptr<ContinueStmt> continue_stmt) -> void {
     if (loop_depth_ <= 0) {
         handler_->report_error(current_filename_, all_errors_[73], "", continue_stmt->pos());
+    }
+    return;
+}
+
+auto Verifier::visit_delete_stmt(std::shared_ptr<DeleteStmt> delete_stmt) -> void {
+    delete_stmt->get_expr()->visit(shared_from_this());
+    if (updated_expr_) {
+        delete_stmt->set_expr(updated_expr_);
+        updated_expr_ = nullptr;
+    }
+    auto const t = delete_stmt->get_expr()->get_type();
+    if (!t->is_pointer() and !t->is_class()) {
+        auto error = "received type " + t->to_string();
+        handler_->report_error(current_filename_, all_errors_[81], error, delete_stmt->pos());
     }
     return;
 }

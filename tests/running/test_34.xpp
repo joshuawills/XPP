@@ -1,0 +1,26 @@
+// Messing around with null
+
+extern printf(i8*, ...) i32;
+
+fn main() void {
+    let x: i8* = null;
+    if x == null {
+        printf("x is null!\n");
+    }
+
+    let mut y = 19;
+    let mut z = &y;
+    printf("%d\n", *z);
+    z = null;
+
+    if z == null {
+        printf("z is null!\n");
+    }
+
+    let foo = new i64;
+    delete foo;
+    if foo == null {
+        printf("Good!\n");
+    }
+
+}

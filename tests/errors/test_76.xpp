@@ -19,4 +19,6 @@ fn main() void {
     printf("%d\n", valid.x);
 
     let invalid = IntBox(21);
+
+    let invalid2 = new IntBox(21);
 }

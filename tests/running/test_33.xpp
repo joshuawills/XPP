@@ -1,0 +1,79 @@
+// More work with destructors and new/delete keywords
+
+pub extern printf(i8*, ...) i32;
+extern malloc(i64) void*;
+extern calloc(i64, i64) void*;
+extern free(void*) void;
+extern realloc(void*, i64) void*;
+
+let SECTION_SIZE: i64 = 100;
+
+
+pub class IntList {
+	mut arr: i64*;
+	pub mut len: i64;
+	mut section_size: i64;
+	
+	pub IntList() {
+        len = 0;
+        section_size = SECTION_SIZE;
+        arr = calloc(section_size, size_of(i64));
+    }
+
+    destructor {
+        printf("Calling IntList destructor!\n");
+        delete arr;
+    }
+
+    pub mut fn append(val: i64) void {
+        if len != 0 and len % section_size == 0 {
+            let num_iterations = len / section_size;
+            let size: i64 = (num_iterations + 1) * section_size * size_of(i64);
+            arr = realloc(arr, size);
+        }
+        arr[len++] = val;
+    }
+
+    pub fn print() void {
+        loop i in len {
+            printf("%d\n", arr[i]);
+        }
+    }
+
+}
+
+fn main() void {
+    
+    // BASIC HEAP ALLOCATION
+    let mut x: i64* = new i64;
+    *x = 21;
+    printf("%d\n", *x);
+
+    delete x;
+    // Does nothing
+    delete x;
+
+    // HEAP ALLOCATING AN ARRAY OF INTS 
+    let x = 10;
+    let mut y = new i8[x];
+
+    loop i in x {
+        y[i] = 'a' + (i as i8);
+    }
+
+    loop i in x {
+        printf("'%c'\n", y[i]);
+    }
+
+    delete y;
+    delete y;
+
+    let mut list: IntList* = new IntList();
+    list->append(21);
+    list->append(19);
+    list->print();
+
+    delete list;
+}
+
+

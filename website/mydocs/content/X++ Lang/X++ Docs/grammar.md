@@ -30,6 +30,7 @@ defined in other language documentation.
 \textit{break-stmt} \\
 \textit{continue-stmt} \\
 \textit{expr-stmt} \\
+\textit{delete-stmt} \\
 \textit{empty-stmt} \\
 \end{cases} \\
 \textit{if-stmt} &\to \textbf{if} \textit{ expr compound-stmt } (\textbf{else if } \textit{expr compound-stmt})^* (\textbf{else} \textit{
@@ -39,9 +40,10 @@ stmt})? \\
 \textit{continue-stmt} &\to \textbf{continue } \text{ ";"} \\
 \textit{return-stmt} &\to \textbf{return} \textit{ expr}? \text{ ";"} \\
 \textit{expr-stmt} &\to \textit{expr} \text{ ";"} \\
+\textit{delete-stmt} &\to \textbf{delete } \textit{expr} \text{ ";"} \\
 \textit{loop-stmt} &\to \textbf{ loop } \textit{ident } (\textbf{in} \textit{ expr} (\text{ ", "}\textit{ expr?})?)? \textit{ compound-stmt}\\
 
-\textit{expr} &\to (\textit{assignment-expr } || \textit{size-of-expr}) ("as" ( \text{"(" } \textit{type} \text{ ")"}|| \textit{expr}))? \\
+\textit{expr} &\to (\textit{assignment-expr } || \textit{size-of-expr } \textit{new-expr}) ("as" ( \text{"(" } \textit{type} \text{ ")"}|| \textit{expr}))? \\
 \textit{assignment-expr} &\to \textit{logical-or-expr } || \textit{unary-expr} \textbf{ ASSIGNMENT-OPERATOR } \textit{assignment-expr}\\  
 \textit{logical-or-expr} &\to \textit{logical-and-expr } (\text{"||" } \textit{logical-and-expr})^* \\
 \textit{logical-and-expr} &\to \textit{equality-expr } (\text{"\\\&\\\&" } \textit{equality-expr})^* \\
@@ -53,6 +55,7 @@ stmt})? \\
 \textit{unary-expr} &\to
 \begin{cases}
 \textit{size-of-expr} \\
+\textit{new-expr} \\
 \textit{prefix-expr} \\
 \textit{array-init-expr} \\
 \textit{postfix-expr} \\
@@ -60,6 +63,7 @@ stmt})? \\
 \\
 
 \textit{size-of-expr} &\to \textbf{ size\_of} ("(" \textit{ type } ")" | (\textit{ expr})) \\
+\textit{new-expr} &\to \textbf{new } \textit{type} (\text{"[" } \textit{ expr }\text{ "]"} || \text{"(" }\textit{args} \text{ ")"})?\\
 \textit{prefix-expr} &\to \textbf{UNARY-OPERATOR} \textit{ expr} \\
 \textit{array-init-expr} &\to \text{"[" } (\textit{ expr} (\text{", "} \textit{ expr})^*)^* \text{"]" } \\
 
@@ -78,6 +82,7 @@ stmt})? \\
 \textit{FLOATLITERAL} \\
 \textit{BOOLLITERAL} \\ 
 \textit{CHARLITERAL} \\
+\textbf{null} \\
 \textit{ident} \\
 \text{"(" } \textit{expr} \text{ ")"} \\
 \end{cases} \\

@@ -380,6 +380,15 @@ auto UnaryExpr::print(std::ostream& os) const -> void {
     expr_->print(os);
 }
 
+auto NullExpr::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
+    auto const t = llvm::PointerType::get(llvm::Type::getVoidTy(*emitter->context), 0);
+    return llvm::ConstantPointerNull::get(t);
+}
+
+auto NullExpr::print(std::ostream& os) const -> void {
+    os << "null";
+}
+
 auto IntExpr::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
     return llvm::ConstantInt::get(*(emitter->context), llvm::APInt(width_, value_, true));
 }
@@ -601,8 +610,8 @@ auto ConstructorCallExpr::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Val
     auto name = "constructor." + constructor_ref->get_ident() + constructor_ref->get_type_output();
     auto callee = emitter->llvm_module->getFunction(name);
 
-    llvm::AllocaInst* class_ptr;
-    if (emitter->instantiating_constructor_) {
+    llvm::Value* class_ptr;
+    if (emitter->instantiating_constructor_ and name_ == emitter->curr_class_->get_ident()) {
         auto val = emitter->llvm_builder->CreateLoad(emitter->llvm_type(get_type()), emitter->named_values["this"]);
         auto arg_vals = std::vector<llvm::Value*>{};
         arg_vals.push_back(val);
@@ -899,4 +908,57 @@ auto ImportExpr::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
 auto ImportExpr::print(std::ostream& os) const -> void {
     os << alias_name_ << "::";
     expr_->print(os);
+}
+
+auto NewExpr::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
+    auto& data_layout = emitter->llvm_module->getDataLayout();
+
+    auto const t = emitter->llvm_type(new_type_);
+    auto const size = data_layout.getTypeAllocSize(t);
+    auto const malloc_func = emitter->llvm_module->getFunction("malloc");
+
+    if (!call_expr_ and !array_size_args_.has_value()) {
+        auto size_val = llvm::ConstantInt::get(llvm::Type::getInt64Ty(*emitter->context), size);
+        return emitter->llvm_builder->CreateCall(malloc_func, size_val);
+    }
+    else if (array_size_args_.has_value()) {
+        auto array_size = (*array_size_args_)->codegen(emitter);
+        auto total_size =
+            emitter->llvm_builder->CreateMul(array_size,
+                                             llvm::ConstantInt::get(llvm::Type::getInt64Ty(*emitter->context), size));
+        return emitter->llvm_builder->CreateCall(malloc_func, total_size);
+    }
+    else {
+        // Constructor call
+        assert(emitter->alloca != nullptr);
+        auto size_val = llvm::ConstantInt::get(llvm::Type::getInt64Ty(*emitter->context), size);
+        auto void_p = emitter->llvm_builder->CreateCall(malloc_func, size_val);
+        emitter->llvm_builder->CreateStore(
+            emitter->llvm_builder->CreateBitCast(void_p, emitter->llvm_type(new_type_)->getPointerTo()),
+            emitter->alloca);
+
+        assert(call_expr_ != nullptr);
+        auto loaded_alloca = emitter->llvm_builder->CreateLoad(emitter->llvm_type(new_type_), emitter->alloca);
+        emitter->alloca = static_cast<llvm::Value*>(loaded_alloca);
+        call_expr_->codegen(emitter);
+        return loaded_alloca;
+    }
+
+    return nullptr;
+}
+
+auto NewExpr::print(std::ostream& os) const -> void {
+    os << "new ";
+    if (new_type_) {
+        os << *new_type_;
+    }
+    if (constructor_args_) {
+        os << "(";
+        for (const auto& arg : *constructor_args_) {
+            arg->print(os);
+            os << ", ";
+        }
+        os.seekp(-2, std::ios_base::end);
+        os << ")";
+    }
 }

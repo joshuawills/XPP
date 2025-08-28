@@ -12,11 +12,13 @@ class ClassDecl;
 class Function;
 class MethodDecl;
 class ConstructorDecl;
+class DestructorDecl;
 class EmptyExpr;
 class AssignmentExpr;
 class BinaryExpr;
 class UnaryExpr;
 class DecimalExpr;
+class NullExpr;
 class IntExpr;
 class UIntExpr;
 class BoolExpr;
@@ -32,6 +34,7 @@ class EnumAccessExpr;
 class FieldAccessExpr;
 class MethodAccessExpr;
 class ImportExpr;
+class NewExpr;
 class SizeOfExpr;
 class EmptyStmt;
 class CompoundStmt;
@@ -44,6 +47,7 @@ class ElseIfStmt;
 class LoopStmt;
 class BreakStmt;
 class ContinueStmt;
+class DeleteStmt;
 class Extern;
 
 class Visitor {
@@ -57,12 +61,14 @@ class Visitor {
     virtual auto visit_function(std::shared_ptr<Function> function) -> void = 0;
     virtual auto visit_method_decl(std::shared_ptr<MethodDecl> method_decl) -> void = 0;
     virtual auto visit_constructor_decl(std::shared_ptr<ConstructorDecl> constructor_decl) -> void = 0;
+    virtual auto visit_destructor_decl(std::shared_ptr<DestructorDecl> destructor_decl) -> void = 0;
     virtual auto visit_extern(std::shared_ptr<Extern> extern_) -> void = 0;
     virtual auto visit_empty_expr(std::shared_ptr<EmptyExpr> empty_expr) -> void = 0;
     virtual auto visit_assignment_expr(std::shared_ptr<AssignmentExpr> assignment_expr) -> void = 0;
     virtual auto visit_binary_expr(std::shared_ptr<BinaryExpr> binary_expr) -> void = 0;
     virtual auto visit_unary_expr(std::shared_ptr<UnaryExpr> unary_expr) -> void = 0;
     virtual auto visit_decimal_expr(std::shared_ptr<DecimalExpr> decimal_expr) -> void = 0;
+    virtual auto visit_null_expr(std::shared_ptr<NullExpr> null_expr) -> void = 0;
     virtual auto visit_int_expr(std::shared_ptr<IntExpr> int_expr) -> void = 0;
     virtual auto visit_uint_expr(std::shared_ptr<UIntExpr> uint_expr) -> void = 0;
     virtual auto visit_bool_expr(std::shared_ptr<BoolExpr> bool_expr) -> void = 0;
@@ -79,6 +85,7 @@ class Visitor {
     virtual auto visit_method_access_expr(std::shared_ptr<MethodAccessExpr> method_access_expr) -> void = 0;
     virtual auto visit_size_of_expr(std::shared_ptr<SizeOfExpr> size_of_expr) -> void = 0;
     virtual auto visit_import_expr(std::shared_ptr<ImportExpr> import_expr) -> void = 0;
+    virtual auto visit_new_expr(std::shared_ptr<NewExpr> new_expr) -> void = 0;
 
     virtual auto visit_empty_stmt(std::shared_ptr<EmptyStmt> empty_stmt) -> void = 0;
     virtual auto visit_compound_stmt(std::shared_ptr<CompoundStmt> compound_stmt) -> void = 0;
@@ -91,6 +98,7 @@ class Visitor {
     virtual auto visit_loop_stmt(std::shared_ptr<LoopStmt> loop_stmt) -> void = 0;
     virtual auto visit_break_stmt(std::shared_ptr<BreakStmt> break_stmt) -> void = 0;
     virtual auto visit_continue_stmt(std::shared_ptr<ContinueStmt> continue_stmt) -> void = 0;
+    virtual auto visit_delete_stmt(std::shared_ptr<DeleteStmt> delete_stmt) -> void = 0;
 };
 
 #endif // VISITOR_HPP

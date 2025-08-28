@@ -303,6 +303,28 @@ class ConstructorDecl
     std::string type_output = "";
 };
 
+class DestructorDecl
+: public Decl
+, public std::enable_shared_from_this<DestructorDecl> {
+ public:
+    DestructorDecl(Position const pos, std::string const ident, std::shared_ptr<CompoundStmt> stmts)
+    : Decl(pos, ident, std::make_shared<Type>(TypeSpec::VOID))
+    , stmts_(stmts) {}
+
+    auto get_compound_stmt() const -> std::shared_ptr<CompoundStmt> const& {
+        return stmts_;
+    }
+
+    auto visit(std::shared_ptr<Visitor> visitor) -> void override {
+        visitor->visit_destructor_decl(shared_from_this());
+    }
+    auto codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* override;
+    auto print(std::ostream& os) const -> void override;
+
+ private:
+    std::shared_ptr<CompoundStmt> const stmts_;
+};
+
 class Extern
 : public Decl
 , public std::enable_shared_from_this<Extern> {
@@ -394,8 +416,9 @@ class ClassDecl
                                            std::string const name,
                                            std::vector<std::shared_ptr<ClassFieldDecl>> fields,
                                            std::vector<std::shared_ptr<MethodDecl>> methods,
-                                           std::vector<std::shared_ptr<ConstructorDecl>> constructors) {
-        auto decl = std::shared_ptr<ClassDecl>(new ClassDecl(pos, name, fields, methods, constructors));
+                                           std::vector<std::shared_ptr<ConstructorDecl>> constructors,
+                                           std::vector<std::shared_ptr<DestructorDecl>> destructors) {
+        auto decl = std::shared_ptr<ClassDecl>(new ClassDecl(pos, name, fields, methods, constructors, destructors));
         decl->set_type(std::make_shared<ClassType>(decl));
         return decl;
     }
@@ -430,6 +453,10 @@ class ClassDecl
         return constructors_;
     }
 
+    auto get_destructors() const -> std::vector<std::shared_ptr<DestructorDecl>> {
+        return destructors_;
+    }
+
  private:
     ClassDecl(Position const pos, std::string const name)
     : Decl(pos, name, std::make_shared<Type>()) {}
@@ -438,16 +465,19 @@ class ClassDecl
               std::string const name,
               std::vector<std::shared_ptr<ClassFieldDecl>> fields,
               std::vector<std::shared_ptr<MethodDecl>> methods,
-              std::vector<std::shared_ptr<ConstructorDecl>> constructors)
+              std::vector<std::shared_ptr<ConstructorDecl>> constructors,
+              std::vector<std::shared_ptr<DestructorDecl>> destructors)
     : Decl(pos, name, std::make_shared<Type>())
     , fields_(fields)
     , methods_(methods)
-    , constructors_(constructors) {}
+    , constructors_(constructors)
+    , destructors_(destructors) {}
 
     std::string type_name_ = {};
     std::vector<std::shared_ptr<ClassFieldDecl>> fields_;
     std::vector<std::shared_ptr<MethodDecl>> methods_;
     std::vector<std::shared_ptr<ConstructorDecl>> constructors_;
+    std::vector<std::shared_ptr<DestructorDecl>> destructors_;
 };
 
 #endif // DECL_HPP

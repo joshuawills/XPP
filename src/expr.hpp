@@ -196,6 +196,20 @@ class UnaryExpr
     std::shared_ptr<Expr> expr_;
 };
 
+class NullExpr
+: public Expr
+, public std::enable_shared_from_this<NullExpr> {
+ public:
+    NullExpr(Position const pos)
+    : Expr(pos, std::make_shared<PointerType>(std::make_shared<Type>(TypeSpec::VOID))) {}
+
+    auto visit(std::shared_ptr<Visitor> visitor) -> void override {
+        visitor->visit_null_expr(shared_from_this());
+    }
+    auto codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* override;
+    auto print(std::ostream& os) const -> void override;
+};
+
 class IntExpr
 : public Expr
 , public std::enable_shared_from_this<IntExpr> {
@@ -816,6 +830,69 @@ class ImportExpr
     std::shared_ptr<Expr> expr_;
     std::string alias_name_;
     std::shared_ptr<Module> module_ref_ = nullptr;
+};
+
+class NewExpr
+: public Expr
+, public std::enable_shared_from_this<NewExpr> {
+ public:
+    NewExpr(Position const pos, std::shared_ptr<Type> new_type)
+    : Expr(pos, std::make_shared<Type>())
+    , new_type_(new_type) {}
+
+    NewExpr(Position const pos, std::shared_ptr<Type> new_type, std::shared_ptr<Expr> array_size_args)
+    : Expr(pos, std::make_shared<Type>())
+    , new_type_(new_type)
+    , array_size_args_(std::optional{array_size_args}) {}
+
+    NewExpr(Position const pos, std::shared_ptr<Type> new_type, std::vector<std::shared_ptr<Expr>> constructor_args)
+    : Expr(pos, std::make_shared<Type>())
+    , new_type_(new_type)
+    , constructor_args_(std::optional{constructor_args}) {}
+
+    auto set_new_type(std::shared_ptr<Type> new_type) -> void {
+        new_type_ = new_type;
+    }
+
+    auto get_new_type() const -> std::shared_ptr<Type> {
+        return new_type_;
+    }
+
+    auto set_constructor_args(std::vector<std::shared_ptr<Expr>> constructor_args) -> void {
+        constructor_args_ = std::move(constructor_args);
+    }
+
+    auto get_constructor_args() const -> std::optional<std::vector<std::shared_ptr<Expr>>> {
+        return constructor_args_;
+    }
+
+    auto set_array_size_args(std::shared_ptr<Expr> array_size_args) -> void {
+        array_size_args_ = array_size_args;
+    }
+
+    auto get_array_size_args() const -> std::optional<std::shared_ptr<Expr>> {
+        return array_size_args_;
+    }
+
+    auto set_call_expr(std::shared_ptr<ConstructorCallExpr> call_expr) -> void {
+        call_expr_ = call_expr;
+    }
+
+    auto get_call_expr() const -> std::shared_ptr<ConstructorCallExpr> {
+        return call_expr_;
+    }
+
+    auto visit(std::shared_ptr<Visitor> visitor) -> void override {
+        visitor->visit_new_expr(shared_from_this());
+    }
+    auto codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* override;
+    auto print(std::ostream& os) const -> void override;
+
+ private:
+    std::shared_ptr<Type> new_type_;
+    std::optional<std::vector<std::shared_ptr<Expr>>> constructor_args_;
+    std::optional<std::shared_ptr<Expr>> array_size_args_;
+    std::shared_ptr<ConstructorCallExpr> call_expr_ = nullptr;
 };
 
 #endif // EXPR_HPP
