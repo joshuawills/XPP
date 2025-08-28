@@ -68,35 +68,58 @@ auto Parser::peek(TokenType t, size_t pos) -> bool {
 auto Parser::parse() -> std::shared_ptr<Module> {
     auto module = std::make_shared<Module>(filename_);
 
-    while (peek(TokenType::IMPORT)) {
-        consume();
-        while (curr_token_.has_value() and !(*curr_token_)->type_matches(TokenType::SEMICOLON)) {
-            if (peek(TokenType::IDENT)) {
-                // Standard library paths
-                auto i = parse_ident();
-                auto path = handler_->stdlib_path + "/" + i + ".xpp";
-                if (try_consume(TokenType::AS)) {
+    while (peek(TokenType::IMPORT) or peek(TokenType::USING)) {
+        if (try_consume(TokenType::USING)) {
+            while (curr_token_.has_value() and !(*curr_token_)->type_matches(TokenType::SEMICOLON)) {
+                if (peek(TokenType::IDENT)) {
+                    auto i = parse_ident();
+                    auto path = handler_->stdlib_path + "/" + i + ".xpp";
+                    module->add_using_filepath(path, true);
+                }
+                else {
+                    std::filesystem::path p = (*curr_token_)->lexeme();
+                    match(TokenType::STRING_LITERAL);
+                    auto path = static_cast<std::filesystem::path>(filename_).parent_path() / p;
+                    path += ".xpp";
+                    module->add_using_filepath(path);
+                }
+
+                if (peek(TokenType::SEMICOLON)) {
+                    break;
+                }
+                match(TokenType::COMMA);
+            }
+        }
+        else {
+            match(TokenType::IMPORT);
+            while (curr_token_.has_value() and !(*curr_token_)->type_matches(TokenType::SEMICOLON)) {
+                if (peek(TokenType::IDENT)) {
+                    // Standard library paths
+                    auto i = parse_ident();
+                    auto path = handler_->stdlib_path + "/" + i + ".xpp";
+                    if (try_consume(TokenType::AS)) {
+                        auto alias = parse_ident();
+                        module->add_imported_filepath(alias, path, true);
+                    }
+                    else {
+                        module->add_imported_filepath(i, path, true);
+                    }
+                }
+                else {
+                    std::filesystem::path p = (*curr_token_)->lexeme();
+                    match(TokenType::STRING_LITERAL);
+                    auto path = static_cast<std::filesystem::path>(filename_).parent_path() / p;
+                    path += ".xpp";
+                    match(TokenType::AS);
                     auto alias = parse_ident();
                     module->add_imported_filepath(alias, path);
                 }
-                else {
-                    module->add_imported_filepath(i, path);
-                }
-            }
-            else {
-                std::filesystem::path p = (*curr_token_)->lexeme();
-                match(TokenType::STRING_LITERAL);
-                auto path = static_cast<std::filesystem::path>(filename_).parent_path() / p;
-                path += ".xpp";
-                match(TokenType::AS);
-                auto alias = parse_ident();
-                module->add_imported_filepath(alias, path);
-            }
 
-            if (peek(TokenType::SEMICOLON)) {
-                break;
+                if (peek(TokenType::SEMICOLON)) {
+                    break;
+                }
+                match(TokenType::COMMA);
             }
-            match(TokenType::COMMA);
         }
         match(TokenType::SEMICOLON);
     }

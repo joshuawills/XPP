@@ -1,0 +1,1 @@
+pub extern printf(i8*, ...) i32;

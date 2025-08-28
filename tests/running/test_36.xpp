@@ -1,0 +1,12 @@
+// Utilising using stmts
+
+using str, libc;
+
+fn main() void {
+    printf("%s\n", HELLO_WORLD);
+
+    let foo: string = string("hi");
+    foo.println();
+
+    printf("%d\n", str_len("foo"));
+}

@@ -4,7 +4,10 @@ auto operator<<(std::ostream& os, Module const& mod) -> std::ostream& {
     os << "Module " << mod.get_filepath() << "\n";
 
     for (auto const& import : mod.get_imported_filepaths()) {
-        os << "  Import: " << import << "\n";
+        os << "  Import: " << import.first << "\n";
+    }
+    for (auto const& using_ : mod.get_using_filepaths()) {
+        os << "  Using: " << using_.first << "\n";
     }
 
     for (auto const& class_ : mod.get_classes()) {
@@ -25,7 +28,7 @@ auto operator<<(std::ostream& os, Module const& mod) -> std::ostream& {
     return os;
 }
 
-auto Module::get_constructor_decl(std::shared_ptr<ConstructorCallExpr> constructor_call_expr) const
+auto Module::get_constructor_decl(std::shared_ptr<ConstructorCallExpr> constructor_call_expr, bool is_recursive) const
     -> std::optional<std::shared_ptr<ConstructorDecl>> {
     auto it = std::find_if(classes_.begin(), classes_.end(), [&constructor_call_expr](auto const& class_) {
         return class_->get_ident() == constructor_call_expr->get_name();
@@ -49,10 +52,21 @@ auto Module::get_constructor_decl(std::shared_ptr<ConstructorCallExpr> construct
             }
         }
     }
+
+    if (is_recursive) {
+        for (auto& mod : using_modules) {
+            auto constructor = mod.second->get_constructor_decl(constructor_call_expr, false);
+            if (constructor) {
+                return constructor;
+            }
+        }
+    }
+
     return std::nullopt;
 }
 
-auto Module::get_decl(std::shared_ptr<CallExpr> call_expr) const -> std::optional<std::shared_ptr<Decl>> {
+auto Module::get_decl(std::shared_ptr<CallExpr> call_expr, bool is_recursive) const
+    -> std::optional<std::shared_ptr<Decl>> {
     auto it = std::find_if(functions_.begin(), functions_.end(), [&call_expr](auto const& func) {
         auto dot_pos = func->get_ident().find('.');
         auto prefix = func->get_ident().substr(0, dot_pos);
@@ -101,7 +115,20 @@ auto Module::get_decl(std::shared_ptr<CallExpr> call_expr) const -> std::optiona
         return true;
     });
 
-    return (it2 != externs_.end()) ? std::optional{*it2} : std::nullopt;
+    if (it2 != externs_.end()) {
+        return std::optional{*it2};
+    }
+
+    if (is_recursive) {
+        for (auto& mod : using_modules) {
+            auto decl = mod.second->get_decl(call_expr, false);
+            if (decl) {
+                return decl;
+            }
+        }
+    }
+
+    return std::nullopt;
 }
 
 auto Module::get_enum(std::string enum_name) const -> std::optional<std::shared_ptr<EnumDecl>> {

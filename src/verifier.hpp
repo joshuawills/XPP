@@ -100,7 +100,7 @@ class Verifier
     auto visit_continue_stmt(std::shared_ptr<ContinueStmt> continue_stmt) -> void override;
     auto visit_delete_stmt(std::shared_ptr<DeleteStmt> delete_stmt) -> void override;
 
-    auto check(std::string const& filename, bool is_main) -> void;
+    auto check(std::string const& filename, bool is_main, bool is_libc = false) -> void;
 
     std::optional<std::shared_ptr<Type>> current_numerical_type = std::nullopt;
     Position unmurk_pos;
