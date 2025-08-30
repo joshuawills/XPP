@@ -38,10 +38,74 @@ pub class string {
     }
 
     pub fn print() void {
-        printf("%s", data);
+        if data != null {
+            printf("%s", data);
+        }
     }
 
     pub fn println() void {
-        printf("%s\n", data);
+        if data != null {
+            printf("%s\n", data);
+        } else {
+            printf("\n");
+        }
+    }
+
+    pub fn size() i64 {
+        return len;
+    }
+
+    pub fn empty() bool {
+        return len == 0;
+    }
+
+    pub fn at(v: i64) i8 {
+        return data[v];
+    }
+
+    pub fn data() i8* {
+        return data;
+    }
+
+    pub fn equals(other: string*) bool {
+        if len != other->size() {
+            return false;
+        }
+        loop i in len {
+            if data[i] != other->at(i) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    pub mut fn append(s: i8*) void {
+        let s_len = str_len(s);
+        if capacity < len + s_len {
+            let new_capacity = (len + s_len) * 2;
+            let mut new_data = new i8[new_capacity + 1];
+            loop i in len {
+                new_data[i] = data[i];
+            }
+            delete data;
+            data = new_data;
+            capacity = new_capacity;
+        }
+        loop i in s_len {
+            data[len + i] = s[i];
+        }
+        len += s_len;
+        data[len] = '\0';
+    }
+
+    pub mut fn append(s: string*) void {
+        append(s->data());
+    }
+
+    pub mut fn clear() void {
+        len = 0;
+        if data != null {
+            data[0] = '\0';
+        }
     }
 }

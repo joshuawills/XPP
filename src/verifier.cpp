@@ -1080,6 +1080,31 @@ auto Verifier::visit_call_expr(std::shared_ptr<CallExpr> call_expr) -> void {
         }
     }
 
+    if (curr_class) {
+        // Could be calling a method on the current class
+        auto this_expr = std::make_shared<VarExpr>(call_expr->pos(), "this");
+        auto method_access_expr =
+            std::make_shared<MethodAccessExpr>(call_expr->pos(), this_expr, function_name, call_expr->get_args(), true);
+        auto new_args = std::vector<std::shared_ptr<Expr>>{};
+        for (auto& arg : method_access_expr->get_args()) {
+            arg->visit(shared_from_this());
+            if (updated_expr_) {
+                new_args.push_back(updated_expr_);
+                updated_expr_ = nullptr;
+            }
+            else {
+                new_args.push_back(arg);
+            }
+        }
+        method_access_expr->set_args(new_args);
+        auto method = curr_class->get_method(method_access_expr);
+        if (method) {
+            method_access_expr->visit(shared_from_this());
+            updated_expr_ = method_access_expr;
+            return;
+        }
+    }
+
     if (!current_module_->function_with_name_exists(function_name) and !curr_module_access_) {
         handler_->report_error(current_filename_, all_errors_[12], function_name, call_expr->pos());
         return;

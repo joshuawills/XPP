@@ -1,0 +1,37 @@
+// str lib testing
+
+using str, libc;
+
+fn main() void {
+    let mut s = string("hello world");
+    let mut t = string("hello world");
+    if s.equals(&t) {
+        printf("expected!\n");
+    } else {
+        printf("not expected!\n");
+    }
+
+    let mut z = string("hmmmm");
+
+    s.println();
+    z.println();
+
+    if !s.equals(&z) {
+        printf("expected!\n");
+    } else {
+        printf("not expected!\n");
+    }
+
+    printf("%d\n", s.at(0) == 'h');
+    printf("%d\n", s.size());
+
+    s.append(". my name is bob. ");
+    s.println();
+
+    t.append(&z);
+    t.println();
+
+    let mut empty = string();
+    printf("%d\n", empty.empty());
+
+}

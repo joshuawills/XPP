@@ -864,6 +864,9 @@ auto FieldAccessExpr::print(std::ostream& os) const -> void {
 
 auto MethodAccessExpr::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
     // First field in the method call
+    if (auto l = std::dynamic_pointer_cast<VarExpr>(class_instance_)) {
+        emitter->is_this_ = l->get_name() == "this";
+    }
     auto class_val = class_instance_->codegen(emitter);
 
     auto name = "method." + method_name_ + ref_->get_type_output();

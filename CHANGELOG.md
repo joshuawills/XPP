@@ -93,6 +93,7 @@
 - Add in for loops 
 - Moduling system
 - References?
+- Copy constructors
 - Documentation!
     - General instructions for language features
     - Classes in the CFG
