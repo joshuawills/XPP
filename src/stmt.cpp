@@ -135,6 +135,10 @@ auto IfStmt::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
     emitter->llvm_builder->SetInsertPoint(else_block);
     stmt_two_->codegen(emitter);
     stmt_three_->codegen(emitter);
+    if (std::dynamic_pointer_cast<EmptyStmt>(stmt_three_)) {
+        emitter->llvm_builder->CreateBr(bottom_block);
+    }
+
     temp = std::dynamic_pointer_cast<CompoundStmt>(stmt_one_);
     if ((!temp or (temp and !temp->has_return())) and !emitter->llvm_builder->GetInsertBlock()->getTerminator()) {
         emitter->llvm_builder->CreateBr(bottom_block);
