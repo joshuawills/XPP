@@ -1,3 +1,4 @@
+Calling copy constructor!
 0
 1
 2
@@ -23,6 +24,8 @@
 22
 23
 24
+Calling IntList destructor!
+Calling foo destructor!
 0
 1
 2

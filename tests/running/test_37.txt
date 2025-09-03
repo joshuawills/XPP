@@ -1,0 +1,10 @@
+Val is 21
+In the copy constructor!
+Val is 19
+In the copy constructor!
+Val is 19
+====
+Val is 42
+Nothing to do!
+42
+Nothing to do!

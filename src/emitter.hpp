@@ -61,6 +61,7 @@ class Emitter : public std::enable_shared_from_this<Emitter> {
     auto forward_declare_func(std::shared_ptr<Function> function) -> void;
     auto forward_declare_method(std::shared_ptr<MethodDecl> method) -> void;
     auto forward_declare_constructor(std::shared_ptr<ConstructorDecl> constructor) -> void;
+    auto forward_declare_copy_constructor() -> void;
     auto forward_declare_destructor(std::shared_ptr<ClassDecl> class_) -> void;
 
     auto set_array_alloca(llvm::AllocaInst* a) -> void {

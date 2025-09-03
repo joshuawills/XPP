@@ -327,6 +327,15 @@ auto Verifier::visit_constructor_decl(std::shared_ptr<ConstructorDecl> construct
     }
     constructor_decl->get_compound_stmt()->visit(shared_from_this());
 
+    auto args = constructor_decl->get_paras();
+    if (args.size() == 1) {
+        if (auto l = std::dynamic_pointer_cast<PointerType>(args[0]->get_type())) {
+            if (*l->get_sub_type() == *curr_class->get_type()) {
+                curr_class->set_has_copy_constructor(true);
+            }
+        }
+    }
+
     if (!handler_->quiet_mode() and !current_module_->is_lib()) {
         // Check if any variables opened in that scope remained unused
         // or if they were declared mutable but never reassigned
@@ -430,6 +439,7 @@ auto Verifier::visit_method_decl(std::shared_ptr<MethodDecl> method_decl) -> voi
     }
 
     global_statement_counter_ = 0;
+    method_decl->set_class_ref(curr_class);
     return;
 }
 
@@ -485,6 +495,19 @@ auto Verifier::visit_function(std::shared_ptr<Function> function) -> void {
         para->visit(shared_from_this());
     }
     function->get_compound_stmt()->visit(shared_from_this());
+
+    auto latest_scope = symbol_table_.retrieve_latest_scope();
+    for (auto it = latest_scope.rbegin(); it != latest_scope.rend(); ++it) {
+        auto member = *it;
+        if (member.attr->get_type()->is_class()) {
+            auto expr = std::make_shared<VarExpr>(function->get_compound_stmt()->pos(),
+                                                  member.attr->get_ident(),
+                                                  member.attr->get_type());
+            auto delete_stmt = std::make_shared<DeleteStmt>(function->get_compound_stmt()->pos(), expr);
+            delete_stmt->visit(shared_from_this());
+            function->get_compound_stmt()->add_stmt(delete_stmt);
+        }
+    }
 
     if (!handler_->quiet_mode() and !current_module_->is_lib()) {
         // Check if any variables opened in that scope remained unused
@@ -559,7 +582,8 @@ auto Verifier::visit_assignment_expr(std::shared_ptr<AssignmentExpr> assignment_
         }
     }
     else if (deref_res) {
-        if (auto ref = std::dynamic_pointer_cast<VarExpr>(deref_res->get_expr())->get_ref()) {
+        if (auto l = std::dynamic_pointer_cast<VarExpr>(deref_res->get_expr())) {
+            auto ref = l->get_ref();
             auto valid_constructor_mut = (in_constructor_ and std::dynamic_pointer_cast<ClassFieldDecl>(ref));
             if (!valid_constructor_mut) {
                 ref->set_reassigned();
@@ -765,13 +789,15 @@ auto Verifier::visit_binary_expr(std::shared_ptr<BinaryExpr> binary_expr) -> voi
 
 auto Verifier::visit_unary_expr(std::shared_ptr<UnaryExpr> unary_expr) -> void {
     auto e = unary_expr->get_expr();
+    auto op = unary_expr->get_operator();
+
+    e->visit(shared_from_this());
     if (updated_expr_) {
         unary_expr->set_expr(updated_expr_);
         e = updated_expr_;
         updated_expr_ = nullptr;
     }
-    auto op = unary_expr->get_operator();
-    e->visit(shared_from_this());
+
     if (e->get_type()->is_error()) {
         unary_expr->set_type(handler_->ERROR_TYPE);
         return;

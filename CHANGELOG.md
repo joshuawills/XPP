@@ -87,6 +87,10 @@
 - 'this' keyword
 - Using statements
 
+## 3 Sep 2025
+
+- Copy constructors called on function para passing
+
 ## TODO
 
 - Templates
@@ -94,6 +98,8 @@
 - Moduling system
 - References?
 - Copy constructors
+    - make sure ALL constructor initialisations are deleted at the end of the scope!
+
 - Documentation!
     - General instructions for language features
     - Classes in the CFG
