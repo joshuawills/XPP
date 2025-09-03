@@ -1207,6 +1207,17 @@ auto Verifier::visit_constructor_call_expr(std::shared_ptr<ConstructorCallExpr> 
         equivalent_constructor = current_module_->get_constructor_decl(constructor_call_expr, true);
     }
     if (!equivalent_constructor) {
+        auto args = constructor_call_expr->get_args();
+        if (args.size() == 1 and args[0]->get_type()->is_pointer()) {
+            auto p_t = std::dynamic_pointer_cast<PointerType>(args[0]->get_type());
+            if (p_t->get_sub_type()->is_class()) {
+                auto class_type = std::dynamic_pointer_cast<ClassType>(p_t->get_sub_type());
+                if (class_type->get_ref()->get_ident() == constructor_call_expr->get_name()) {
+                    constructor_call_expr->set_type(p_t->get_sub_type());
+                    return;
+                }
+            }
+        }
         handler_->report_error(current_filename_,
                                all_errors_[59],
                                "on class: '" + constructor_call_expr->get_name() + "'",
@@ -1217,17 +1228,6 @@ auto Verifier::visit_constructor_call_expr(std::shared_ptr<ConstructorCallExpr> 
 
     if (!(*equivalent_constructor)->is_pub() and !in_constructor_) {
         handler_->report_error(current_filename_, all_errors_[76], "", constructor_call_expr->pos());
-    }
-
-    auto paras = (*equivalent_constructor)->get_paras();
-    auto c = 0u;
-    for (auto& arg : constructor_call_expr->get_args()) {
-        if (c < paras.size() and paras[c]->get_type()->is_numeric()) {
-            current_numerical_type = paras[c]->get_type();
-        }
-        arg->visit(shared_from_this());
-        current_numerical_type = std::nullopt;
-        ++c;
     }
 
     (*equivalent_constructor)->set_used();
@@ -1751,6 +1751,17 @@ auto Verifier::visit_new_expr(std::shared_ptr<NewExpr> new_expr) -> void {
         }
 
         if (!equivalent_constructor) {
+            auto args = constructor_call_expr->get_args();
+            if (args.size() == 1 and args[0]->get_type()->is_pointer()) {
+                auto p_t = std::dynamic_pointer_cast<PointerType>(args[0]->get_type());
+                if (p_t->get_sub_type()->is_class()) {
+                    auto class_type = std::dynamic_pointer_cast<ClassType>(p_t->get_sub_type());
+                    if (class_type->get_ref()->get_ident() == constructor_call_expr->get_name()) {
+                        constructor_call_expr->set_type(p_t->get_sub_type());
+                        return;
+                    }
+                }
+            }
             handler_->report_error(current_filename_,
                                    all_errors_[59],
                                    "on class: '" + constructor_call_expr->get_name() + "'",
@@ -1761,17 +1772,6 @@ auto Verifier::visit_new_expr(std::shared_ptr<NewExpr> new_expr) -> void {
 
         if (!(*equivalent_constructor)->is_pub()) {
             handler_->report_error(current_filename_, all_errors_[76], "", constructor_call_expr->pos());
-        }
-
-        auto paras = (*equivalent_constructor)->get_paras();
-        auto c = 0u;
-        for (auto& arg : constructor_call_expr->get_args()) {
-            if (c < paras.size() and paras[c]->get_type()->is_numeric()) {
-                current_numerical_type = paras[c]->get_type();
-            }
-            arg->visit(shared_from_this());
-            current_numerical_type = std::nullopt;
-            ++c;
         }
 
         (*equivalent_constructor)->set_used();

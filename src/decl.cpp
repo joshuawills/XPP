@@ -356,6 +356,20 @@ auto LocalVarDecl::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
         emitter->set_array_alloca(alloca);
     }
 
+    if (auto l = std::dynamic_pointer_cast<VarExpr>(expr_)) {
+        if (expr_->get_type()->is_class()) {
+            auto class_type = std::dynamic_pointer_cast<ClassType>(expr_->get_type());
+            auto copy_constructor =
+                emitter->llvm_module->getFunction("copy_constructor." + class_type->get_ref()->get_ident());
+            auto arg_vals = std::vector<llvm::Value*>{};
+            arg_vals.push_back(alloca);
+            arg_vals.push_back(emitter->named_values[l->get_name() + l->get_ref()->get_append()]);
+            emitter->llvm_builder->CreateCall(copy_constructor, arg_vals);
+            emitter->named_values[get_ident() + get_append()] = alloca;
+            return alloca;
+        }
+    }
+
     auto init_val = expr_->codegen(emitter);
     auto is_array_init_expr = std::dynamic_pointer_cast<ArrayInitExpr>(expr_);
     if (!is_array_init_expr and init_val) {

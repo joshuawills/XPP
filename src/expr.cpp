@@ -620,8 +620,15 @@ auto CallExpr::print(std::ostream& os) const -> void {
 auto ConstructorCallExpr::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
     auto constructor_ref = std::dynamic_pointer_cast<ConstructorDecl>(ref_);
     if (!constructor_ref) {
-        std::cout << "UNREACHABLE ConstructorCallExpr::codegen\n";
-        return nullptr;
+        // Assume it's a default copy constructor call
+        auto callee = emitter->llvm_module->getFunction("copy_constructor." + name_);
+        auto arg_vals = std::vector<llvm::Value*>{};
+        arg_vals.push_back(emitter->alloca);
+        for (auto& arg : args_) {
+            auto val = arg->codegen(emitter);
+            arg_vals.push_back(val);
+        }
+        return emitter->llvm_builder->CreateCall(callee, arg_vals);
     }
 
     auto is_copy_constructor = false;
