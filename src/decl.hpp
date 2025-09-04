@@ -250,10 +250,19 @@ class MethodDecl
 
     auto operator==(const MethodDecl& other) const -> bool;
 
+    auto set_class_ref(std::shared_ptr<ClassDecl> class_ref) -> void {
+        class_ref_ = class_ref;
+    }
+
+    auto get_class_ref() -> std::shared_ptr<ClassDecl> {
+        return class_ref_;
+    }
+
  private:
     std::vector<std::shared_ptr<ParaDecl>> const paras_;
     std::shared_ptr<CompoundStmt> const stmts_;
     std::string type_output = "";
+    std::shared_ptr<ClassDecl> class_ref_;
 };
 
 class ConstructorDecl
@@ -457,6 +466,16 @@ class ClassDecl
         return destructors_;
     }
 
+    auto set_has_copy_constructor(bool has_copy) -> void {
+        has_copy_constructor_ = has_copy;
+    }
+
+    auto has_copy_constructor() const -> bool {
+        return has_copy_constructor_;
+    }
+
+    auto generate_copy_constructor(std::shared_ptr<Emitter> emitter) -> void;
+
  private:
     ClassDecl(Position const pos, std::string const name)
     : Decl(pos, name, std::make_shared<Type>()) {}
@@ -478,6 +497,7 @@ class ClassDecl
     std::vector<std::shared_ptr<MethodDecl>> methods_;
     std::vector<std::shared_ptr<ConstructorDecl>> constructors_;
     std::vector<std::shared_ptr<DestructorDecl>> destructors_;
+    bool has_copy_constructor_ = false;
 };
 
 #endif // DECL_HPP

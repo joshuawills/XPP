@@ -37,6 +37,16 @@ pub class string {
         data[len] = '\0';
     }
 
+    pub string(v: string*) {
+        len = v->size();
+        capacity = len;
+        data = new i8[len + 1];
+        loop i in len {
+            data[i] = v->at(i);
+        }
+        data[len] = '\0';
+    }
+
     pub fn print() void {
         if data != null {
             printf("%s", data);

@@ -42,6 +42,18 @@ pub class IntList {
         y = Foo2();
     }
 
+    pub IntList(v: IntList*) {
+        printf("Calling copy constructor!\n");
+        len = v->size();
+        section_size = v->size();
+        arr = new i64[section_size];
+        loop i in len {
+            arr[i] = v->at(i);
+        }
+        x = Foo();
+        y = Foo2();
+    }
+
     destructor {
         printf("Calling IntList destructor!\n");
         delete arr;
@@ -56,10 +68,18 @@ pub class IntList {
         arr[len++] = val;
     }
 
+    pub fn at(v: i64) i64 {
+        return arr[v];
+    }
+
     pub fn print() void {
         loop i in len {
             printf("%d\n", arr[i]);
         }
+    }
+
+    pub fn size() i64 {
+        return len;
     }
 
 }

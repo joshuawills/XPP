@@ -85,6 +85,7 @@ auto AssignmentExpr::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
         if (!class_instance) {
             return nullptr;
         }
+        emitter->is_this_ = false;
         auto const class_type = emitter->llvm_type(lhs->get_class_ref());
         ptr = emitter->llvm_builder->CreateStructGEP(class_type, class_instance, lhs->get_field_num());
     }
@@ -473,12 +474,11 @@ auto CharExpr::print(std::ostream& os) const -> void {
 
 auto VarExpr::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
     auto is_field_access = std::dynamic_pointer_cast<ClassFieldDecl>(get_ref());
-    if (emitter->is_this_) {
+    if (emitter->is_this_ and !is_field_access) {
         auto this_ = emitter->named_values["this"];
         auto t = emitter->llvm_type(get_type());
         return emitter->llvm_builder->CreateLoad(t, this_);
     }
-
     else if (is_field_access) {
         assert(emitter->curr_class_ != nullptr);
         auto const field_index = emitter->curr_class_->get_index_for_field(is_field_access->get_ident());
@@ -588,14 +588,24 @@ auto CallExpr::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
     }
 
     auto arg_vals = std::vector<llvm::Value*>{};
+    std::shared_ptr<Expr> v = nullptr;
+    llvm::Value* real_v = nullptr;
     for (auto& arg : args_) {
         auto val = arg->codegen(emitter);
-        if (arg->get_type()->is_class() and std::dynamic_pointer_cast<VarExpr>(arg)) {
-            val = emitter->llvm_builder->CreateLoad(emitter->llvm_type(arg->get_type()), val);
+        auto l = std::dynamic_pointer_cast<VarExpr>(arg);
+        if (arg->get_type()->is_class() and !l) {
+            real_v = val;
+            v = arg;
         }
         arg_vals.push_back(val);
     }
-    return emitter->llvm_builder->CreateCall(callee, arg_vals);
+    auto res = emitter->llvm_builder->CreateCall(callee, arg_vals);
+    if (v) {
+        auto class_type = std::dynamic_pointer_cast<ClassType>(v->get_type());
+        auto destructor = emitter->llvm_module->getFunction("destructor." + class_type->get_ref()->get_ident());
+        emitter->llvm_builder->CreateCall(destructor, {real_v});
+    }
+    return res;
 }
 
 auto CallExpr::print(std::ostream& os) const -> void {
@@ -613,10 +623,34 @@ auto CallExpr::print(std::ostream& os) const -> void {
 auto ConstructorCallExpr::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
     auto constructor_ref = std::dynamic_pointer_cast<ConstructorDecl>(ref_);
     if (!constructor_ref) {
-        std::cout << "UNREACHABLE ConstructorCallExpr::codegen\n";
-        return nullptr;
+        // Assume it's a default copy constructor call
+        auto callee = emitter->llvm_module->getFunction("copy_constructor." + name_);
+        auto arg_vals = std::vector<llvm::Value*>{};
+        arg_vals.push_back(emitter->alloca);
+        for (auto& arg : args_) {
+            auto val = arg->codegen(emitter);
+            arg_vals.push_back(val);
+        }
+        return emitter->llvm_builder->CreateCall(callee, arg_vals);
     }
-    auto name = "constructor." + constructor_ref->get_ident() + constructor_ref->get_type_output();
+
+    auto is_copy_constructor = false;
+    if (args_.size() == 1) {
+        if (auto l = std::dynamic_pointer_cast<PointerType>(args_[0]->get_type())) {
+            if (*l->get_sub_type() == *emitter->curr_class_->get_type()) {
+                is_copy_constructor = true;
+            }
+        }
+    }
+
+    auto name = std::string{};
+    if (is_copy_constructor) {
+        name = "copy_constructor." + constructor_ref->get_ident();
+    }
+    else {
+        name = "constructor." + constructor_ref->get_ident() + constructor_ref->get_type_output();
+    }
+
     auto callee = emitter->llvm_module->getFunction(name);
 
     llvm::Value* class_ptr;
@@ -850,10 +884,9 @@ auto FieldAccessExpr::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* 
     auto class_val = class_instance_->codegen(emitter);
     if (!class_val)
         return nullptr;
-
+    emitter->is_this_ = false;
     auto const class_type = emitter->llvm_type(class_ref_);
     auto const val = emitter->llvm_builder->CreateStructGEP(class_type, class_val, field_num_);
-    emitter->is_this_ = false;
     return emitter->llvm_builder->CreateLoad(emitter->llvm_type(get_type()), val);
 }
 
@@ -868,9 +901,11 @@ auto MethodAccessExpr::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value*
         emitter->is_this_ = l->get_name() == "this";
     }
     auto class_val = class_instance_->codegen(emitter);
+    emitter->is_this_ = false;
 
-    auto name = "method." + method_name_ + ref_->get_type_output();
+    auto name = "method." + ref_->get_class_ref()->get_ident() + method_name_ + ref_->get_type_output();
     auto function = emitter->llvm_module->getFunction(name);
+    assert(function != nullptr);
 
     auto arg_vals = std::vector<llvm::Value*>{};
     arg_vals.push_back(class_val);

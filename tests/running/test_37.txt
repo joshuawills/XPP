@@ -1,0 +1,13 @@
+Val is 21
+In the copy constructor!
+Val is 19
+IntBox destructor: 0
+In the copy constructor!
+Val is 19
+IntBox destructor: 1
+====
+Val is 42
+PointerBox destructor: 2
+42
+IntBox destructor: 3
+PointerBox destructor: 4

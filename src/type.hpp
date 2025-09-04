@@ -72,6 +72,21 @@ class Type {
         return t_;
     }
 
+    auto is_primitive() const noexcept -> bool {
+        auto primitive_types = std::vector<TypeSpec>{TypeSpec::I64,
+                                                     TypeSpec::I32,
+                                                     TypeSpec::I8,
+                                                     TypeSpec::U64,
+                                                     TypeSpec::U32,
+                                                     TypeSpec::U8,
+                                                     TypeSpec::F32,
+                                                     TypeSpec::F64,
+                                                     TypeSpec::BOOL,
+                                                     TypeSpec::POINTER,
+                                                     TypeSpec::ARRAY};
+        return std::find(primitive_types.begin(), primitive_types.end(), t_) != primitive_types.end();
+    }
+
     auto is_variatic() const noexcept -> bool {
         return t_ == TypeSpec::VARIATIC;
     }

@@ -1,0 +1,38 @@
+// Copy constructor normal case and via `let a = b;`
+
+using libc;
+
+class PointerBox {
+    mut v: i64*;
+
+    pub PointerBox(v: i64*) {
+        this->v = v;
+    }
+
+    pub fn get_v() i64 {
+        return *v;
+    }
+
+    pub mut fn set_v(v: i64) void {
+        *(this->v) = v;
+    }
+
+    destructor {
+        printf("Nothing to do!\n");
+    }
+}
+
+fn main() void {
+    let mut x = 19;
+    let mut y = PointerBox(&x);
+    // Works even though it's not initialised
+    let mut z = PointerBox(&y);
+    y.set_v(21);
+    printf("%d\n", z.get_v());
+
+    let mut a = y;
+    a.set_v(31);
+    printf("%d\n", a.get_v());
+    printf("%d\n", z.get_v());
+}
+

@@ -34,4 +34,10 @@ fn main() void {
     let mut empty = string();
     printf("%d\n", empty.empty());
 
+
+    let mut haha = string(&s);
+    s.clear();
+    s.println();
+    haha.println();
+
 }

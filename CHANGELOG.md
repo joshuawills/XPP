@@ -87,13 +87,19 @@
 - 'this' keyword
 - Using statements
 
+## 3 Sep 2025
+
+- Copy constructors called on function para passing
+- Copy constructors for let a = b and explicit cases
+- Class destructors calaled even when not bound to a type
+
 ## TODO
 
 - Templates
 - Add in for loops 
 - Moduling system
 - References?
-- Copy constructors
+
 - Documentation!
     - General instructions for language features
     - Classes in the CFG

@@ -56,6 +56,9 @@ auto Emitter::emit() -> void {
                 for (auto& constructor : class_->get_constructors()) {
                     forward_declare_constructor(constructor);
                 }
+                if (!class_->has_copy_constructor()) {
+                    forward_declare_copy_constructor();
+                }
                 forward_declare_destructor(class_);
             }
         }
@@ -205,7 +208,12 @@ auto Emitter::forward_declare_func(std::shared_ptr<Function> function) -> void {
     // Handling params
     auto param_types = std::vector<llvm::Type*>{};
     for (auto& para : function->get_paras()) {
-        param_types.push_back(llvm_type(para->get_type()));
+        if (para->get_type()->is_class()) {
+            param_types.push_back(llvm::PointerType::getUnqual(llvm_type(para->get_type())));
+        }
+        else {
+            param_types.push_back(llvm_type(para->get_type()));
+        }
     }
 
     // Instantiating function
@@ -217,6 +225,18 @@ auto Emitter::forward_declare_func(std::shared_ptr<Function> function) -> void {
     llvm::Function::Create(func_type, llvm::Function::ExternalLinkage, name, *llvm_module);
 }
 
+auto Emitter::forward_declare_copy_constructor() -> void {
+    auto return_type = llvm::Type::getVoidTy(*context);
+    auto param_types = std::vector<llvm::Type*>{};
+    auto t = llvm::PointerType::getUnqual(llvm_type(curr_class_));
+    param_types.push_back(t);
+    param_types.push_back(t);
+
+    auto name = "copy_constructor." + curr_class_->get_ident();
+    auto const constructor_type = llvm::FunctionType::get(return_type, param_types, false);
+    llvm::Function::Create(constructor_type, llvm::Function::ExternalLinkage, name, *llvm_module);
+}
+
 auto Emitter::forward_declare_constructor(std::shared_ptr<ConstructorDecl> constructor) -> void {
     auto return_type = llvm::Type::getVoidTy(*context);
     auto param_types = std::vector<llvm::Type*>{};
@@ -226,11 +246,32 @@ auto Emitter::forward_declare_constructor(std::shared_ptr<ConstructorDecl> const
 
     // Handling params
     for (auto& para : constructor->get_paras()) {
-        param_types.push_back(llvm_type(para->get_type()));
+        if (para->get_type()->is_class()) {
+            param_types.push_back(llvm::PointerType::getUnqual(llvm_type(para->get_type())));
+        }
+        else {
+            param_types.push_back(llvm_type(para->get_type()));
+        }
+    }
+
+    auto is_copy_constructor = false;
+    auto paras = constructor->get_paras();
+    if (paras.size() == 1) {
+        if (auto l = std::dynamic_pointer_cast<PointerType>(paras[0]->get_type())) {
+            if (*l->get_sub_type() == *curr_class_->get_type()) {
+                is_copy_constructor = true;
+            }
+        }
     }
 
     // Instantiating function
-    auto name = "constructor." + curr_class_->get_ident() + constructor->get_type_output();
+    auto name = std::string{};
+    if (is_copy_constructor) {
+        name = "copy_constructor." + curr_class_->get_ident();
+    }
+    else {
+        name = "constructor." + curr_class_->get_ident() + constructor->get_type_output();
+    }
     auto const constructor_type = llvm::FunctionType::get(return_type, param_types, false);
     llvm::Function::Create(constructor_type, llvm::Function::ExternalLinkage, name, *llvm_module);
 }
@@ -255,11 +296,16 @@ auto Emitter::forward_declare_method(std::shared_ptr<MethodDecl> method) -> void
 
     // Handling params
     for (auto& para : method->get_paras()) {
-        param_types.push_back(llvm_type(para->get_type()));
+        if (para->get_type()->is_class()) {
+            param_types.push_back(llvm::PointerType::getUnqual(llvm_type(para->get_type())));
+        }
+        else {
+            param_types.push_back(llvm_type(para->get_type()));
+        }
     }
 
     // Instantiating function
-    auto name = "method." + method->get_ident() + method->get_type_output();
+    auto name = "method." + curr_class_->get_ident() + method->get_ident() + method->get_type_output();
     auto const method_type = llvm::FunctionType::get(return_type, param_types, false);
     llvm::Function::Create(method_type, llvm::Function::ExternalLinkage, name, *llvm_module);
 }

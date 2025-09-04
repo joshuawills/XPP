@@ -1,0 +1,78 @@
+// Copy constructor called for function pass (Implicit and explicit) - value semantics, destructor on function arg
+
+using libc;
+
+let mut count = 0;
+
+class IntBox {
+	mut v: i64;
+
+    pub IntBox(v: IntBox*) {
+        printf("In the copy constructor!\n");
+        this->v = 19;
+    }
+
+	pub IntBox(v: i64) {
+		this->v = v;
+	}
+
+	pub fn get_v() i64 {
+		return v;
+	}
+
+    pub mut fn set_v(v: i64) void {
+        this->v = v;
+    }
+
+    destructor {
+        printf("IntBox destructor: %d\n", count++);
+    }
+}
+
+class PointerBox {
+    mut v: i64*;
+
+    pub PointerBox(v: i64*) {
+        this->v = v;
+    }
+
+    pub fn get_v() i64 {
+        return *v;
+    }
+
+    pub mut fn set_v(v: i64) void {
+        *(this->v) = v;
+    }
+
+    destructor {
+        printf("PointerBox destructor: %d\n", count++);
+    }
+}
+
+fn bar(mut y: IntBox) void {
+    printf("Val is %d\n", y.get_v());
+    y.set_v(42);
+}
+
+fn bar_p(y: IntBox*) void {
+    printf("Val is %d\n", y->get_v());
+}
+
+fn bar(mut y: PointerBox) void {
+    y.set_v(42);
+    printf("Val is %d\n", y.get_v());
+}
+
+fn main() void {
+	let mut a = IntBox(21);
+    bar_p(&a);
+    bar(a);
+    a.set_v(100);
+    bar(a);
+
+    printf("====\n");
+    let mut num = 21;
+    let mut b = PointerBox(&num);
+    bar(b);
+    printf("%d\n", b.get_v());
+}
