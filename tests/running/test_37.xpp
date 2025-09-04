@@ -2,6 +2,8 @@
 
 using libc;
 
+let mut count = 0;
+
 class IntBox {
 	mut v: i64;
 
@@ -21,6 +23,10 @@ class IntBox {
     pub mut fn set_v(v: i64) void {
         this->v = v;
     }
+
+    destructor {
+        printf("IntBox destructor: %d\n", count++);
+    }
 }
 
 class PointerBox {
@@ -39,7 +45,7 @@ class PointerBox {
     }
 
     destructor {
-        printf("Nothing to do!\n");
+        printf("PointerBox destructor: %d\n", count++);
     }
 }
 

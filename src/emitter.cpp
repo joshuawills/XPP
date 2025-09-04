@@ -208,7 +208,12 @@ auto Emitter::forward_declare_func(std::shared_ptr<Function> function) -> void {
     // Handling params
     auto param_types = std::vector<llvm::Type*>{};
     for (auto& para : function->get_paras()) {
-        param_types.push_back(llvm_type(para->get_type()));
+        if (para->get_type()->is_class()) {
+            param_types.push_back(llvm::PointerType::getUnqual(llvm_type(para->get_type())));
+        }
+        else {
+            param_types.push_back(llvm_type(para->get_type()));
+        }
     }
 
     // Instantiating function
@@ -241,7 +246,12 @@ auto Emitter::forward_declare_constructor(std::shared_ptr<ConstructorDecl> const
 
     // Handling params
     for (auto& para : constructor->get_paras()) {
-        param_types.push_back(llvm_type(para->get_type()));
+        if (para->get_type()->is_class()) {
+            param_types.push_back(llvm::PointerType::getUnqual(llvm_type(para->get_type())));
+        }
+        else {
+            param_types.push_back(llvm_type(para->get_type()));
+        }
     }
 
     auto is_copy_constructor = false;
@@ -286,7 +296,12 @@ auto Emitter::forward_declare_method(std::shared_ptr<MethodDecl> method) -> void
 
     // Handling params
     for (auto& para : method->get_paras()) {
-        param_types.push_back(llvm_type(para->get_type()));
+        if (para->get_type()->is_class()) {
+            param_types.push_back(llvm::PointerType::getUnqual(llvm_type(para->get_type())));
+        }
+        else {
+            param_types.push_back(llvm_type(para->get_type()));
+        }
     }
 
     // Instantiating function

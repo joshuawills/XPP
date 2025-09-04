@@ -1,0 +1,38 @@
+// Class destructors called even when not bound to a type
+
+using libc;
+
+let mut count = 0;
+
+class IntBox {
+	mut v: i64;
+
+	pub IntBox() {
+		v = 21;
+	}
+
+	pub fn get_v() i64 { return v; }
+	pub mut fn set_v(v: i64) void { this->v = v; }
+
+    pub fn print_v(val: IntBox) void {
+        printf("Val is %d\n", val.get_v());
+    }
+
+	destructor {
+		printf("IntBox::destructor: %d\n", count++);
+	}
+}
+
+fn take_in_int_box(x: IntBox) void {
+	printf("Val is %d\n", x.get_v());
+}
+
+fn main() void {
+    let a = IntBox();
+    printf("a.v = %d\n", a.get_v());
+	take_in_int_box(IntBox());	
+
+    printf("---\n");
+    a.print_v(a);
+    printf("---\n");
+}

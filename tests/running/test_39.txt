@@ -1,0 +1,9 @@
+a.v = 21
+Val is 21
+IntBox::destructor: 0
+IntBox::destructor: 1
+---
+Val is 21
+IntBox::destructor: 2
+---
+IntBox::destructor: 3

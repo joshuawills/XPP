@@ -41,10 +41,23 @@ auto Function::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
     auto entry_block = llvm::BasicBlock::Create(*emitter->context, entry_name, func);
     emitter->llvm_builder->SetInsertPoint(entry_block);
 
+    auto paras_iter = paras_.begin();
     for (auto& arg : func->args()) {
-        auto alloca = emitter->llvm_builder->CreateAlloca(arg.getType(), nullptr, arg.getName());
-        emitter->llvm_builder->CreateStore(&arg, alloca);
+        auto alloca = emitter->llvm_builder->CreateAlloca(emitter->llvm_type(paras_iter->get()->get_type()),
+                                                          nullptr,
+                                                          arg.getName());
+        if (paras_iter->get()->get_type()->is_class()) {
+            // Call the copy constructor
+            auto class_type = std::dynamic_pointer_cast<ClassType>(paras_iter->get()->get_type());
+            auto copy_constructor_name = "copy_constructor." + class_type->get_ref()->get_ident();
+            auto copy_constructor = emitter->llvm_module->getFunction(copy_constructor_name);
+            emitter->llvm_builder->CreateCall(copy_constructor, {alloca, &arg});
+        }
+        else {
+            emitter->llvm_builder->CreateStore(&arg, alloca);
+        }
         emitter->named_values[arg.getName().str()] = alloca;
+        ++paras_iter;
     }
 
     stmts_->codegen(emitter);
@@ -111,10 +124,26 @@ auto MethodDecl::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
     auto entry_block = llvm::BasicBlock::Create(*emitter->context, entry_name, method);
     emitter->llvm_builder->SetInsertPoint(entry_block);
 
+    auto paras_iter = paras_.begin();
+    auto c = 0u;
     for (auto& arg : method->args()) {
-        auto alloca = emitter->llvm_builder->CreateAlloca(arg.getType(), nullptr, arg.getName());
-        emitter->llvm_builder->CreateStore(&arg, alloca);
+        auto t = c ? emitter->llvm_type(paras_iter->get()->get_type()) : arg.getType();
+        auto alloca = emitter->llvm_builder->CreateAlloca(t, nullptr, arg.getName());
+        if (c and paras_iter != paras_.end() and paras_iter->get()->get_type()->is_class()) {
+            // Call the copy constructor
+            auto class_type = std::dynamic_pointer_cast<ClassType>(paras_iter->get()->get_type());
+            auto copy_constructor_name = "copy_constructor." + class_type->get_ref()->get_ident();
+            auto copy_constructor = emitter->llvm_module->getFunction(copy_constructor_name);
+            emitter->llvm_builder->CreateCall(copy_constructor, {alloca, &arg});
+        }
+        else {
+            emitter->llvm_builder->CreateStore(&arg, alloca);
+        }
         emitter->named_values[arg.getName().str()] = alloca;
+        if (arg.getName() != "this") {
+            ++paras_iter;
+        }
+        ++c;
     }
 
     stmts_->codegen(emitter);
@@ -176,10 +205,26 @@ auto ConstructorDecl::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* 
     auto entry_block = llvm::BasicBlock::Create(*emitter->context, entry_name, constructor);
     emitter->llvm_builder->SetInsertPoint(entry_block);
 
+    auto paras_iter = paras_.begin();
+    auto c = 0u;
     for (auto& arg : constructor->args()) {
-        auto alloca = emitter->llvm_builder->CreateAlloca(arg.getType(), nullptr, arg.getName());
-        emitter->llvm_builder->CreateStore(&arg, alloca);
+        auto t = c ? emitter->llvm_type(paras_iter->get()->get_type()) : arg.getType();
+        auto alloca = emitter->llvm_builder->CreateAlloca(t, nullptr, arg.getName());
+        if (c and paras_iter != paras_.end() and paras_iter->get()->get_type()->is_class()) {
+            // Call the copy constructor
+            auto class_type = std::dynamic_pointer_cast<ClassType>(paras_iter->get()->get_type());
+            auto copy_constructor_name = "copy_constructor." + class_type->get_ref()->get_ident();
+            auto copy_constructor = emitter->llvm_module->getFunction(copy_constructor_name);
+            emitter->llvm_builder->CreateCall(copy_constructor, {alloca, &arg});
+        }
+        else {
+            emitter->llvm_builder->CreateStore(&arg, alloca);
+        }
         emitter->named_values[arg.getName().str()] = alloca;
+        if (arg.getName() != "this") {
+            ++paras_iter;
+        }
+        ++c;
     }
 
     stmts_->codegen(emitter);

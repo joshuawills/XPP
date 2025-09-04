@@ -418,6 +418,19 @@ auto Verifier::visit_method_decl(std::shared_ptr<MethodDecl> method_decl) -> voi
     }
     method_decl->get_compound_stmt()->visit(shared_from_this());
 
+    auto latest_scope = symbol_table_.retrieve_latest_scope();
+    for (auto it = latest_scope.rbegin(); it != latest_scope.rend(); ++it) {
+        auto member = *it;
+        if (member.attr->get_type()->is_class()) {
+            auto expr = std::make_shared<VarExpr>(method_decl->get_compound_stmt()->pos(),
+                                                  member.attr->get_ident(),
+                                                  member.attr->get_type());
+            auto delete_stmt = std::make_shared<DeleteStmt>(method_decl->get_compound_stmt()->pos(), expr);
+            delete_stmt->visit(shared_from_this());
+            method_decl->get_compound_stmt()->add_stmt(delete_stmt);
+        }
+    }
+
     if (!handler_->quiet_mode() and !current_module_->is_lib()) {
         // Check if any variables opened in that scope remained unused
         // or if they were declared mutable but never reassigned

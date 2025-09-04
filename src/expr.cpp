@@ -588,21 +588,24 @@ auto CallExpr::codegen(std::shared_ptr<Emitter> emitter) -> llvm::Value* {
     }
 
     auto arg_vals = std::vector<llvm::Value*>{};
+    std::shared_ptr<Expr> v = nullptr;
+    llvm::Value* real_v = nullptr;
     for (auto& arg : args_) {
         auto val = arg->codegen(emitter);
-        if (arg->get_type()->is_class() and std::dynamic_pointer_cast<VarExpr>(arg)) {
-            // Call the copy constructor
-            auto alloca = emitter->llvm_builder->CreateAlloca(emitter->llvm_type(arg->get_type()));
-            auto class_type = std::dynamic_pointer_cast<ClassType>(arg->get_type());
-            auto constructor =
-                emitter->llvm_module->getFunction("copy_constructor." + class_type->get_ref()->get_ident());
-
-            emitter->llvm_builder->CreateCall(constructor, {alloca, val});
-            val = emitter->llvm_builder->CreateLoad(emitter->llvm_type(arg->get_type()), alloca);
+        auto l = std::dynamic_pointer_cast<VarExpr>(arg);
+        if (arg->get_type()->is_class() and !l) {
+            real_v = val;
+            v = arg;
         }
         arg_vals.push_back(val);
     }
-    return emitter->llvm_builder->CreateCall(callee, arg_vals);
+    auto res = emitter->llvm_builder->CreateCall(callee, arg_vals);
+    if (v) {
+        auto class_type = std::dynamic_pointer_cast<ClassType>(v->get_type());
+        auto destructor = emitter->llvm_module->getFunction("destructor." + class_type->get_ref()->get_ident());
+        emitter->llvm_builder->CreateCall(destructor, {real_v});
+    }
+    return res;
 }
 
 auto CallExpr::print(std::ostream& os) const -> void {

@@ -90,6 +90,8 @@
 ## 3 Sep 2025
 
 - Copy constructors called on function para passing
+- Copy constructors for let a = b and explicit cases
+- Class destructors calaled even when not bound to a type
 
 ## TODO
 
@@ -97,8 +99,6 @@
 - Add in for loops 
 - Moduling system
 - References?
-- Copy constructors
-    - make sure ALL constructor initialisations are deleted at the end of the scope!
 
 - Documentation!
     - General instructions for language features
